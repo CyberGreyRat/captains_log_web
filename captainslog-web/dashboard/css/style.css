@@ -1,0 +1,193 @@
+/* css/style.css */
+:root {
+    --primary-color: #2c3e50;
+    --accent-color: #3498db;
+    --success-color: #2ecc71;
+    --warning-color: #f1c40f;
+    --bg-light: #f4f7f6;
+    --text-dark: #333;
+    --text-light: #fff;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Navbar */
+.navbar {
+    background-color: var(--primary-color);
+    color: var(--text-light);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+/* Layout */
+.dashboard-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 250px;
+    background-color: #fff;
+    border-right: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    padding: 1.5rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+}
+
+.project-list {
+    list-style: none;
+    overflow-y: auto;
+}
+
+.project-list li {
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.project-list li:hover, .project-list li.active {
+    background-color: #e8f4fd;
+    border-left: 4px solid var(--accent-color);
+}
+
+/* Content Area */
+.content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.project-header {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.badge-id {
+    display: inline-block;
+    background: #eee;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    color: #666;
+}
+
+/* Progress Bar */
+.progress-wrapper {
+    margin-top: 1.5rem;
+}
+
+.progress-label {
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.progress-bar-bg {
+    background-color: #ecf0f1;
+    border-radius: 20px;
+    height: 20px;
+    width: 100%;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    background-color: var(--success-color);
+    height: 100%;
+    color: white;
+    text-align: center;
+    font-size: 0.8rem;
+    line-height: 20px;
+    transition: width 0.5s ease-in-out;
+}
+
+/* Requirements Grid */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.requirements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.req-card {
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    border-top: 4px solid var(--primary-color);
+}
+
+.req-card h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.req-card .status {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-top: 1rem;
+}
+
+/* Status Colors */
+.status-open { background: #e74c3c; color: white; }
+.status-in_progress { background: var(--warning-color); color: #333; }
+.status-implemented { background: var(--accent-color); color: white; }
+.status-tested { background: var(--success-color); color: white; }
+
+/* Buttons */
+button {
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    font-weight: bold;
+}
+.btn-primary { background: var(--accent-color); color: white; }
+.btn-secondary { background: var(--primary-color); color: white; }
+button:disabled { background: #ccc; cursor: not-allowed; }
