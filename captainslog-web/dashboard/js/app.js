@@ -2,59 +2,69 @@
 
 import { setCurrentProjectId, currentProjectId } from './state.js';
 import { fetchProjects } from './api.js';
-import { loadHistory } from './history.js';
 
-// Unsere 4 glasklaren, neuen Module:
 import { loadRequirements, initRequirementEvents } from './requirements.js';
 import { loadStakeholders, initStakeholderEvents } from './stakeholders.js';
 import { loadUseCases, initUseCaseEvents } from './usecases.js';
 import { loadUserStories, initUserStoryEvents } from './userstories.js';
+import { loadHistory } from './history.js';
 
 document.addEventListener("DOMContentLoaded", async () => {
-    
-    await initProjectsDropdown();
+    try {
+        // 1. Projekte laden
+        await initProjectsDropdown();
 
-    // Event-Listener aller Module aktivieren
-    initRequirementEvents();
-    initStakeholderEvents();
-    initUseCaseEvents();
-    initUserStoryEvents();
+        // 2. Event-Listener initialisieren (Buttons scharf schalten)
+        initRequirementEvents();
+        initStakeholderEvents();
+        initUseCaseEvents();
+        initUserStoryEvents();
 
-    // Projektwechsel abfangen
-    document.getElementById('projectSelect').addEventListener('change', async (e) => {
-        setCurrentProjectId(e.target.value);
-        
-        if (currentProjectId) {
-            // Alle Ansichten mit Daten füllen
-            loadRequirements();
-            loadStakeholders();
-            loadUseCases();
-            loadUserStories();
-        } else {
-            // Leeren, falls "Projekt wählen" geklickt wird
-            document.getElementById('items').innerHTML = '<div class="p-4 text-sm text-slate-500">Bitte wähle oben ein Projekt aus.</div>';
-            document.getElementById('detail').innerHTML = '<div class="flex h-full items-center justify-center text-slate-400 italic">Anforderung auswählen</div>';
+        // 3. Projektwechsel Event
+        const projectSelect = document.getElementById('projectSelect');
+        if (projectSelect) {
+            projectSelect.addEventListener('change', async (e) => {
+                setCurrentProjectId(e.target.value);
+                
+                if (currentProjectId) {
+                    loadRequirements();
+                    loadStakeholders();
+                    loadUseCases();
+                    loadUserStories();
+                } else {
+                    const items = document.getElementById('items');
+                    if (items) items.innerHTML = '<div class="p-4 text-sm text-slate-500">Bitte wähle oben ein Projekt aus.</div>';
+                    const detail = document.getElementById('detail');
+                    if (detail) detail.innerHTML = '<div class="flex h-full items-center justify-center text-slate-400 italic">Anforderung auswählen</div>';
+                }
+            });
         }
-    });
 
+        // 4. Tab-Steuerung für Historie
+        document.querySelectorAll('.tab').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                if (e.target.dataset.panel === 'history') {
+                    loadHistory();
+                }
+            });
+        });
+
+    } catch (error) {
+        console.error("Kritischer Fehler beim Start der Anwendung:", error);
+    }
 });
 
 async function initProjectsDropdown() {
-    const projects = await fetchProjects();
-    const select = document.getElementById('projectSelect');
-    if (!select) return;
-    select.innerHTML = '<option value="">-- Projekt wählen --</option>';
-    projects.forEach(p => {
-        select.innerHTML += `<option value="${p.id}">${p.name}</option>`;
-    });
-}
+    try {
+        const projects = await fetchProjects();
+        const select = document.getElementById('projectSelect');
+        if (!select) return;
 
-// Im Tab-Event-Listener:
-document.querySelectorAll('.tab').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-        const panelId = e.target.dataset.panel;
-        if (panelId === 'history') {
-            loadHistory();
-        }
-    });
-});
+        select.innerHTML = '<option value="">-- Projekt wählen --</option>';
+        projects.forEach(p => {
+            select.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+        });
+    } catch (e) {
+        console.error("Fehler beim Füllen des Projekt-Dropdowns:", e);
+    }
+}

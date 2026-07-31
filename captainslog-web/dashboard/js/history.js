@@ -1,3 +1,4 @@
+// dashboard/js/history.js
 import { currentProjectId } from './state.js';
 
 export async function loadHistory() {
@@ -23,11 +24,11 @@ export async function loadHistory() {
             html += `
                 <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs">
                     <div class="flex items-center justify-between text-slate-500 mb-1 font-mono">
-                        <span class="font-bold text-slate-700">${h.req_key} (${h.modified_at})</span>
+                        <span class="font-bold text-slate-700">${h.req_key || 'EINTRAG'} (${h.modified_at || ''})</span>
                         <span>User: <strong>${h.modified_by_user || 'System'}</strong></span>
                     </div>
-                    <h3 class="font-bold text-slate-800 text-sm mt-1">${h.title}</h3>
-                    <p class="text-slate-600 mt-1"><strong>Aktion:</strong> ${h.action}</p>
+                    <h3 class="font-bold text-slate-800 text-sm mt-1">${h.title || ''}</h3>
+                    <p class="text-slate-600 mt-1"><strong>Aktion:</strong> ${h.action || 'Änderung'}</p>
                 </div>
             `;
         });
@@ -35,5 +36,6 @@ export async function loadHistory() {
         container.innerHTML = html;
     } catch (e) {
         console.error("Fehler beim Laden der Historie:", e);
+        container.innerHTML = '<p class="text-sm text-red-500">Fehler beim Laden der Historie.</p>';
     }
 }
