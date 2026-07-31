@@ -4,15 +4,20 @@ import { currentProjectId } from './state.js';
 let loadedStakeholders = [];
 
 export async function loadStakeholders() {
-    if (!currentProjectId) return;
+    if (!currentProjectId) {
+        const tbody = document.getElementById('stakeholderTableBody');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-400 italic">Bitte wähle oben ein Projekt aus.</td></tr>';
+        return;
+    }
     
     try {
         const res = await fetch(`../api/get_stakeholders.php?project_id=${currentProjectId}`);
         const data = await res.json();
         
         const tbody = document.getElementById('stakeholderTableBody');
+        if (!tbody) return;
         
-        if (!data.success || data.stakeholders.length === 0) {
+        if (!data.success || !data.stakeholders || data.stakeholders.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-400 italic">Keine Stakeholder gefunden.</td></tr>';
             loadedStakeholders = [];
             drawStakeholderMap([]);
@@ -35,13 +40,12 @@ export async function loadStakeholders() {
                         Interesse: <b class="${s.interest === 'High' ? 'text-red-500' : 'text-slate-500'}">${s.interest}</b>
                     </td>
                     <td class="p-3 text-right">
-                        <button onclick="window.editStakeholder(${s.id})" class="text-blue-600 hover:underline text-xs font-bold">Bearbeiten</button>
+                        <button type="button" onclick="window.editStakeholder(${s.id})" class="text-blue-600 hover:underline text-xs font-bold">Bearbeiten</button>
                     </td>
                 </tr>
             `;
         });
 
-        // Matrix / Map direkt mitzeichnen
         drawStakeholderMap(data.stakeholders);
         
     } catch (e) {
@@ -56,11 +60,9 @@ function drawStakeholderMap(stakeholders) {
     mapContainer.innerHTML = ''; 
 
     stakeholders.forEach(s => {
-        // Position definieren (Low = 25%, High = 75%)
         let xBase = s.interest === 'High' ? 75 : 25;
-        let yBase = s.influence === 'High' ? 25 : 75; // Y invertiert (Top=0, Bottom=100)
+        let yBase = s.influence === 'High' ? 25 : 75;
 
-        // Kleiner Offset, damit sich Icons bei gleichen Werten nicht überdecken
         let xOffset = (Math.random() - 0.5) * 15; 
         let yOffset = (Math.random() - 0.5) * 15;
 
@@ -69,10 +71,9 @@ function drawStakeholderMap(stakeholders) {
         point.style.left = `${Math.max(10, Math.min(90, xBase + xOffset))}%`;
         point.style.top = `${Math.max(10, Math.min(90, yBase + yOffset))}%`;
         
-        // Icon (Männchen) + Name darunter
         point.innerHTML = `
             <div class="bg-blue-900 text-white p-1.5 rounded-full shadow-md">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="v 0 20 20" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
             </div>
             <span class="text-[10px] font-bold text-slate-800 bg-white/90 px-1.5 py-0.5 rounded shadow-sm border whitespace-nowrap mt-1">${s.name}</span>
         `;
@@ -82,43 +83,63 @@ function drawStakeholderMap(stakeholders) {
 }
 
 export function initStakeholderEvents() {
-    document.getElementById('btnNewStakeholder').addEventListener('click', () => {
-        if (!currentProjectId) { alert("Bitte zuerst ein Projekt auswählen!"); return; }
-        document.getElementById('formStakeholder').reset();
-        document.getElementById('stk_id').value = '';
-        document.getElementById('modalStakeholder').classList.remove('hidden');
-    });
-
-    document.getElementById('formStakeholder').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const payload = {
-            id: document.getElementById('stk_id').value,
-            project_id: currentProjectId,
-            name: document.getElementById('stk_name').value,
-            role: document.getElementById('stk_role').value,
-            position: document.getElementById('stk_position').value,
-            email: document.getElementById('stk_email').value,
-            phone: document.getElementById('stk_phone').value,
-            expertise: document.getElementById('stk_expertise').value,
-            availability: document.getElementById('stk_availability').value,
-            influence: document.getElementById('stk_influence').value,
-            interest: document.getElementById('stk_interest'].value,
-        };
-
-        const res = await fetch('../api/set_stakeholder.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+    const btnNew = document.getElementById('btnNewStakeholder');
+    if (btnNew) {
+        btnNew.addEventListener('click', () => {
+            if (!currentProjectId) { 
+                alert("Bitte wähle oben im Header zuerst ein Projekt aus!"); 
+                return; 
+            }
+            document.getElementById('formStakeholder').reset();
+            document.getElementById('stk_id').value = '';
+            document.getElementById('modalStakeholder').classList.remove('hidden');
         });
-        
-        const data = await res.json();
-        if (data.success) {
-            document.getElementById('modalStakeholder').classList.add('hidden');
-            loadStakeholders();
-        } else {
-            alert("Fehler: " + data.error);
-        }
-    });
+    }
+
+    const formStakeholder = document.getElementById('formStakeholder');
+    if (formStakeholder) {
+        formStakeholder.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!currentProjectId) {
+                alert("Fehler: Kein Projekt ausgewählt!");
+                return;
+            }
+
+            const payload = {
+                id: document.getElementById('stk_id').value,
+                project_id: currentProjectId,
+                name: document.getElementById('stk_name').value,
+                role: document.getElementById('stk_role').value,
+                position: document.getElementById('stk_position').value,
+                email: document.getElementById('stk_email').value,
+                phone: document.getElementById('stk_phone').value,
+                expertise: document.getElementById('stk_expertise').value,
+                availability: document.getElementById('stk_availability').value,
+                influence: document.getElementById('stk_influence').value,
+                interest: document.getElementById('stk_interest').value
+            };
+
+            try {
+                const res = await fetch('../api/set_stakeholder.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('modalStakeholder').classList.add('hidden');
+                    loadStakeholders();
+                } else {
+                    alert("Fehler beim Speichern: " + (data.error || "Unbekannter Fehler"));
+                }
+            } catch (err) {
+                console.error("Netzwerkfehler:", err);
+                alert("Verbindungsfehler zum Server.");
+            }
+        });
+    }
 }
 
 window.editStakeholder = function(id) {

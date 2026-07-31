@@ -1,8 +1,6 @@
 // dashboard/js/app.js
-
 import { setCurrentProjectId, currentProjectId } from './state.js';
 import { fetchProjects } from './api.js';
-
 import { loadRequirements, initRequirementEvents } from './requirements.js';
 import { loadStakeholders, initStakeholderEvents } from './stakeholders.js';
 import { loadUseCases, initUseCaseEvents } from './usecases.js';
@@ -13,7 +11,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
         // 1. Projekte laden
         await initProjectsDropdown();
-
+        
         // 2. Event-Listener initialisieren (Buttons scharf schalten)
         initRequirementEvents();
         initStakeholderEvents();
