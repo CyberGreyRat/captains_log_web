@@ -2,6 +2,7 @@ import { setCurrentProjectId, setCurrentRequirements, currentProjectId } from '.
 import { fetchProjects, fetchRequirements } from './api.js';
 import { drawSidebar, populateParentChildDropdowns } from './tree.js';
 import { openNewReqModal, renderAttributes, saveRequirement, renderHistoryView } from './modals.js';
+import { drawEcosystem } from './ecosystem.js';
 
 document.addEventListener("DOMContentLoaded", async () => {
     // Projekte in Dropdown laden beim Start
@@ -54,3 +55,34 @@ async function initProjectsDropdown() {
         select.innerHTML += `<option value="${p.id}">${p.name}</option>`;
     });
 }
+
+// Event-Listener für das globale Modal
+document.getElementById('new').addEventListener('click', openNewReqModal);
+document.getElementById('reqForm').addEventListener('submit', saveRequirement);
+
+// TAB-STEUERUNG (NEU)
+document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+        // Optik der Tabs umschalten
+        document.querySelectorAll('.tab').forEach(t => {
+            t.classList.remove('active', 'text-blue-900');
+            t.classList.add('border-transparent', 'text-slate-600');
+        });
+        e.target.classList.add('active', 'text-blue-900');
+        e.target.classList.remove('border-transparent', 'text-slate-600');
+        
+        // Panels umschalten
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('show'));
+        const panelId = e.target.dataset.panel;
+        document.getElementById(panelId).classList.add('show');
+
+        // Dynamische Inhalte laden, je nachdem welcher Tab offen ist
+        if (!currentProjectId) return;
+
+        if (panelId === 'stakeholders') {
+            drawEcosystem(); // Zeichnet das Board mit den Pfeilen neu
+        } else if (panelId === 'history') {
+            await renderHistoryView(); // Lädt die gesamte Projekt-Historie
+        }
+    });
+});

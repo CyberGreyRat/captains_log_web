@@ -57,10 +57,43 @@ export function drawSidebar() {
     });
 }
 
-export function populateParentChildDropdowns() {
-    const options = currentRequirements.map(r => `<option value="${r.req_key}">${r.req_key} - ${r.title}</option>`).join('');
-    const pEl = document.getElementById('parents');
-    const cEl = document.getElementById('children');
-    if (pEl) pEl.innerHTML = options;
-    if (cEl) cEl.innerHTML = options;
+
+export function populateParentChildDropdowns(selectedParents = [], selectedChildren = []) {
+    const parentContainer = document.getElementById('parentsCheckboxList');
+    const childContainer = document.getElementById('childrenCheckboxList');
+    if (!parentContainer || !childContainer) return;
+
+    if (currentRequirements.length === 0) {
+        parentContainer.innerHTML = '<span class="text-slate-400 italic">Keine Anforderungen verfügbar</span>';
+        childContainer.innerHTML = '<span class="text-slate-400 italic">Keine Anforderungen verfügbar</span>';
+        return;
+    }
+
+    const generateCheckboxes = (selectedValues) => {
+        return currentRequirements.map(r => {
+            const isChecked = selectedValues.includes(r.req_key) ? 'checked' : '';
+            return `
+                <label class="flex items-center gap-2 p-1 hover:bg-slate-50 rounded cursor-pointer checkbox-item">
+                    <input type="checkbox" value="${r.req_key}" ${isChecked} class="rounded border-slate-300 text-blue-900 focus:ring-blue-900">
+                    <span class="font-mono font-bold text-blue-900">${r.req_key}</span>
+                    <span class="truncate text-slate-700">${r.title}</span>
+                </label>
+            `;
+        }).join('');
+    };
+
+    parentContainer.innerHTML = generateCheckboxes(selectedParents);
+    childContainer.innerHTML = generateCheckboxes(selectedChildren);
 }
+
+// Globale Suchfunktion für die Checkbox-Listen
+window.filterCheckboxes = function(inputId, containerId) {
+    const query = document.getElementById(inputId).value.toLowerCase();
+    const container = document.getElementById(containerId);
+    const items = container.querySelectorAll('.checkbox-item');
+
+    items.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(query) ? 'flex' : 'none';
+    });
+};
