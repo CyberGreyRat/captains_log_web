@@ -1,17 +1,13 @@
 <?php
+ini_set('display_errors', 0); 
+error_reporting(E_ALL);
 session_start();
-header('Content-Type: application/json');
 require '../config/db.php';
+header('Content-Type: application/json');
 
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['history' => []]);
-    exit;
-}
-
-$project_id = $_GET['project_id'] ?? '';
-
+$project_id = $_GET['project_id'] ?? null;
 if (!$project_id) {
-    echo json_encode(['history' => []]);
+    echo json_encode(['success' => false, 'history' => []]);
     exit;
 }
 
@@ -25,9 +21,8 @@ try {
     ");
     $stmt->execute([$project_id]);
     $history = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    echo json_encode(['history' => $history]);
-} catch (PDOException $e) {
-    echo json_encode(['history' => [], 'error' => $e->getMessage()]);
+    echo json_encode(['success' => true, 'history' => $history]);
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'history' => [], 'error' => $e->getMessage()]);
 }
 ?>
