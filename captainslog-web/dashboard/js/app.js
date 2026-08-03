@@ -10,21 +10,18 @@ import { loadDashboard } from './dashboard.js';
 
 document.addEventListener("DOMContentLoaded", async () => {
     try {
-        // 1. Projekte laden
         await initProjectsDropdown();
-
-        // 2. Event-Listener initialisieren (Buttons scharf schalten)
+        
         initRequirementEvents();
         initStakeholderEvents();
         initUseCaseEvents();
         initUserStoryEvents();
 
-        // 3. Projektwechsel Event
         const projectSelect = document.getElementById('projectSelect');
         if (projectSelect) {
             projectSelect.addEventListener('change', async (e) => {
                 setCurrentProjectId(e.target.value);
-
+                
                 if (currentProjectId) {
                     loadRequirements();
                     loadStakeholders();
@@ -40,18 +37,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             });
         }
 
-        // 4. Tab-Steuerung für Historie
         document.querySelectorAll('.tab').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 if (e.target.dataset.panel === 'history') {
                     loadHistory();
                 }
                 if (e.target.dataset.panel === 'dashboard') {
-                    loadDashboard(); 
+                    loadDashboard();
                 }
             });
         });
-
     } catch (error) {
         console.error("Kritischer Fehler beim Start der Anwendung:", error);
     }
@@ -62,7 +57,6 @@ async function initProjectsDropdown() {
         const projects = await fetchProjects();
         const select = document.getElementById('projectSelect');
         if (!select) return;
-
         select.innerHTML = '<option value="">-- Projekt wählen --</option>';
         projects.forEach(p => {
             select.innerHTML += `<option value="${p.id}">${p.name}</option>`;

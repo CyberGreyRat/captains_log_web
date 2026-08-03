@@ -1,28 +1,6 @@
 <!-- dashboard/views/requirements.php -->
 <div class="flex flex-col h-full">
     <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold text-blue-900">System- & Softwareanforderungen</h2>
-        <button id="new"
-            class="rounded bg-blue-900 px-4 py-2 font-semibold text-white shadow hover:bg-blue-800 transition">
-            + Neue Anforderung
-        </button>
-    </div>
-
-    <div class="grid gap-5 lg:grid-cols-[350px_1fr] flex-1 min-h-0">
-        <aside class="rounded-lg border bg-white shadow-sm overflow-y-auto h-full">
-            <div id="items" class="p-4 text-sm text-slate-500">Bitte wähle oben ein Projekt aus.</div>
-        </aside>
-        <article id="detail" class="rounded-lg border bg-white p-6 shadow-sm overflow-y-auto h-full relative">
-            <div class="flex h-full items-center justify-center text-slate-400 italic">
-                Wähle einen Eintrag aus dem Baum aus, um Details zu sehen.
-            </div>
-        </article>
-    </div>
-</div>
-
-<!-- dashboard/views/requirements.php -->
-<div class="flex flex-col h-full">
-    <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-bold text-blue-900">Ziele & Anforderungen</h2>
         <button id="new"
             class="rounded bg-blue-900 px-4 py-2 font-semibold text-white shadow hover:bg-blue-800 transition">
@@ -51,9 +29,13 @@
         <div>
             <label class="text-sm font-semibold block mb-1 text-slate-700">Typ</label>
             <select id="type"
-                class="w-full rounded border p-2 text-sm bg-slate-50 font-medium focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
+                class="w-full rounded border p-2 text-sm bg-slate-50 font-medium focus:border-blue-500 outline-none">
                 <optgroup label="Ziele & Strategie">
                     <option value="GOAL">Ziel (Stakeholder Goal)</option>
+                </optgroup>
+                <optgroup label="Regularien & Risiken">
+                    <option value="NORM">Norm / Standard (ISO, IEC, CRA Vorgabe)</option>
+                    <option value="RISK">Risiko / Bedrohung (RISK)</option>
                 </optgroup>
                 <optgroup label="System & Architektur">
                     <option value="USR">User Requirement (USR)</option>
@@ -114,7 +96,7 @@
                 <label class="text-sm font-semibold block mb-1 text-slate-700">Parents (Erfüllt)</label>
                 <input type="text" id="parentSearch" placeholder="Suchen..."
                     class="w-full text-xs rounded border p-1.5 mb-2 bg-slate-50 outline-none"
-                    oninput="filterCheckboxes('parentSearch', 'parentsCheckboxList')">
+                    oninput="window.filterCheckboxes('parentSearch', 'parentsCheckboxList')">
                 <div id="parentsCheckboxList"
                     class="h-40 overflow-y-auto rounded border bg-white p-2 space-y-1 text-xs shadow-inner"></div>
             </div>
@@ -122,7 +104,7 @@
                 <label class="text-sm font-semibold block mb-1 text-slate-700">Children (Wird erfüllt durch)</label>
                 <input type="text" id="childSearch" placeholder="Suchen..."
                     class="w-full text-xs rounded border p-1.5 mb-2 bg-slate-50 outline-none"
-                    oninput="filterCheckboxes('childSearch', 'childrenCheckboxList')">
+                    oninput="window.filterCheckboxes('childSearch', 'childrenCheckboxList')">
                 <div id="childrenCheckboxList"
                     class="h-40 overflow-y-auto rounded border bg-white p-2 space-y-1 text-xs shadow-inner"></div>
             </div>
@@ -136,8 +118,30 @@
         </div>
     </form>
 </div>
-<script>
-    document.getElementById('cancelReq').addEventListener('click', () => {
-        document.getElementById('reqModal').classList.add('hidden');
-    });
-</script>
+
+<!-- Modal für Akzeptanzkriterien-Prüfung -->
+<div id="verifyModal"
+    class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
+    <form id="verifyForm" class="w-full max-w-md space-y-4 rounded-xl bg-white p-6 shadow-2xl">
+        <h2 class="text-xl font-bold text-blue-900 border-b pb-2">Kriterium prüfen</h2>
+
+        <input type="hidden" id="verify_req_id">
+        <input type="hidden" id="verify_crit_idx">
+
+        <p id="verify_crit_text" class="text-sm font-semibold text-slate-800 bg-slate-100 p-3 rounded border"></p>
+
+        <label class="block text-sm font-semibold text-slate-700 mt-4">Notiz / Link zum Testprotokoll
+            <textarea id="verify_note" required rows="3"
+                placeholder="z.B. Test T-045 erfolgreich durchgeführt. Link: \\Server\..."
+                class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
+        </label>
+
+        <div class="flex justify-end gap-3 mt-6 border-t pt-4">
+            <button type="button" onclick="document.getElementById('verifyModal').classList.add('hidden')"
+                class="rounded border px-4 py-2 hover:bg-slate-50 font-medium transition">Abbrechen</button>
+            <button type="submit"
+                class="rounded bg-emerald-600 px-5 py-2 font-medium text-white shadow hover:bg-emerald-500 transition">Als
+                'Geprüft' markieren</button>
+        </div>
+    </form>
+</div>

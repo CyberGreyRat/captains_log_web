@@ -12,27 +12,21 @@ if (!$project_id) {
 }
 
 try {
-    // Gesamtanzahl der Anforderungen & Ziele
-    $stmt1 = $pdo->prepare("SELECT COUNT(*) FROM requirements WHERE project_id = ?");
-    $stmt1->execute([$project_id]);
-    $total = $stmt1->fetchColumn();
+    // Alle Anforderungen des Projekts laden
+    $stmt = $pdo->prepare("SELECT id, req_key, title, review_status FROM requirements WHERE project_id = ? ORDER BY req_key ASC");
+    $stmt->execute([$project_id]);
+    $all = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Warten auf Überprüfung
-    $stmt2 = $pdo->prepare("SELECT COUNT(*) FROM requirements WHERE project_id = ? AND review_status = 'Wartet auf Überprüfung'");
-    $stmt2->execute([$project_id]);
-    $waiting = $stmt2->fetchColumn();
-
-    // Freigegeben
-    $stmt3 = $pdo->prepare("SELECT COUNT(*) FROM requirements WHERE project_id = ? AND review_status = 'Geprüft & Freigegeben'");
-    $stmt3->execute([$project_id]);
-    $approved = $stmt3->fetchColumn();
+    // Arrays filtern
+    $waiting = array_values(array_filter($all, function($r) { return $r['review_status'] === 'Wartet auf Überprüfung'; }));
+    $approved = array_values(array_filter($all, function($r) { return $r['review_status'] === 'Geprüft & Freigegeben'; }));
 
     echo json_encode([
         'success' => true, 
         'kpis' => [
-            'total' => $total, 
-            'waiting' => $waiting, 
-            'approved' => $approved
+            'total' => ['count' => count($all), 'items' => $all], 
+            'waiting' => ['count' => count($waiting), 'items' => $waiting], 
+            'approved' => ['count' => count($approved), 'items' => $approved]
         ]
     ]);
 } catch (Exception $e) {
