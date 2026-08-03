@@ -5,10 +5,12 @@ let dashboardData = null;
 
 export async function loadDashboard() {
     if (!currentProjectId) {
-        document.getElementById('kpiTotalReqs').textContent = '0';
-        document.getElementById('kpiWaitingReqs').textContent = '0';
-        document.getElementById('kpiApprovedReqs').textContent = '0';
-        document.getElementById('dashboardListContainer').innerHTML = '<p class="text-slate-500 text-sm">Bitte Projekt wählen.</p>';
+        ['kpiTotalReqs', 'kpiWaitingReqs', 'kpiApprovedReqs', 'kpiRiskReqs', 'kpiSecReqs'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.textContent = '0';
+        });
+        const elCont = document.getElementById('dashboardListContainer');
+        if(elCont) elCont.innerHTML = '<p class="text-slate-500 text-sm">Bitte Projekt wählen.</p>';
         return;
     }
     
@@ -21,6 +23,8 @@ export async function loadDashboard() {
             document.getElementById('kpiTotalReqs').textContent = dashboardData.total.count;
             document.getElementById('kpiWaitingReqs').textContent = dashboardData.waiting.count;
             document.getElementById('kpiApprovedReqs').textContent = dashboardData.approved.count;
+            document.getElementById('kpiRiskReqs').textContent = dashboardData.risks.count;
+            document.getElementById('kpiSecReqs').textContent = dashboardData.sec.count;
             document.getElementById('dashboardListContainer').innerHTML = '<p class="text-slate-500 text-sm italic">Klicke oben auf eine Karte.</p>';
         }
     } catch (err) {
@@ -28,26 +32,23 @@ export async function loadDashboard() {
     }
 }
 
-// Global aufrufbar aus dem HTML
 window.renderDashboardList = function(type) {
     if (!dashboardData) return;
     
     let title = '';
     let items = [];
 
-    if (type === 'total') {
-        title = 'Alle Anforderungen & Ziele';
-        items = dashboardData.total.items;
-    } else if (type === 'waiting') {
-        title = 'Wartet auf Überprüfung';
-        items = dashboardData.waiting.items;
-    } else if (type === 'approved') {
-        title = 'Geprüft & Freigegeben';
-        items = dashboardData.approved.items;
-    }
+    if (type === 'total') { title = 'Alle Anforderungen & Ziele'; items = dashboardData.total.items; } 
+    else if (type === 'waiting') { title = 'Wartet auf Überprüfung'; items = dashboardData.waiting.items; } 
+    else if (type === 'approved') { title = 'Geprüft & Freigegeben'; items = dashboardData.approved.items; }
+    else if (type === 'risks') { title = 'Erfasste Risiken (RISK)'; items = dashboardData.risks.items; }
+    else if (type === 'sec') { title = 'Security Anforderungen (SEC)'; items = dashboardData.sec.items; }
 
-    document.getElementById('dashboardListTitle').textContent = title;
+    const elTitle = document.getElementById('dashboardListTitle');
+    if(elTitle) elTitle.textContent = title;
+    
     const container = document.getElementById('dashboardListContainer');
+    if(!container) return;
     
     if(!items || items.length === 0) {
         container.innerHTML = '<p class="text-slate-500 text-sm italic">Keine Einträge in dieser Kategorie.</p>';
@@ -69,10 +70,10 @@ window.renderDashboardList = function(type) {
     container.innerHTML = html;
 };
 
-// Globaler Klick-Handler um zum Requirements-Tab zu springen
 window.openReqFromDashboard = function(id) {
-    document.querySelector('[data-panel="requirements"]').click(); // Tab wechseln
+    const tab = document.querySelector('[data-panel="requirements"]');
+    if(tab) tab.click();
     if(window.showRequirementDetailById) {
-        window.showRequirementDetailById(id); // Detail aufrufen
+        window.showRequirementDetailById(id);
     }
 };

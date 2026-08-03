@@ -2,30 +2,31 @@
 import { currentProjectId } from './state.js';
 
 let loadedRequirements = [];
+let globalStakeholders = [];
 
-// Hilfsfunktion: Checkbox-Suche (Parents/Children)
-window.filterCheckboxes = function (inputId, listId) {
-    const filter = document.getElementById(inputId).value.toLowerCase();
-    const items = document.getElementById(listId).querySelectorAll('.checkbox-item');
+window.filterCheckboxes = function(inputId, listId) {
+    const input = document.getElementById(inputId);
+    const list = document.getElementById(listId);
+    if(!input || !list) return;
+    const filter = input.value.toLowerCase();
+    const items = list.querySelectorAll('.checkbox-item');
     items.forEach(item => {
         const text = item.textContent.toLowerCase();
         item.style.display = text.includes(filter) ? 'flex' : 'none';
     });
 };
 
-// Hilfsfunktion: Beziehungen rendern (Parents/Children)
 function populateRelationshipCheckboxes(currentReqId = null, selectedParents = [], selectedChildren = []) {
     const parentList = document.getElementById('parentsCheckboxList');
     const childList = document.getElementById('childrenCheckboxList');
-
+    
     if (!parentList || !childList) return;
-
+    
     parentList.innerHTML = '';
     childList.innerHTML = '';
 
     loadedRequirements.forEach(req => {
         if (req.id == currentReqId) return;
-
         const isParent = selectedParents.includes(req.req_key) ? 'checked' : '';
         const isChild = selectedChildren.includes(req.req_key) ? 'checked' : '';
         const labelStr = `${req.req_key} - ${req.title}`;
@@ -36,7 +37,6 @@ function populateRelationshipCheckboxes(currentReqId = null, selectedParents = [
                 <label for="parent_${req.req_key}" class="cursor-pointer truncate w-full text-slate-700" title="${labelStr}">${labelStr}</label>
             </div>
         `;
-
         childList.innerHTML += `
             <div class="checkbox-item flex items-center gap-2 p-1 hover:bg-slate-50">
                 <input type="checkbox" id="child_${req.req_key}" value="${req.req_key}" class="req-child-cb w-4 h-4 rounded text-blue-900 focus:ring-blue-500" ${isChild}>
@@ -46,41 +46,115 @@ function populateRelationshipCheckboxes(currentReqId = null, selectedParents = [
     });
 }
 
-// Hilfsfunktion: Stakeholder für das Dropdown laden
+// Global verfügbare Handler-Funktion für das Dropdown
+window.handleTypeChange = function(loadedAttrs = {}) {
+    const typeDropdown = document.getElementById('type');
+    const container = document.getElementById('dynamicAttributes');
+    const fields = document.getElementById('attributeFields');
+    if(!typeDropdown || !container || !fields) return;
+    
+    const type = typeDropdown.value;
+    
+    if (type === 'RISK') {
+        fields.innerHTML = `
+            <label class="block text-sm font-semibold text-slate-700">Wahrscheinlichkeit
+                <select id="attr_prob" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
+                    <option value="">-- Wählen --</option>
+                    <option value="Häufig" ${loadedAttrs.initial_probability === 'Häufig' ? 'selected' : ''}>Häufig</option>
+                    <option value="Gelegentlich" ${loadedAttrs.initial_probability === 'Gelegentlich' ? 'selected' : ''}>Gelegentlich</option>
+                    <option value="Selten" ${loadedAttrs.initial_probability === 'Selten' ? 'selected' : ''}>Selten</option>
+                    <option value="Unwahrscheinlich" ${loadedAttrs.initial_probability === 'Unwahrscheinlich' ? 'selected' : ''}>Unwahrscheinlich</option>
+                </select>
+            </label>
+            <label class="block text-sm font-semibold text-slate-700">Schadensausmaß
+                <select id="attr_sev" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
+                    <option value="">-- Wählen --</option>
+                    <option value="Kritisch" ${loadedAttrs.initial_severity === 'Kritisch' ? 'selected' : ''}>Kritisch</option>
+                    <option value="Marginal" ${loadedAttrs.initial_severity === 'Marginal' ? 'selected' : ''}>Marginal</option>
+                    <option value="Vernachlässigbar" ${loadedAttrs.initial_severity === 'Vernachlässigbar' ? 'selected' : ''}>Vernachlässigbar</option>
+                </select>
+            </label>
+            <label class="block text-sm font-semibold text-slate-700 md:col-span-2">Gefahr / Bedrohung
+                <input id="attr_hazard" type="text" value="${loadedAttrs.hazard || ''}" placeholder="Was ist die Bedrohung?" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
+            </label>
+        `;
+        container.classList.remove('hidden');
+    } else if (type === 'SEC') {
+        fields.innerHTML = `
+            <label class="block text-sm font-semibold text-slate-700">Schutzziele (CIA)
+                <input id="attr_cia" type="text" value="${loadedAttrs.cia || ''}" placeholder="z.B. Confidentiality, Integrity" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
+            </label>
+            <label class="block text-sm font-semibold text-slate-700">STRIDE Kategorie
+                <select id="attr_stride" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
+                    <option value="">-- Wählen --</option>
+                    <option value="Spoofing" ${loadedAttrs.stride === 'Spoofing' ? 'selected' : ''}>Spoofing</option>
+                    <option value="Tampering" ${loadedAttrs.stride === 'Tampering' ? 'selected' : ''}>Tampering</option>
+                    <option value="Repudiation" ${loadedAttrs.stride === 'Repudiation' ? 'selected' : ''}>Repudiation</option>
+                    <option value="Information Disclosure" ${loadedAttrs.stride === 'Information Disclosure' ? 'selected' : ''}>Information Disclosure</option>
+                    <option value="Denial of Service" ${loadedAttrs.stride === 'Denial of Service' ? 'selected' : ''}>Denial of Service (DoS)</option>
+                    <option value="Elevation of Privilege" ${loadedAttrs.stride === 'Elevation of Privilege' ? 'selected' : ''}>Elevation of Privilege</option>
+                </select>
+            </label>
+        `;
+        container.classList.remove('hidden');
+    } else {
+        fields.innerHTML = '';
+        container.classList.add('hidden');
+    }
+};
+
 async function loadStakeholdersForDropdown(selectedValue = '') {
     if (!currentProjectId) return;
-    const res = await fetch(`../api/get_stakeholders.php?project_id=${currentProjectId}`);
-    const data = await res.json();
-    const sel = document.getElementById('source_contact');
-    if (!sel) return;
-    sel.innerHTML = '<option value="">-- Kein Stakeholder --</option>';
-    if (data.success && data.stakeholders) {
-        data.stakeholders.forEach(s => {
-            const selected = s.id == selectedValue ? 'selected' : '';
-            sel.innerHTML += `<option value="${s.id}" ${selected}>${s.name} (${s.role || 'Stakeholder'})</option>`;
-        });
+    try {
+        const res = await fetch(`../api/get_stakeholders.php?project_id=${currentProjectId}`);
+        const data = await res.json();
+        const sel = document.getElementById('source_contact');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">-- Kein Stakeholder --</option>';
+        if (data.success && data.stakeholders) {
+            globalStakeholders = data.stakeholders; // Für Detail-Ansicht speichern
+            data.stakeholders.forEach(s => {
+                const selected = s.id == selectedValue ? 'selected' : '';
+                sel.innerHTML += `<option value="${s.id}" ${selected}>${s.name} (${s.role || 'Stakeholder'})</option>`;
+            });
+        }
+    } catch(e) {
+        console.error("Stakeholder konnten nicht geladen werden:", e);
     }
+}
+
+// Hilfsfunktion um ID in Namen umzuwandeln
+function getStakeholderName(id) {
+    if (!id) return 'Nicht angegeben';
+    const s = globalStakeholders.find(x => x.id == id);
+    return s ? s.name : id; // Zeige Name, wenn gefunden, sonst die ID
 }
 
 export async function loadRequirements() {
     if (!currentProjectId) return;
+    
+    // Stelle sicher, dass die Stakeholder geladen sind für die Namensauflösung
+    if (globalStakeholders.length === 0) {
+        await loadStakeholdersForDropdown(); 
+    }
 
     try {
         const res = await fetch(`../api/get_requirements.php?project_id=${currentProjectId}`);
         const data = await res.json();
 
         const listContainer = document.getElementById('items');
+        if(!listContainer) return;
 
         if (!data.success || data.requirements.length === 0) {
             listContainer.innerHTML = '<div class="p-4 text-sm text-slate-500 italic">Noch keine Anforderungen vorhanden.</div>';
             loadedRequirements = [];
-            document.getElementById('detail').innerHTML = '<div class="flex h-full items-center justify-center text-slate-400 italic">Anforderung auswählen</div>';
+            const detail = document.getElementById('detail');
+            if(detail) detail.innerHTML = '<div class="flex h-full items-center justify-center text-slate-400 italic">Anforderung auswählen</div>';
             return;
         }
 
         loadedRequirements = data.requirements;
 
-        // Parents für den Baum parsen
         loadedRequirements.forEach(req => {
             let p = req.parents;
             if (typeof p === 'string') {
@@ -102,7 +176,7 @@ export async function loadRequirements() {
 
             btn.className = `w-full text-left p-2.5 border-b border-slate-100 hover:bg-blue-50 transition focus:bg-blue-100 flex items-center justify-between text-xs ${bgClass}`;
             btn.style.paddingLeft = `calc(0.75rem + ${indentRem}rem)`;
-
+            
             const children = loadedRequirements.filter(r => r.parsedParents.includes(req.req_key));
             const icon = children.length > 0 ? `<span class="text-slate-400 mr-1">▼</span>` : `<span class="mr-3"></span>`;
 
@@ -124,7 +198,6 @@ export async function loadRequirements() {
             req.parsedParents.length === 0 ||
             !req.parsedParents.some(pk => loadedRequirements.find(r => r.req_key === pk))
         );
-
         roots.forEach(root => renderNode(root, 0));
 
         loadedRequirements.forEach(req => {
@@ -141,13 +214,15 @@ window.showRequirementDetailById = function (id) {
     if (req) showRequirementDetail(req);
 };
 
-window.triggerVerify = function (reqId, idx, text, checkbox) {
+window.triggerVerify = function (reqId, idx, checkbox) {
     if (!checkbox.checked) return;
-    checkbox.checked = false;
+    checkbox.checked = false; 
+
+    const textNode = checkbox.nextElementSibling.querySelector('label').textContent;
 
     document.getElementById('verify_req_id').value = reqId;
     document.getElementById('verify_crit_idx').value = idx;
-    document.getElementById('verify_crit_text').textContent = text;
+    document.getElementById('verify_crit_text').textContent = textNode;
     document.getElementById('verify_note').value = '';
 
     document.getElementById('verifyModal').classList.remove('hidden');
@@ -155,9 +230,11 @@ window.triggerVerify = function (reqId, idx, text, checkbox) {
 
 function showRequirementDetail(req) {
     const detail = document.getElementById('detail');
+    if(!detail) return;
 
     let attrs = {};
     try { attrs = JSON.parse(req.attributes || '{}'); } catch (e) { }
+    
     const states = attrs.criteria_states || {};
 
     let criteriaHtml = '<span class="italic text-slate-400">Keine Akzeptanzkriterien definiert.</span>';
@@ -173,7 +250,7 @@ function showRequirementDetail(req) {
 
                 criteriaHtml += `
                     <li class="flex items-start gap-3 text-sm text-slate-700 bg-white p-2 rounded border">
-                        <input type="checkbox" id="crit_${req.id}_${idx}" class="mt-1 w-4 h-4 rounded text-blue-900 focus:ring-blue-500 cursor-pointer" ${isChecked} onchange="window.triggerVerify(${req.id}, ${idx}, '${cleanLine.replace(/'/g, "\\'")}', this)">
+                        <input type="checkbox" id="crit_${req.id}_${idx}" class="mt-1 w-4 h-4 rounded text-blue-900 focus:ring-blue-500 cursor-pointer" ${isChecked} onchange="window.triggerVerify(${req.id}, ${idx}, this)">
                         <div class="flex flex-col w-full">
                             <label for="crit_${req.id}_${idx}" class="cursor-pointer font-medium leading-tight">${cleanLine}</label>
                             ${infoBadge}
@@ -190,6 +267,27 @@ function showRequirementDetail(req) {
     try { childKeys = JSON.parse(req.children || '[]'); } catch (e) { }
     const childLinks = childKeys.map(ck => `<span class="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded text-[10px] font-mono">${ck}</span>`).join(' ') || '-';
 
+    // Risiko / SEC Attribute rendern
+    let dynamicAttrHtml = '';
+    if (req.type === 'RISK') {
+        dynamicAttrHtml = `
+            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-red-700 font-medium bg-red-50 p-2 rounded">
+                <div>⚠️ Wahrscheinlichkeit: <b>${attrs.initial_probability || '-'}</b></div>
+                <div>🔥 Schaden: <b>${attrs.initial_severity || '-'}</b></div>
+                <div>🛑 Gefahr: <b>${attrs.hazard || '-'}</b></div>
+            </div>
+        `;
+    } else if (req.type === 'SEC') {
+        dynamicAttrHtml = `
+            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-indigo-700 font-medium bg-indigo-50 p-2 rounded">
+                <div>🛡️ Schutzziele: <b>${attrs.cia || '-'}</b></div>
+                <div>🕵️ STRIDE: <b>${attrs.stride || '-'}</b></div>
+            </div>
+        `;
+    }
+
+    const stakeholderName = getStakeholderName(req.source_contact);
+
     detail.innerHTML = `
         <div class="border-b pb-4 mb-4">
             <div class="flex justify-between items-start">
@@ -201,10 +299,11 @@ function showRequirementDetail(req) {
                 <button onclick="window.editRequirement(${req.id})" class="bg-blue-900 text-white text-xs px-3 py-1.5 rounded font-bold hover:bg-blue-800 shadow">Bearbeiten</button>
             </div>
             <div class="flex gap-4 mt-3 text-xs text-slate-500 font-medium flex-wrap">
-                <div>👤 Quelle: <strong class="text-slate-700">${req.source_contact || 'Nicht angegeben'}</strong></div>
+                <div>👤 Quelle: <strong class="text-slate-700">${stakeholderName}</strong></div>
                 <div>⏱️ Aufwand: <strong class="text-slate-700">${req.effort || 'Offen'}</strong></div>
                 <div>📌 Status: <span class="bg-blue-50 text-blue-900 border border-blue-200 px-2 py-0.5 rounded font-bold">${req.review_status || 'Neu'}</span></div>
             </div>
+            ${dynamicAttrHtml}
             <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-slate-500 font-medium">
                 <div>Erfüllt (Parents): ${parentLinks}</div>
                 <div>Wird erfüllt durch (Children): ${childLinks}</div>
@@ -223,6 +322,13 @@ function showRequirementDetail(req) {
 }
 
 export function initRequirementEvents() {
+    
+    // Listener für das Dropdown-Typ (SEC und RISK Felder öffnen)
+    const typeDropdown = document.getElementById('type');
+    if (typeDropdown) {
+        typeDropdown.addEventListener('change', () => window.handleTypeChange());
+    }
+
     const newBtn = document.getElementById('new');
     if (newBtn) {
         newBtn.addEventListener('click', () => {
@@ -230,12 +336,16 @@ export function initRequirementEvents() {
             document.getElementById('reqForm').reset();
             document.getElementById('reqForm').dataset.editId = '';
             document.getElementById('reqHeading').textContent = 'Neues Ziel / Anforderung';
-            document.getElementById('review_status').value = 'Neu';
+            
+            const revStat = document.getElementById('review_status');
+            if(revStat) revStat.value = 'Neu';
 
+            window.handleTypeChange(); // Setzt dynamische Felder zurück
             populateRelationshipCheckboxes();
             loadStakeholdersForDropdown();
 
-            document.getElementById('reqModal').classList.remove('hidden');
+            const modal = document.getElementById('reqModal');
+            if(modal) modal.classList.remove('hidden');
         });
     }
 
@@ -247,19 +357,31 @@ export function initRequirementEvents() {
             const selectedParents = Array.from(document.querySelectorAll('.req-parent-cb:checked')).map(cb => cb.value);
             const selectedChildren = Array.from(document.querySelectorAll('.req-child-cb:checked')).map(cb => cb.value);
 
+            let dynamicAttrs = {};
+            const typeValue = document.getElementById('type') ? document.getElementById('type').value : '';
+            if (typeValue === 'RISK') {
+                dynamicAttrs.initial_probability = document.getElementById('attr_prob') ? document.getElementById('attr_prob').value : '';
+                dynamicAttrs.initial_severity = document.getElementById('attr_sev') ? document.getElementById('attr_sev').value : '';
+                dynamicAttrs.hazard = document.getElementById('attr_hazard') ? document.getElementById('attr_hazard').value : '';
+            } else if (typeValue === 'SEC') {
+                dynamicAttrs.cia = document.getElementById('attr_cia') ? document.getElementById('attr_cia').value : '';
+                dynamicAttrs.stride = document.getElementById('attr_stride') ? document.getElementById('attr_stride').value : '';
+            }
+
             const payload = {
                 id: document.getElementById('reqForm').dataset.editId,
                 project_id: currentProjectId,
-                type: document.getElementById('type').value,
-                title: document.getElementById('title').value,
-                description: document.getElementById('text').value,
-                rationale: document.getElementById('rationale').value,
-                source_contact: document.getElementById('source_contact').value,
-                effort: document.getElementById('effort').value,
-                acceptance_criteria: document.getElementById('acceptance_criteria').value,
-                review_status: document.getElementById('review_status').value,
+                type: typeValue,
+                title: document.getElementById('title') ? document.getElementById('title').value : '',
+                description: document.getElementById('text') ? document.getElementById('text').value : '',
+                rationale: document.getElementById('rationale') ? document.getElementById('rationale').value : '',
+                source_contact: document.getElementById('source_contact') ? document.getElementById('source_contact').value : '',
+                effort: document.getElementById('effort') ? document.getElementById('effort').value : '',
+                acceptance_criteria: document.getElementById('acceptance_criteria') ? document.getElementById('acceptance_criteria').value : '',
+                review_status: document.getElementById('review_status') ? document.getElementById('review_status').value : '',
                 parents: selectedParents,
-                children: selectedChildren
+                children: selectedChildren,
+                attributes: dynamicAttrs // <-- WICHTIG: Die Risiko und SEC-Felder mit in die DB schicken
             };
 
             try {
@@ -271,7 +393,8 @@ export function initRequirementEvents() {
 
                 const data = await res.json();
                 if (data.success) {
-                    document.getElementById('reqModal').classList.add('hidden');
+                    const modal = document.getElementById('reqModal');
+                    if(modal) modal.classList.add('hidden');
                     loadRequirements();
                 } else {
                     alert("Fehler: " + data.error);
@@ -320,14 +443,19 @@ window.editRequirement = function (id) {
     if (!req) return;
 
     document.getElementById('reqForm').dataset.editId = req.id;
-    document.getElementById('type').value = req.type;
-    document.getElementById('title').value = req.title;
-    document.getElementById('text').value = req.description || '';
-    document.getElementById('rationale').value = req.rationale || '';
+    
+    if(document.getElementById('type')) document.getElementById('type').value = req.type;
+    if(document.getElementById('title')) document.getElementById('title').value = req.title;
+    if(document.getElementById('text')) document.getElementById('text').value = req.description || '';
+    if(document.getElementById('rationale')) document.getElementById('rationale').value = req.rationale || '';
+    if(document.getElementById('effort')) document.getElementById('effort').value = req.effort || '';
+    if(document.getElementById('acceptance_criteria')) document.getElementById('acceptance_criteria').value = req.acceptance_criteria || '';
+    if(document.getElementById('review_status')) document.getElementById('review_status').value = req.review_status || 'Neu';
 
-    document.getElementById('effort').value = req.effort || '';
-    document.getElementById('acceptance_criteria').value = req.acceptance_criteria || '';
-    document.getElementById('review_status').value = req.review_status || 'Neu';
+    // JSON entpacken und dynamische Felder triggern
+    let attrs = {};
+    try { attrs = JSON.parse(req.attributes || '{}'); } catch (e) { }
+    window.handleTypeChange(attrs);
 
     loadStakeholdersForDropdown(req.source_contact);
 
@@ -338,9 +466,12 @@ window.editRequirement = function (id) {
 
     populateRelationshipCheckboxes(req.id, parentKeys, childKeys);
 
-    document.getElementById('parentSearch').value = '';
-    document.getElementById('childSearch').value = '';
+    if(document.getElementById('parentSearch')) document.getElementById('parentSearch').value = '';
+    if(document.getElementById('childSearch')) document.getElementById('childSearch').value = '';
 
-    document.getElementById('reqHeading').textContent = 'Eintrag bearbeiten (' + req.req_key + ')';
-    document.getElementById('reqModal').classList.remove('hidden');
+    const heading = document.getElementById('reqHeading');
+    if(heading) heading.textContent = 'Eintrag bearbeiten (' + req.req_key + ')';
+    
+    const modal = document.getElementById('reqModal');
+    if(modal) modal.classList.remove('hidden');
 };

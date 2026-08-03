@@ -12,21 +12,25 @@ if (!$project_id) {
 }
 
 try {
-    // Alle Anforderungen des Projekts laden
-    $stmt = $pdo->prepare("SELECT id, req_key, title, review_status FROM requirements WHERE project_id = ? ORDER BY req_key ASC");
+    $stmt = $pdo->prepare("SELECT id, req_key, title, review_status, type FROM requirements WHERE project_id = ? ORDER BY req_key ASC");
     $stmt->execute([$project_id]);
     $all = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Arrays filtern
     $waiting = array_values(array_filter($all, function($r) { return $r['review_status'] === 'Wartet auf Überprüfung'; }));
     $approved = array_values(array_filter($all, function($r) { return $r['review_status'] === 'Geprüft & Freigegeben'; }));
+    
+    // Neu: Filter für Risk und Sec
+    $risks = array_values(array_filter($all, function($r) { return $r['type'] === 'RISK'; }));
+    $sec = array_values(array_filter($all, function($r) { return $r['type'] === 'SEC'; }));
 
     echo json_encode([
         'success' => true, 
         'kpis' => [
             'total' => ['count' => count($all), 'items' => $all], 
             'waiting' => ['count' => count($waiting), 'items' => $waiting], 
-            'approved' => ['count' => count($approved), 'items' => $approved]
+            'approved' => ['count' => count($approved), 'items' => $approved],
+            'risks' => ['count' => count($risks), 'items' => $risks],
+            'sec' => ['count' => count($sec), 'items' => $sec]
         ]
     ]);
 } catch (Exception $e) {
