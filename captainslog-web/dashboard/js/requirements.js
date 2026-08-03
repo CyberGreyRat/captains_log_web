@@ -3,11 +3,27 @@ import { currentProjectId } from './state.js';
 
 let loadedRequirements = [];
 let globalStakeholders = [];
+window.currentTreeFilter = 'ALL'; // Speichert den aktiven Tab
 
-window.filterCheckboxes = function(inputId, listId) {
+// Filter für Tabs wechseln
+window.applyTreeFilter = function (filter) {
+    document.querySelectorAll('.filter-tab').forEach(btn => {
+        btn.classList.remove('active', 'bg-slate-200', 'font-bold', 'text-slate-700');
+        btn.classList.add('font-semibold', 'text-slate-600', 'hover:bg-slate-200');
+    });
+    const activeBtn = document.getElementById(`filter-${filter}`);
+    if (activeBtn) {
+        activeBtn.classList.remove('font-semibold', 'text-slate-600', 'hover:bg-slate-200');
+        activeBtn.classList.add('active', 'bg-slate-200', 'font-bold', 'text-slate-700');
+    }
+    window.currentTreeFilter = filter;
+    window.renderTreeList();
+};
+
+window.filterCheckboxes = function (inputId, listId) {
     const input = document.getElementById(inputId);
     const list = document.getElementById(listId);
-    if(!input || !list) return;
+    if (!input || !list) return;
     const filter = input.value.toLowerCase();
     const items = list.querySelectorAll('.checkbox-item');
     items.forEach(item => {
@@ -19,9 +35,8 @@ window.filterCheckboxes = function(inputId, listId) {
 function populateRelationshipCheckboxes(currentReqId = null, selectedParents = [], selectedChildren = []) {
     const parentList = document.getElementById('parentsCheckboxList');
     const childList = document.getElementById('childrenCheckboxList');
-    
     if (!parentList || !childList) return;
-    
+
     parentList.innerHTML = '';
     childList.innerHTML = '';
 
@@ -46,16 +61,83 @@ function populateRelationshipCheckboxes(currentReqId = null, selectedParents = [
     });
 }
 
-// Global verfügbare Handler-Funktion für das Dropdown
-window.handleTypeChange = function(loadedAttrs = {}) {
+// CIA Automatik
+window.autoSelectCIA = function (strideValue) {
+    document.querySelectorAll('.cia-cb').forEach(cb => { cb.checked = false; });
+    const map = {
+        'Spoofing': 'Authentizität',
+        'Tampering': 'Integrität',
+        'Repudiation': 'Zurechenbarkeit',
+        'Information Disclosure': 'Vertraulichkeit',
+        'Denial of Service': 'Verfügbarkeit',
+        'Elevation of Privilege': 'Autorisierung'
+    };
+    const targetGoal = map[strideValue];
+    if (targetGoal) {
+        document.querySelectorAll('.cia-cb').forEach(cb => {
+            if (cb.value === targetGoal) cb.checked = true;
+        });
+    }
+};
+
+window.handleTypeChange = function (loadedAttrs = {}) {
     const typeDropdown = document.getElementById('type');
     const container = document.getElementById('dynamicAttributes');
     const fields = document.getElementById('attributeFields');
-    if(!typeDropdown || !container || !fields) return;
-    
+    if (!typeDropdown || !container || !fields) return;
+
     const type = typeDropdown.value;
-    
-    if (type === 'RISK') {
+
+    const criteriaContainer = document.getElementById('criteria_container');
+    const needsCriteria = ['USR', 'SYS', 'SEC', 'SRS', 'SWC'];
+
+    if (criteriaContainer) {
+        if (needsCriteria.includes(type)) {
+            criteriaContainer.classList.remove('hidden');
+        } else {
+            criteriaContainer.classList.add('hidden');
+            // Leeren, falls noch Text drin war und der Typ gewechselt wird
+            if (document.getElementById('acceptance_criteria')) {
+                document.getElementById('acceptance_criteria').value = '';
+            }
+        }
+    }
+
+    if (type === 'AST') {
+        fields.innerHTML = `
+            <div class="col-span-1">
+                <label class="block text-sm font-semibold text-slate-700">Kategorie des Assets
+                    <select id="attr_asset_type" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
+                        <option value="">-- Wählen --</option>
+                        <optgroup label="Digital & IT">
+                            <option value="Daten / Informationen" ${loadedAttrs.asset_type === 'Daten / Informationen' ? 'selected' : ''}>Daten / PII / Passwörter</option>
+                            <option value="Geheimnis / Key" ${loadedAttrs.asset_type === 'Geheimnis / Key' ? 'selected' : ''}>Zertifikate / Krypto-Keys</option>
+                            <option value="Code / Firmware" ${loadedAttrs.asset_type === 'Code / Firmware' ? 'selected' : ''}>Code / Firmware / OS</option>
+                            <option value="Service / Funktion" ${loadedAttrs.asset_type === 'Service / Funktion' ? 'selected' : ''}>Service / API / Update-Dienst</option>
+                        </optgroup>
+                        <optgroup label="Cyber-Physical (Hardware & Mechanik)">
+                            <option value="Elektronik / PCB" ${loadedAttrs.asset_type === 'Elektronik / PCB' ? 'selected' : ''}>Elektronik / PCB / Controller</option>
+                            <option value="Physisches Gehäuse / Mechanik" ${loadedAttrs.asset_type === 'Physisches Gehäuse / Mechanik' ? 'selected' : ''}>Physisches Gehäuse / Mechanik (z.B. Chassis, Schlösser)</option>
+                            <option value="Schnittstelle / HMI" ${loadedAttrs.asset_type === 'Schnittstelle / HMI' ? 'selected' : ''}>Mensch-Maschine-Schnittstelle (z.B. Display, Taster)</option>
+                            <option value="Infrastruktur / Befestigung" ${loadedAttrs.asset_type === 'Infrastruktur / Befestigung' ? 'selected' : ''}>Infrastruktur / Befestigung (z.B. Mast, Fundament)</option>
+                        </optgroup>
+                    </select>
+                </label>
+            </div>
+            <div class="col-span-1">
+                <label class="block text-sm font-semibold text-slate-700">Physischer Zugang (Exposition)
+                    <select id="attr_asset_exposure" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
+                        <option value="">-- Wählen --</option>
+                        <option value="Öffentlich zugänglich (Public)" ${loadedAttrs.asset_exposure === 'Öffentlich zugänglich (Public)' ? 'selected' : ''}>Öffentlich zugänglich (Public Space, unbeaufsichtigt)</option>
+                        <option value="Eingeschränkter Zugang (Restricted)" ${loadedAttrs.asset_exposure === 'Eingeschränkter Zugang (Restricted)' ? 'selected' : ''}>Eingeschränkter Zugang (z.B. Büro, Bahnhofspersonal)</option>
+                        <option value="Streng gesichert (Secure)" ${loadedAttrs.asset_exposure === 'Streng gesichert (Secure)' ? 'selected' : ''}>Streng gesichert (z.B. verschlossener Serverraum)</option>
+                        <option value="Isoliert im Gehäuse (Internal)" ${loadedAttrs.asset_exposure === 'Isoliert im Gehäuse (Internal)' ? 'selected' : ''}>Isoliert im Gehäuse (Nur nach Aufbrechen erreichbar)</option>
+                    </select>
+                </label>
+            </div>
+        `;
+        container.classList.remove('hidden');
+    } else if (type === 'RISK') {
         fields.innerHTML = `
             <label class="block text-sm font-semibold text-slate-700">Wahrscheinlichkeit
                 <select id="attr_prob" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
@@ -80,21 +162,32 @@ window.handleTypeChange = function(loadedAttrs = {}) {
         `;
         container.classList.remove('hidden');
     } else if (type === 'SEC') {
+        const ciaArray = loadedAttrs.cia ? loadedAttrs.cia.split(', ') : [];
+        const isChecked = (val) => ciaArray.includes(val) ? 'checked' : '';
         fields.innerHTML = `
-            <label class="block text-sm font-semibold text-slate-700">Schutzziele (CIA)
-                <input id="attr_cia" type="text" value="${loadedAttrs.cia || ''}" placeholder="z.B. Confidentiality, Integrity" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
-            </label>
-            <label class="block text-sm font-semibold text-slate-700">STRIDE Kategorie
-                <select id="attr_stride" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
+            <div class="md:col-span-2">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Schutzziele (Erweiterte CIA-Triade)</label>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 bg-white p-2 border rounded">
+                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Vertraulichkeit" class="cia-cb w-4 h-4 rounded text-blue-900 focus:ring-blue-500" ${isChecked('Vertraulichkeit')}> Vertraulichkeit</label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Integrität" class="cia-cb w-4 h-4 rounded text-blue-900 focus:ring-blue-500" ${isChecked('Integrität')}> Integrität</label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Verfügbarkeit" class="cia-cb w-4 h-4 rounded text-blue-900 focus:ring-blue-500" ${isChecked('Verfügbarkeit')}> Verfügbarkeit</label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Authentizität" class="cia-cb w-4 h-4 rounded text-blue-900 focus:ring-blue-500" ${isChecked('Authentizität')}> Authentizität</label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Zurechenbarkeit" class="cia-cb w-4 h-4 rounded text-blue-900 focus:ring-blue-500" ${isChecked('Zurechenbarkeit')}> Zurechenbarkeit</label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Autorisierung" class="cia-cb w-4 h-4 rounded text-blue-900 focus:ring-blue-500" ${isChecked('Autorisierung')}> Autorisierung</label>
+                </div>
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">STRIDE Kategorie</label>
+                <select id="attr_stride" onchange="window.autoSelectCIA(this.value)" class="w-full rounded border p-2 font-normal outline-none bg-white">
                     <option value="">-- Wählen --</option>
-                    <option value="Spoofing" ${loadedAttrs.stride === 'Spoofing' ? 'selected' : ''}>Spoofing</option>
-                    <option value="Tampering" ${loadedAttrs.stride === 'Tampering' ? 'selected' : ''}>Tampering</option>
-                    <option value="Repudiation" ${loadedAttrs.stride === 'Repudiation' ? 'selected' : ''}>Repudiation</option>
-                    <option value="Information Disclosure" ${loadedAttrs.stride === 'Information Disclosure' ? 'selected' : ''}>Information Disclosure</option>
-                    <option value="Denial of Service" ${loadedAttrs.stride === 'Denial of Service' ? 'selected' : ''}>Denial of Service (DoS)</option>
-                    <option value="Elevation of Privilege" ${loadedAttrs.stride === 'Elevation of Privilege' ? 'selected' : ''}>Elevation of Privilege</option>
+                    <option value="Spoofing" ${loadedAttrs.stride === 'Spoofing' ? 'selected' : ''}>Spoofing (Identitätstäuschung)</option>
+                    <option value="Tampering" ${loadedAttrs.stride === 'Tampering' ? 'selected' : ''}>Tampering (Datenmanipulation)</option>
+                    <option value="Repudiation" ${loadedAttrs.stride === 'Repudiation' ? 'selected' : ''}>Repudiation (Verleugnung von Aktionen)</option>
+                    <option value="Information Disclosure" ${loadedAttrs.stride === 'Information Disclosure' ? 'selected' : ''}>Information Disclosure (Informationspreisgabe)</option>
+                    <option value="Denial of Service" ${loadedAttrs.stride === 'Denial of Service' ? 'selected' : ''}>Denial of Service (Dienstverweigerung)</option>
+                    <option value="Elevation of Privilege" ${loadedAttrs.stride === 'Elevation of Privilege' ? 'selected' : ''}>Elevation of Privilege (Rechteausweitung)</option>
                 </select>
-            </label>
+            </div>
         `;
         container.classList.remove('hidden');
     } else {
@@ -110,62 +203,102 @@ async function loadStakeholdersForDropdown(selectedValue = '') {
         const data = await res.json();
         const sel = document.getElementById('source_contact');
         if (!sel) return;
-        sel.innerHTML = '<option value="">-- Kein Stakeholder --</option>';
+        sel.innerHTML = '<option value="">-- Niemand zugewiesen --</option>';
         if (data.success && data.stakeholders) {
-            globalStakeholders = data.stakeholders; // Für Detail-Ansicht speichern
+            globalStakeholders = data.stakeholders;
             data.stakeholders.forEach(s => {
                 const selected = s.id == selectedValue ? 'selected' : '';
                 sel.innerHTML += `<option value="${s.id}" ${selected}>${s.name} (${s.role || 'Stakeholder'})</option>`;
             });
         }
-    } catch(e) {
+    } catch (e) {
         console.error("Stakeholder konnten nicht geladen werden:", e);
     }
 }
 
-// Hilfsfunktion um ID in Namen umzuwandeln
 function getStakeholderName(id) {
     if (!id) return 'Nicht angegeben';
     const s = globalStakeholders.find(x => x.id == id);
-    return s ? s.name : id; // Zeige Name, wenn gefunden, sonst die ID
+    return s ? s.name : id;
 }
 
 export async function loadRequirements() {
     if (!currentProjectId) return;
-    
-    // Stelle sicher, dass die Stakeholder geladen sind für die Namensauflösung
-    if (globalStakeholders.length === 0) {
-        await loadStakeholdersForDropdown(); 
-    }
+    if (globalStakeholders.length === 0) await loadStakeholdersForDropdown();
 
     try {
         const res = await fetch(`../api/get_requirements.php?project_id=${currentProjectId}`);
         const data = await res.json();
 
-        const listContainer = document.getElementById('items');
-        if(!listContainer) return;
-
         if (!data.success || data.requirements.length === 0) {
-            listContainer.innerHTML = '<div class="p-4 text-sm text-slate-500 italic">Noch keine Anforderungen vorhanden.</div>';
             loadedRequirements = [];
+            window.renderTreeList();
             const detail = document.getElementById('detail');
-            if(detail) detail.innerHTML = '<div class="flex h-full items-center justify-center text-slate-400 italic">Anforderung auswählen</div>';
+            if (detail) detail.innerHTML = '<div class="flex h-full items-center justify-center text-slate-400 italic">Noch keine Elemente vorhanden.</div>';
             return;
         }
 
         loadedRequirements = data.requirements;
-
         loadedRequirements.forEach(req => {
             let p = req.parents;
-            if (typeof p === 'string') {
-                try { p = JSON.parse(p); } catch (e) { p = []; }
-            }
+            if (typeof p === 'string') { try { p = JSON.parse(p); } catch (e) { p = []; } }
             req.parsedParents = Array.isArray(p) ? p : [];
         });
 
-        listContainer.innerHTML = '';
-        const rendered = new Set();
+        window.renderTreeList(); // Startet das Rendering inkl. aktuellem Filter
 
+    } catch (e) {
+        console.error("Fehler beim Laden:", e);
+    }
+}
+
+window.renderTreeList = function () {
+    const listContainer = document.getElementById('items');
+    if (!listContainer) return;
+
+    if (loadedRequirements.length === 0) {
+        listContainer.innerHTML = '<div class="p-4 text-sm text-slate-500 italic">Keine Elemente vorhanden.</div>';
+        return;
+    }
+
+    listContainer.innerHTML = '';
+    const filter = window.currentTreeFilter || 'ALL';
+    let isFlat = false;
+    let visibleReqs = loadedRequirements;
+
+    // Filter anwenden
+    if (filter === 'REQ') {
+        visibleReqs = loadedRequirements.filter(r => !['RISK', 'SEC', 'AST'].includes(r.type));
+        isFlat = true;
+    } else if (filter === 'SEC') {
+        visibleReqs = loadedRequirements.filter(r => ['RISK', 'SEC'].includes(r.type));
+        isFlat = true;
+    } else if (filter === 'AST') {
+        visibleReqs = loadedRequirements.filter(r => ['AST'].includes(r.type));
+        isFlat = true;
+    }
+
+    if (isFlat) {
+        if (visibleReqs.length === 0) {
+            listContainer.innerHTML = '<div class="p-4 text-sm text-slate-500 italic">Keine Einträge in diesem Tab.</div>';
+            return;
+        }
+        visibleReqs.forEach(req => {
+            const btn = document.createElement('button');
+            btn.className = `w-full text-left p-2.5 border-b border-slate-100 hover:bg-blue-50 transition focus:bg-blue-100 flex items-center justify-between text-xs bg-white`;
+            btn.innerHTML = `
+                <div class="flex items-center truncate">
+                    <span class="font-mono font-bold text-blue-950 mr-2">${req.req_key}</span>
+                    <span class="text-slate-700 truncate">${req.title}</span>
+                </div>
+                <span class="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5 rounded font-mono shrink-0">${req.review_status || req.status}</span>
+            `;
+            btn.onclick = () => showRequirementDetail(req);
+            listContainer.appendChild(btn);
+        });
+    } else {
+        // ORIGINAL TREE RENDER (Nur wenn "ALL" aktiv ist)
+        const rendered = new Set();
         function renderNode(req, level) {
             if (rendered.has(req.req_key)) return;
             rendered.add(req.req_key);
@@ -173,10 +306,9 @@ export async function loadRequirements() {
             const btn = document.createElement('button');
             const indentRem = level * 1.2;
             const bgClass = level > 0 ? 'bg-slate-50/60' : 'bg-white';
-
             btn.className = `w-full text-left p-2.5 border-b border-slate-100 hover:bg-blue-50 transition focus:bg-blue-100 flex items-center justify-between text-xs ${bgClass}`;
             btn.style.paddingLeft = `calc(0.75rem + ${indentRem}rem)`;
-            
+
             const children = loadedRequirements.filter(r => r.parsedParents.includes(req.req_key));
             const icon = children.length > 0 ? `<span class="text-slate-400 mr-1">▼</span>` : `<span class="mr-3"></span>`;
 
@@ -199,15 +331,9 @@ export async function loadRequirements() {
             !req.parsedParents.some(pk => loadedRequirements.find(r => r.req_key === pk))
         );
         roots.forEach(root => renderNode(root, 0));
-
-        loadedRequirements.forEach(req => {
-            if (!rendered.has(req.req_key)) renderNode(req, 0);
-        });
-
-    } catch (e) {
-        console.error("Fehler beim Laden der Anforderungen:", e);
+        loadedRequirements.forEach(req => { if (!rendered.has(req.req_key)) renderNode(req, 0); });
     }
-}
+};
 
 window.showRequirementDetailById = function (id) {
     const req = loadedRequirements.find(r => r.id == id);
@@ -216,28 +342,24 @@ window.showRequirementDetailById = function (id) {
 
 window.triggerVerify = function (reqId, idx, checkbox) {
     if (!checkbox.checked) return;
-    checkbox.checked = false; 
-
+    checkbox.checked = false;
     const textNode = checkbox.nextElementSibling.querySelector('label').textContent;
-
     document.getElementById('verify_req_id').value = reqId;
     document.getElementById('verify_crit_idx').value = idx;
     document.getElementById('verify_crit_text').textContent = textNode;
     document.getElementById('verify_note').value = '';
-
     document.getElementById('verifyModal').classList.remove('hidden');
 };
 
 function showRequirementDetail(req) {
     const detail = document.getElementById('detail');
-    if(!detail) return;
+    if (!detail) return;
 
     let attrs = {};
     try { attrs = JSON.parse(req.attributes || '{}'); } catch (e) { }
-    
     const states = attrs.criteria_states || {};
 
-    let criteriaHtml = '<span class="italic text-slate-400">Keine Akzeptanzkriterien definiert.</span>';
+    let criteriaHtml = '<span class="italic text-slate-400">Keine Kriterien definiert.</span>';
     if (req.acceptance_criteria) {
         const lines = req.acceptance_criteria.split('\n');
         criteriaHtml = '<ul class="space-y-3 mt-2">';
@@ -247,7 +369,6 @@ function showRequirementDetail(req) {
                 const state = states[idx];
                 const isChecked = state && state.checked ? 'checked disabled' : '';
                 const infoBadge = state ? `<div class="mt-1 text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-1 rounded">✅ <b>Geprüft von ${state.by}</b> am ${state.date}<br><span class="italic">"${state.note}"</span></div>` : '';
-
                 criteriaHtml += `
                     <li class="flex items-start gap-3 text-sm text-slate-700 bg-white p-2 rounded border">
                         <input type="checkbox" id="crit_${req.id}_${idx}" class="mt-1 w-4 h-4 rounded text-blue-900 focus:ring-blue-500 cursor-pointer" ${isChecked} onchange="window.triggerVerify(${req.id}, ${idx}, this)">
@@ -267,11 +388,17 @@ function showRequirementDetail(req) {
     try { childKeys = JSON.parse(req.children || '[]'); } catch (e) { }
     const childLinks = childKeys.map(ck => `<span class="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded text-[10px] font-mono">${ck}</span>`).join(' ') || '-';
 
-    // Risiko / SEC Attribute rendern
     let dynamicAttrHtml = '';
-    if (req.type === 'RISK') {
+    if (req.type === 'AST') {
         dynamicAttrHtml = `
-            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-red-700 font-medium bg-red-50 p-2 rounded">
+           <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-emerald-700 font-medium bg-emerald-50 p-2 rounded border border-emerald-100">
+                <div>💎 Asset-Kategorie: <b>${attrs.asset_type || '-'}</b></div>
+                <div>📍 Exposition: <b>${attrs.asset_exposure || '-'}</b></div>
+            </div>
+        `;
+    } else if (req.type === 'RISK') {
+        dynamicAttrHtml = `
+            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-red-700 font-medium bg-red-50 p-2 rounded border border-red-100">
                 <div>⚠️ Wahrscheinlichkeit: <b>${attrs.initial_probability || '-'}</b></div>
                 <div>🔥 Schaden: <b>${attrs.initial_severity || '-'}</b></div>
                 <div>🛑 Gefahr: <b>${attrs.hazard || '-'}</b></div>
@@ -279,7 +406,7 @@ function showRequirementDetail(req) {
         `;
     } else if (req.type === 'SEC') {
         dynamicAttrHtml = `
-            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-indigo-700 font-medium bg-indigo-50 p-2 rounded">
+            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-indigo-700 font-medium bg-indigo-50 p-2 rounded border border-indigo-100">
                 <div>🛡️ Schutzziele: <b>${attrs.cia || '-'}</b></div>
                 <div>🕵️ STRIDE: <b>${attrs.stride || '-'}</b></div>
             </div>
@@ -309,21 +436,16 @@ function showRequirementDetail(req) {
                 <div>Wird erfüllt durch (Children): ${childLinks}</div>
             </div>
         </div>
-                
         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Beschreibung</h3>
         <p class="text-sm text-slate-800 whitespace-pre-wrap mb-6">${req.description || '<span class="italic text-slate-400">Keine Beschreibung</span>'}</p>                  
-
         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Begründung (Rationale)</h3>
         <div class="bg-slate-50 border p-3 rounded text-sm text-slate-700 whitespace-pre-wrap mb-6">${req.rationale || '-'}</div>
-
-        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Akzeptanzkriterien & Prüfungen</h3>
+        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Prüfungen & Kriterien</h3>
         <div class="bg-slate-50 border p-4 rounded">${criteriaHtml}</div>
     `;
 }
 
 export function initRequirementEvents() {
-    
-    // Listener für das Dropdown-Typ (SEC und RISK Felder öffnen)
     const typeDropdown = document.getElementById('type');
     if (typeDropdown) {
         typeDropdown.addEventListener('change', () => window.handleTypeChange());
@@ -335,17 +457,14 @@ export function initRequirementEvents() {
             if (!currentProjectId) { alert("Projekt wählen!"); return; }
             document.getElementById('reqForm').reset();
             document.getElementById('reqForm').dataset.editId = '';
-            document.getElementById('reqHeading').textContent = 'Neues Ziel / Anforderung';
-            
+            document.getElementById('reqHeading').textContent = 'Neues Element anlegen';
             const revStat = document.getElementById('review_status');
-            if(revStat) revStat.value = 'Neu';
-
-            window.handleTypeChange(); // Setzt dynamische Felder zurück
+            if (revStat) revStat.value = 'Neu';
+            window.handleTypeChange();
             populateRelationshipCheckboxes();
             loadStakeholdersForDropdown();
-
             const modal = document.getElementById('reqModal');
-            if(modal) modal.classList.remove('hidden');
+            if (modal) modal.classList.remove('hidden');
         });
     }
 
@@ -353,18 +472,33 @@ export function initRequirementEvents() {
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const typeValue = document.getElementById('type') ? document.getElementById('type').value : '';
 
+            // Intelligenter Kriterien-Zwang
+            const needsCriteria = ['USR', 'SYS', 'SEC', 'SRS', 'SWC'];
+            if (needsCriteria.includes(typeValue)) {
+                const criteriaText = document.getElementById('acceptance_criteria') ? document.getElementById('acceptance_criteria').value.trim() : '';
+                if (!criteriaText) {
+                    alert(`Fehler: Anforderungen vom Typ ${typeValue} benötigen zwingend Akzeptanzkriterien!`);
+                    return;
+                }
+            }
             const selectedParents = Array.from(document.querySelectorAll('.req-parent-cb:checked')).map(cb => cb.value);
             const selectedChildren = Array.from(document.querySelectorAll('.req-child-cb:checked')).map(cb => cb.value);
 
+
             let dynamicAttrs = {};
-            const typeValue = document.getElementById('type') ? document.getElementById('type').value : '';
-            if (typeValue === 'RISK') {
+
+            if (typeValue === 'AST') {
+                dynamicAttrs.asset_type = document.getElementById('attr_asset_type') ? document.getElementById('attr_asset_type').value : '';
+                dynamicAttrs.asset_exposure = document.getElementById('attr_asset_exposure') ? document.getElementById('attr_asset_exposure').value : '';
+            } else if (typeValue === 'RISK') {
                 dynamicAttrs.initial_probability = document.getElementById('attr_prob') ? document.getElementById('attr_prob').value : '';
                 dynamicAttrs.initial_severity = document.getElementById('attr_sev') ? document.getElementById('attr_sev').value : '';
                 dynamicAttrs.hazard = document.getElementById('attr_hazard') ? document.getElementById('attr_hazard').value : '';
             } else if (typeValue === 'SEC') {
-                dynamicAttrs.cia = document.getElementById('attr_cia') ? document.getElementById('attr_cia').value : '';
+                const checkedCIA = Array.from(document.querySelectorAll('.cia-cb:checked')).map(cb => cb.value);
+                dynamicAttrs.cia = checkedCIA.join(', ');
                 dynamicAttrs.stride = document.getElementById('attr_stride') ? document.getElementById('attr_stride').value : '';
             }
 
@@ -381,7 +515,7 @@ export function initRequirementEvents() {
                 review_status: document.getElementById('review_status') ? document.getElementById('review_status').value : '',
                 parents: selectedParents,
                 children: selectedChildren,
-                attributes: dynamicAttrs // <-- WICHTIG: Die Risiko und SEC-Felder mit in die DB schicken
+                attributes: dynamicAttrs
             };
 
             try {
@@ -390,11 +524,9 @@ export function initRequirementEvents() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-
                 const data = await res.json();
                 if (data.success) {
-                    const modal = document.getElementById('reqModal');
-                    if(modal) modal.classList.add('hidden');
+                    document.getElementById('reqModal').classList.add('hidden');
                     loadRequirements();
                 } else {
                     alert("Fehler: " + data.error);
@@ -409,20 +541,17 @@ export function initRequirementEvents() {
     if (verifyForm) {
         verifyForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const payload = {
                 req_id: document.getElementById('verify_req_id').value,
                 criterion_idx: document.getElementById('verify_crit_idx').value,
                 note: document.getElementById('verify_note').value
             };
-
             try {
                 const res = await fetch('../api/verify_criterion.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-
                 const data = await res.json();
                 if (data.success) {
                     document.getElementById('verifyModal').classList.add('hidden');
@@ -441,37 +570,30 @@ export function initRequirementEvents() {
 window.editRequirement = function (id) {
     const req = loadedRequirements.find(r => r.id == id);
     if (!req) return;
-
     document.getElementById('reqForm').dataset.editId = req.id;
-    
-    if(document.getElementById('type')) document.getElementById('type').value = req.type;
-    if(document.getElementById('title')) document.getElementById('title').value = req.title;
-    if(document.getElementById('text')) document.getElementById('text').value = req.description || '';
-    if(document.getElementById('rationale')) document.getElementById('rationale').value = req.rationale || '';
-    if(document.getElementById('effort')) document.getElementById('effort').value = req.effort || '';
-    if(document.getElementById('acceptance_criteria')) document.getElementById('acceptance_criteria').value = req.acceptance_criteria || '';
-    if(document.getElementById('review_status')) document.getElementById('review_status').value = req.review_status || 'Neu';
 
-    // JSON entpacken und dynamische Felder triggern
+    if (document.getElementById('type')) document.getElementById('type').value = req.type;
+    if (document.getElementById('title')) document.getElementById('title').value = req.title;
+    if (document.getElementById('text')) document.getElementById('text').value = req.description || '';
+    if (document.getElementById('rationale')) document.getElementById('rationale').value = req.rationale || '';
+    if (document.getElementById('effort')) document.getElementById('effort').value = req.effort || '';
+    if (document.getElementById('acceptance_criteria')) document.getElementById('acceptance_criteria').value = req.acceptance_criteria || '';
+    if (document.getElementById('review_status')) document.getElementById('review_status').value = req.review_status || 'Neu';
+
     let attrs = {};
     try { attrs = JSON.parse(req.attributes || '{}'); } catch (e) { }
     window.handleTypeChange(attrs);
-
     loadStakeholdersForDropdown(req.source_contact);
 
-    let parentKeys = [];
-    let childKeys = [];
+    let parentKeys = []; let childKeys = [];
     try { parentKeys = JSON.parse(req.parents || '[]'); } catch (e) { }
     try { childKeys = JSON.parse(req.children || '[]'); } catch (e) { }
-
     populateRelationshipCheckboxes(req.id, parentKeys, childKeys);
 
-    if(document.getElementById('parentSearch')) document.getElementById('parentSearch').value = '';
-    if(document.getElementById('childSearch')) document.getElementById('childSearch').value = '';
-
+    if (document.getElementById('parentSearch')) document.getElementById('parentSearch').value = '';
+    if (document.getElementById('childSearch')) document.getElementById('childSearch').value = '';
     const heading = document.getElementById('reqHeading');
-    if(heading) heading.textContent = 'Eintrag bearbeiten (' + req.req_key + ')';
-    
+    if (heading) heading.textContent = 'Eintrag bearbeiten (' + req.req_key + ')';
     const modal = document.getElementById('reqModal');
-    if(modal) modal.classList.remove('hidden');
+    if (modal) modal.classList.remove('hidden');
 };

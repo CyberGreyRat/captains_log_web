@@ -1,49 +1,71 @@
-<?php // api/verify_criterion.php
-ini_set('display_errors', 0); 
-error_reporting(E_ALL);
+<?php
 session_start();
 require '../config/db.php';
 header('Content-Type: application/json');
 
 $data = json_decode(file_get_contents('php://input'), true);
+$req_id = $data['req_id'] ?? null;
+$idx = $data['criterion_idx'] ?? null;
+$note = $data['note'] ?? '';
+$user = $_SESSION['username'] ?? 'admin'; // Oder wie dein User heißt
 
-if (!isset($_SESSION['user_id']) || empty($data['req_id']) || !isset($data['criterion_idx'])) {
-    echo json_encode(['success' => false, 'error' => 'Fehlende Parameter oder nicht eingeloggt.']);
+if (!$req_id || $idx === null) {
+    echo json_encode(['success' => false, 'error' => 'Fehlende Daten']);
     exit;
 }
 
 try {
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $username = $_SESSION['username'];
-    
-    // Aktuelle Attribute laden
-    $stmt = $pdo->prepare("SELECT attributes FROM requirements WHERE id = ?");
-    $stmt->execute([$data['req_id']]);
-    $row = $stmt->fetch();
-    
-    if(!$row) throw new Exception("Anforderung nicht gefunden.");
+    $pdo->beginTransaction();
 
-    $attr = $row['attributes'] ? json_decode($row['attributes'], true) : [];
-    if(!isset($attr['criteria_states'])) {
-        $attr['criteria_states'] = [];
-    }
+    // Aktuelle Kriterien laden
+    $stmt = $pdo->prepare("SELECT acceptance_criteria, attributes FROM requirements WHERE id = ?");
+    $stmt->execute([$req_id]);
+    $req = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Status setzen
-    $attr['criteria_states'][$data['criterion_idx']] = [
+    if (!$req) throw new Exception("Element nicht gefunden");
+
+    $attrs = json_decode($req['attributes'] ?: '{}', true);
+    if (!isset($attrs['criteria_states'])) $attrs['criteria_states'] = [];
+
+    // Kriterium abhaken
+    $attrs['criteria_states'][$idx] = [
         'checked' => true,
-        'by' => $username,
+        'by' => $user,
         'date' => date('d.m.Y H:i'),
-        'note' => htmlspecialchars($data['note'])
+        'note' => $note
     ];
 
-    $json_attr = json_encode($attr);
+    // PRÜFUNG: Sind jetzt ALLE Kriterien abgehakt?
+    $raw_lines = explode("\n", $req['acceptance_criteria']);
+    $valid_count = 0;
+    $checked_count = 0;
 
-    // In DB speichern
-    $upd = $pdo->prepare("UPDATE requirements SET attributes = ? WHERE id = ?");
-    $upd->execute([$json_attr, $data['req_id']]);
+    foreach ($raw_lines as $i => $line) {
+        if (trim(preg_replace('/^-\s*/', '', $line)) !== '') {
+            $valid_count++;
+            if (isset($attrs['criteria_states'][$i]['checked']) && $attrs['criteria_states'][$i]['checked']) {
+                $checked_count++;
+            }
+        }
+    }
 
-    echo json_encode(['success' => true]);
+    // JSON updaten
+    $update_stmt = $pdo->prepare("UPDATE requirements SET attributes = ? WHERE id = ?");
+    $update_stmt->execute([json_encode($attrs), $req_id]);
+
+    // AUTO-FREIGABE, wenn alle validen Kriterien geprüft sind
+    $auto_approved = false;
+    if ($valid_count > 0 && $valid_count === $checked_count) {
+        $status_stmt = $pdo->prepare("UPDATE requirements SET review_status = 'Geprüft & Freigegeben' WHERE id = ?");
+        $status_stmt->execute([$req_id]);
+        $auto_approved = true;
+    }
+
+    $pdo->commit();
+    echo json_encode(['success' => true, 'auto_approved' => $auto_approved]);
+
 } catch (Exception $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
 ?>

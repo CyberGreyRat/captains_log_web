@@ -1,0 +1,2837 @@
+
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\api\get_dashboard_kpis.php
+====================================================
+<?php // api/get_dashboard_kpis.php
+ini_set('display_errors', 0); 
+error_reporting(E_ALL);
+session_start();
+require '../config/db.php';
+header('Content-Type: application/json');
+
+$project_id = $_GET['project_id'] ?? null;
+if (!$project_id) {
+    echo json_encode(['success' => false]);
+    exit;
+}
+
+try {
+    $stmt = $pdo->prepare("SELECT id, req_key, title, review_status, type FROM requirements WHERE project_id = ? ORDER BY req_key ASC");
+    $stmt->execute([$project_id]);
+    $all = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $waiting = array_values(array_filter($all, function($r) { return $r['review_status'] === 'Wartet auf Überprüfung'; }));
+    $approved = array_values(array_filter($all, function($r) { return $r['review_status'] === 'Geprüft & Freigegeben'; }));
+    
+    // Neu: Filter für Risk und Sec
+    $risks = array_values(array_filter($all, function($r) { return $r['type'] === 'RISK'; }));
+    $sec = array_values(array_filter($all, function($r) { return $r['type'] === 'SEC'; }));
+
+    echo json_encode([
+        'success' => true, 
+        'kpis' => [
+            'total' => ['count' => count($all), 'items' => $all], 
+            'waiting' => ['count' => count($waiting), 'items' => $waiting], 
+            'approved' => ['count' => count($approved), 'items' => $approved],
+            'risks' => ['count' => count($risks), 'items' => $risks],
+            'sec' => ['count' => count($sec), 'items' => $sec]
+        ]
+    ]);
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+}
+?>
+
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\api\get_history.php
+====================================================
+<?php
+ini_set('display_errors', 0); 
+error_reporting(E_ALL);
+session_start();
+require '../config/db.php';
+header('Content-Type: application/json');
+
+$project_id = $_GET['project_id'] ?? null;
+if (!$project_id) {
+    echo json_encode(['success' => false, 'history' => []]);
+    exit;
+}
+
+try {
+    $stmt = $pdo->prepare("
+        SELECT h.*, u.username as modified_by_user 
+        FROM requirement_history h 
+        LEFT JOIN users u ON h.modified_by = u.id 
+        WHERE h.project_id = ? 
+        ORDER BY h.modified_at DESC
+    ");
+    $stmt->execute([$project_id]);
+    $history = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    echo json_encode(['success' => true, 'history' => $history]);
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'history' => [], 'error' => $e->getMessage()]);
+}
+?>
+
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\api\get_requirements.php
+====================================================
+<?php
+ini_set('display_errors', 0); 
+error_reporting(E_ALL);
+session_start();
+require '../config/db.php';
+header('Content-Type: application/json');
+
+$project_id = $_GET['project_id'] ?? null;
+if (!$project_id) {
+    echo json_encode(['success' => false, 'error' => 'Keine project_id übergeben.']);
+    exit;
+}
+
+try {
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $stmt = $pdo->prepare("SELECT * FROM requirements WHERE project_id = ? ORDER BY type, req_key ASC");
+    $stmt->execute([$project_id]);
+    $requirements = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    echo json_encode(['success' => true, 'requirements' => $requirements]);
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+}
+?>
+
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\api\get_stakeholders.php
+====================================================
+<?php
+// api/get_stakeholders.php
+ini_set('display_errors', 0); 
+error_reporting(E_ALL);
+session_start();
+require '../config/db.php';
+
+header('Content-Type: application/json');
+
+$project_id = $_GET['project_id'] ?? null;
+
+if (!$project_id) {
+    echo json_encode(['success' => false, 'error' => 'Keine project_id übergeben.']);
+    exit;
+}
+
+try {
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    
+    // Einfach alles aus der einen Tabelle holen
+    $stmt = $pdo->prepare("SELECT * FROM stakeholders WHERE project_id = ? ORDER BY name ASC");
+    $stmt->execute([$project_id]);
+    
+    $stakeholders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    echo json_encode(['success' => true, 'stakeholders' => $stakeholders]);
+
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+}
+?>
+
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\api\get_usecases.php
+====================================================
+<?php
+// api/get_usecases.php
+ini_set('display_errors', 0); 
+error_reporting(E_ALL);
+session_start();
+require '../config/db.php';
+
+header('Content-Type: application/json');
+
+$project_id = $_GET['project_id'] ?? null;
+
+if (!$project_id) {
+    echo json_encode(['success' => false, 'error' => 'Keine project_id übergeben.']);
+    exit;
+}
+
+try {
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    
+    $stmt = $pdo->prepare("SELECT * FROM use_cases WHERE project_id = ? ORDER BY uc_key ASC");
+    $stmt->execute([$project_id]);
+    $use_cases = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    echo json_encode(['success' => true, 'use_cases' => $use_cases]);
+
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+}
+?>
+
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\api\get_userstories.php
+====================================================
+<?php
+// api/get_userstories.php
+ini_set('display_errors', 0); 
+error_reporting(E_ALL);
+session_start();
+require '../config/db.php';
+
+header('Content-Type: application/json');
+
+$project_id = $_GET['project_id'] ?? null;
+
+if (!$project_id) {
+    echo json_encode(['success' => false, 'error' => 'Keine project_id übergeben.']);
+    exit;
+}
+
+try {
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    
+    $stmt = $pdo->prepare("SELECT * FROM user_stories WHERE project_id = ? ORDER BY us_key ASC");
+    $stmt->execute([$project_id]);
+    $user_stories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    echo json_encode(['success' => true, 'user_stories' => $user_stories]);
+
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+}
+?>
+
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\api\link.php
+====================================================
+<?php
+// api/link.php
+header('Content-Type: application/json');
+require '../config/db.php';
+
+$input = json_decode(file_get_contents('php://input'), true);
+$token = $input['token'] ?? '';
+$project_id = $input['project_id'] ?? '';
+
+// Token validieren
+$stmt = $pdo->prepare("SELECT id FROM users WHERE api_token = ?");
+$stmt->execute([$token]);
+$user = $stmt->fetch();
+
+if (!$user) {
+    echo json_encode(['success' => false, 'message' => 'Ungültiger oder abgelaufener Token. Bitte cap login ausführen.']);
+    exit;
+}
+
+// Prüfen ob Nutzer Mitglied im Projekt ist
+$projStmt = $pdo->prepare("
+    SELECT p.name FROM projects p 
+    JOIN project_members pm ON p.id = pm.project_id 
+    WHERE p.id = ? AND pm.user_id = ?
+");
+$projStmt->execute([$project_id, $user['id']]);
+$project = $projStmt->fetch();
+
+if ($project) {
+    echo json_encode([
+        'success' => true, 
+        'project_name' => $project['name'],
+        'message' => "Erfolgreich mit Projekt verknüpft."
+    ]);
+} else {
+    echo json_encode(['success' => false, 'message' => 'Projekt nicht gefunden oder kein Zugriff.']);
+}
+?>
+
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\api\login.php
+====================================================
+
+
+
+<?php
+// api/login.php
+header('Content-Type: application/json');
+require '../config/db.php';
+
+$input = json_decode(file_get_contents('php://input'), true);
+$username = $input['username'] ?? '';
+$password = $input['password'] ?? '';
+
+if (!$username || !$password) {
+    echo json_encode(['success' => false, 'message' => 'Username und Passwort fehlen.']);
+    exit;
+}
+
+$stmt = $pdo->prepare("SELECT id, password_hash FROM users WHERE username = ?");
+$stmt->execute([$username]);
+$user = $stmt->fetch();
+
+if ($user && password_verify($password, $user['password_hash'])) {
+    $token = bin2hex(random_bytes(32));
+    $updateStmt = $pdo->prepare("UPDATE users SET api_token = ? WHERE id = ?");
+    $updateStmt->execute([$token, $user['id']]);
+    
+    echo json_encode([
+        'success' => true, 
+        'token' => $token,
+        'message' => 'Login erfolgreich.'
+    ]);
+} else {
+    echo json_encode(['success' => false, 'message' => 'Ungültige Zugangsdaten.']);
+}
+?>
+
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\api\pull.php
+====================================================
+<?php
+// api/pull.php
+header('Content-Type: application/json');
+require '../config/db.php';
+
+$input = json_decode(file_get_contents('php://input'), true);
+$token = $input['token'] ?? '';
+$project_id = $input['project_id'] ?? '';
+
+// User checken
+$stmt = $pdo->prepare("SELECT id FROM users WHERE api_token = ?");
+$stmt->execute([$token]);
+if (!$stmt->fetch()) {
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit;
+}
+
+// Anforderungen aus der DB holen
+$reqStmt = $pdo->prepare("SELECT req_key, title, description, status FROM requirements WHERE project_id = ?");
+$reqStmt->execute([$project_id]);
+$requirements = $reqStmt->fetchAll();
+
+echo json_encode([
+    'success' => true,
+    'requirements' => $requirements
+]);
+?>
+
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\api\push.php
+====================================================
+<?php
+// api/push.php
+header('Content-Type: application/json');
+require '../config/db.php';
+
+$input = json_decode(file_get_contents('php://input'), true);
+$token = $input['token'] ?? '';
+$project_id = $input['project_id'] ?? '';
+$updates = $input['updates'] ?? []; // Array mit geänderten Requirements
+$evidences = $input['evidences'] ?? []; // Array mit Evidenzen
+
+// User checken
+$stmt = $pdo->prepare("SELECT id FROM users WHERE api_token = ?");
+$stmt->execute([$token]);
+$user = $stmt->fetch();
+
+if (!$user) {
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit;
+}
+
+try {
+    $pdo->beginTransaction();
+
+    // 1. Requirements Status updaten
+    $updReq = $pdo->prepare("UPDATE requirements SET status = ? WHERE req_key = ? AND project_id = ?");
+    foreach ($updates as $req) {
+        $updReq->execute([$req['status'], $req['req_key'], $project_id]);
+    }
+
+    // 2. Evidenzen speichern (Hardware-Tests, Konsolen-Outputs)
+    $insEvd = $pdo->prepare("INSERT INTO evidences (requirement_id, project_id, console_output, uploaded_by) VALUES ((SELECT id FROM requirements WHERE req_key = ? AND project_id = ?), ?, ?, ?)");
+    
+    foreach ($evidences as $evd) {
+        // Hinweis: Wenn Bilder als Base64 gesendet werden, speichert man diese
+        // idealerweise hier auf der Festplatte und trägt nur den Pfad in die DB ein.
+        // Für Konsolen-Outputs schreiben wir sie direkt in die DB:
+        $insEvd->execute([
+            $evd['req_key'], 
+            $project_id, 
+            $project_id, 
+            $evd['console_output'] ?? '', 
+            $user['id']
+        ]);
+    }
+
+    $pdo->commit();
+    echo json_encode(['success' => true, 'message' => 'Push erfolgreich. Daten synchronisiert.']);
+
+} catch (Exception $e) {
+    $pdo->rollBack();
+    echo json_encode(['success' => false, 'message' => 'Fehler beim Push: ' . $e->getMessage()]);
+}
+?>
+
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\api\set_requirements.php
+====================================================
+<?php // api/set_requirements.php
+ini_set('display_errors', 0); 
+error_reporting(E_ALL);
+session_start();
+require '../config/db.php';
+header('Content-Type: application/json');
+
+try {
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $data = json_decode(file_get_contents('php://input'), true);
+
+    if (empty($data['project_id']) || empty($data['title'])) {
+        throw new Exception("Projekt-ID und Titel fehlen!");
+    }
+
+    $id = $data['id'] ?? null;
+    $project_id = $data['project_id'];
+    $type = $data['type'] ?? 'SYS';
+    $title = $data['title'];
+    $description = $data['description'] ?? '';
+    $rationale = $data['rationale'] ?? '';
+    $status = $data['status'] ?? 'open';
+    
+    $source_contact = $data['source_contact'] ?? '';
+    $effort = $data['effort'] ?? '';
+    $acceptance_criteria = $data['acceptance_criteria'] ?? '';
+    $review_status = $data['review_status'] ?? 'Neu';
+
+    $parents = (isset($data['parents']) && is_array($data['parents'])) ? json_encode($data['parents']) : '[]';
+    $children = (isset($data['children']) && is_array($data['children'])) ? json_encode($data['children']) : '[]';
+
+    // JSON Attribute extrem sicher laden (verhindert den Absturz!)
+    $existing_attrs = [];
+    if ($id) {
+        $stmtAttr = $pdo->prepare("SELECT attributes FROM requirements WHERE id = ?");
+        $stmtAttr->execute([$id]);
+        $row = $stmtAttr->fetch();
+        if ($row && !empty($row['attributes'])) {
+            $decoded = json_decode($row['attributes'], true);
+            if (is_array($decoded)) {
+                $existing_attrs = $decoded;
+            }
+        }
+    }
+
+    if (isset($data['attributes']) && is_array($data['attributes'])) {
+        foreach ($data['attributes'] as $k => $v) {
+            $existing_attrs[$k] = $v;
+        }
+    }
+    $attributes_json = json_encode($existing_attrs);
+
+    if ($id) {
+        $stmt = $pdo->prepare("UPDATE requirements SET type=?, title=?, description=?, rationale=?, status=?, source_contact=?, effort=?, acceptance_criteria=?, review_status=?, parents=?, children=?, attributes=? WHERE id=? AND project_id=?");
+        $stmt->execute([$type, $title, $description, $rationale, $status, $source_contact, $effort, $acceptance_criteria, $review_status, $parents, $children, $attributes_json, $id, $project_id]);
+    } else {
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM requirements WHERE project_id = ? AND type = ?");
+        $countStmt->execute([$project_id, $type]);
+        $count = $countStmt->fetchColumn() + 1;
+        $req_key = $type . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+        
+        $stmt = $pdo->prepare("INSERT INTO requirements (project_id, req_key, type, title, description, rationale, status, source_contact, effort, acceptance_criteria, review_status, parents, children, attributes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$project_id, $req_key, $type, $title, $description, $rationale, $status, $source_contact, $effort, $acceptance_criteria, $review_status, $parents, $children, $attributes_json]);
+    }
+    
+    echo json_encode(['success' => true]);
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+}
+?>
+
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\api\set_stakeholder.php
+====================================================
+<?php
+// api/set_stakeholder.php
+ini_set('display_errors', 0); 
+error_reporting(E_ALL);
+session_start();
+require '../config/db.php';
+
+header('Content-Type: application/json');
+
+try {
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $data = json_decode(file_get_contents('php://input'), true);
+
+    // Pflichtfeld prüfen
+    if (empty($data['project_id']) || empty($data['name'])) {
+        throw new Exception("Projekt-ID und Name sind Pflichtfelder!");
+    }
+
+    $id = $data['id'] ?? null;
+    $project_id = $data['project_id'];
+    $name = $data['name'];
+    $email = $data['email'] ?? '';
+    $phone = $data['phone'] ?? '';
+    $role = $data['role'] ?? '';
+    $position = $data['position'] ?? '';
+    $expertise = $data['expertise'] ?? '';
+    $availability = $data['availability'] ?? '';
+    $influence = $data['influence'] ?? 'Low';
+    $interest = $data['interest'] ?? 'Low';
+
+    if ($id) {
+        // UPDATE (Bestehenden Stakeholder ändern)
+        $stmt = $pdo->prepare("
+            UPDATE stakeholders 
+            SET name=?, email=?, phone=?, role=?, position=?, expertise=?, availability=?, influence=?, interest=? 
+            WHERE id=? AND project_id=?
+        ");
+        $stmt->execute([$name, $email, $phone, $role, $position, $expertise, $availability, $influence, $interest, $id, $project_id]);
+        $message = "Stakeholder erfolgreich aktualisiert.";
+    } else {
+        // INSERT (Neuen Stakeholder anlegen)
+        $stmt = $pdo->prepare("
+            INSERT INTO stakeholders (project_id, name, email, phone, role, position, expertise, availability, influence, interest) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([$project_id, $name, $email, $phone, $role, $position, $expertise, $availability, $influence, $interest]);
+        $id = $pdo->lastInsertId();
+        $message = "Stakeholder erfolgreich angelegt.";
+    }
+
+    echo json_encode(['success' => true, 'id' => $id, 'message' => $message]);
+
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+}
+?>
+
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\api\set_usecase.php
+====================================================
+<?php
+// api/set_usecase.php
+ini_set('display_errors', 0); 
+error_reporting(E_ALL);
+session_start();
+require '../config/db.php';
+
+header('Content-Type: application/json');
+
+try {
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $data = json_decode(file_get_contents('php://input'), true);
+
+    if (empty($data['project_id']) || empty($data['title'])) {
+        throw new Exception("Projekt-ID und Titel sind Pflichtfelder!");
+    }
+
+    $id = $data['id'] ?? null;
+    $project_id = $data['project_id'];
+    $title = $data['title'];
+    $primary_actor = $data['primary_actor'] ?? '';
+    $preconditions = $data['preconditions'] ?? '';
+    $main_scenario = $data['main_scenario'] ?? '';
+    $alt_scenario = $data['alt_scenario'] ?? '';
+
+    if ($id) {
+        // UPDATE
+        $stmt = $pdo->prepare("
+            UPDATE use_cases 
+            SET title=?, primary_actor=?, preconditions=?, main_scenario=?, alt_scenario=? 
+            WHERE id=? AND project_id=?
+        ");
+        $stmt->execute([$title, $primary_actor, $preconditions, $main_scenario, $alt_scenario, $id, $project_id]);
+        $message = "Use Case erfolgreich aktualisiert.";
+    } else {
+        // INSERT - Automatischen Key generieren (z.B. UC-001)
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM use_cases WHERE project_id = ?");
+        $countStmt->execute([$project_id]);
+        $count = $countStmt->fetchColumn() + 1;
+        $uc_key = 'UC-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+
+        $stmt = $pdo->prepare("
+            INSERT INTO use_cases (project_id, uc_key, title, primary_actor, preconditions, main_scenario, alt_scenario) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([$project_id, $uc_key, $title, $primary_actor, $preconditions, $main_scenario, $alt_scenario]);
+        $id = $pdo->lastInsertId();
+        $message = "Use Case erfolgreich angelegt.";
+    }
+
+    echo json_encode(['success' => true, 'id' => $id, 'message' => $message]);
+
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+}
+?>
+
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\api\set_userstories.php
+====================================================
+<?php
+// api/set_userstories.php
+ini_set('display_errors', 0); 
+error_reporting(E_ALL);
+session_start();
+require '../config/db.php';
+
+header('Content-Type: application/json');
+
+try {
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $data = json_decode(file_get_contents('php://input'), true);
+
+    if (empty($data['project_id']) || empty($data['title'])) {
+        throw new Exception("Projekt-ID und Titel sind Pflichtfelder!");
+    }
+
+    $id = $data['id'] ?? null;
+    $project_id = $data['project_id'];
+    $title = $data['title'];
+    $us_role = $data['us_role'] ?? '';
+    $us_action = $data['us_action'] ?? '';
+    $us_benefit = $data['us_benefit'] ?? '';
+    $acceptance_criteria = $data['acceptance_criteria'] ?? '';
+    $story_points = $data['story_points'] ?? null;
+    if ($story_points === '') $story_points = null; // Fix für leere Zahlenfelder
+
+    if ($id) {
+        // UPDATE
+        $stmt = $pdo->prepare("
+            UPDATE user_stories 
+            SET title=?, us_role=?, us_action=?, us_benefit=?, acceptance_criteria=?, story_points=? 
+            WHERE id=? AND project_id=?
+        ");
+        $stmt->execute([$title, $us_role, $us_action, $us_benefit, $acceptance_criteria, $story_points, $id, $project_id]);
+        $message = "User Story erfolgreich aktualisiert.";
+    } else {
+        // INSERT - Automatischen Key generieren (z.B. US-001)
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM user_stories WHERE project_id = ?");
+        $countStmt->execute([$project_id]);
+        $count = $countStmt->fetchColumn() + 1;
+        $us_key = 'US-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+
+        $stmt = $pdo->prepare("
+            INSERT INTO user_stories (project_id, us_key, title, us_role, us_action, us_benefit, acceptance_criteria, story_points) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([$project_id, $us_key, $title, $us_role, $us_action, $us_benefit, $acceptance_criteria, $story_points]);
+        $id = $pdo->lastInsertId();
+        $message = "User Story erfolgreich angelegt.";
+    }
+
+    echo json_encode(['success' => true, 'id' => $id, 'message' => $message]);
+
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+}
+?>
+
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\api\verify_criterion.php
+====================================================
+<?php // api/verify_criterion.php
+ini_set('display_errors', 0); 
+error_reporting(E_ALL);
+session_start();
+require '../config/db.php';
+header('Content-Type: application/json');
+
+$data = json_decode(file_get_contents('php://input'), true);
+
+if (!isset($_SESSION['user_id']) || empty($data['req_id']) || !isset($data['criterion_idx'])) {
+    echo json_encode(['success' => false, 'error' => 'Fehlende Parameter oder nicht eingeloggt.']);
+    exit;
+}
+
+try {
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $username = $_SESSION['username'];
+    
+    // Aktuelle Attribute laden
+    $stmt = $pdo->prepare("SELECT attributes FROM requirements WHERE id = ?");
+    $stmt->execute([$data['req_id']]);
+    $row = $stmt->fetch();
+    
+    if(!$row) throw new Exception("Anforderung nicht gefunden.");
+
+    $attr = $row['attributes'] ? json_decode($row['attributes'], true) : [];
+    if(!isset($attr['criteria_states'])) {
+        $attr['criteria_states'] = [];
+    }
+
+    // Status setzen
+    $attr['criteria_states'][$data['criterion_idx']] = [
+        'checked' => true,
+        'by' => $username,
+        'date' => date('d.m.Y H:i'),
+        'note' => htmlspecialchars($data['note'])
+    ];
+
+    $json_attr = json_encode($attr);
+
+    // In DB speichern
+    $upd = $pdo->prepare("UPDATE requirements SET attributes = ? WHERE id = ?");
+    $upd->execute([$json_attr, $data['req_id']]);
+
+    echo json_encode(['success' => true]);
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+}
+?>
+
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\api\web_create_project.php
+====================================================
+<?php
+// api/web_create_project.php
+session_start();
+
+// Pfad anpassen: Da wir im /api/ Ordner sind, müssen wir mit '../' eins hoch!
+require '../config/db.php';
+
+// Ist der Nutzer überhaupt im Browser eingeloggt?
+if (!isset($_SESSION['user_id'])) {
+    die("Sitzung abgelaufen oder nicht autorisiert. Bitte neu einloggen.");
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Formulardaten aus der index.php abgreifen
+    $name = trim($_POST['name'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $user_id = $_SESSION['user_id'];
+
+    if ($name !== '') {
+        // Eine zufällige, sichere Projekt-ID generieren (z.B. proj-5f4a8b...)
+        // Diese ID nutzt der Entwickler später für "cap link"
+        $project_id = 'proj-' . bin2hex(random_bytes(6));
+
+        try {
+            // Transaktion starten (entweder es klappt alles, oder nichts)
+            $pdo->beginTransaction();
+
+            // 1. Das Projekt in die DB eintragen
+            $stmt = $pdo->prepare("INSERT INTO projects (id, name, description, created_by) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$project_id, $name, $description, $user_id]);
+
+            // 2. Den Ersteller in die project_members Tabelle eintragen, 
+            // damit er sofortigen Zugriff darauf hat
+            $stmtMember = $pdo->prepare("INSERT INTO project_members (project_id, user_id) VALUES (?, ?)");
+            $stmtMember->execute([$project_id, $user_id]);
+
+            $pdo->commit();
+
+            // Nach erfolgreichem Speichern leiten wir direkt zurück zum Dashboard
+            header("Location: ../dashboard/index.php");
+            exit;
+
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            die("Datenbank-Fehler beim Erstellen des Projekts: " . $e->getMessage());
+        }
+    } else {
+        die("Der Projektname darf nicht leer sein.");
+    }
+} else {
+    // Falls jemand die Datei direkt im Browser ohne POST aufruft
+    header("Location: ../index.php");
+    exit;
+}
+?>
+
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\api\web_get_projects.php
+====================================================
+<?php
+session_start();
+header('Content-Type: application/json');
+require '../config/db.php';
+
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(['error' => 'Nicht autorisiert']);
+    exit;
+}
+
+// Holt nur Projekte, bei denen der eingeloggte User Mitglied ist
+$stmt = $pdo->prepare("
+    SELECT p.id, p.name 
+    FROM projects p 
+    JOIN project_members pm ON p.id = pm.project_id 
+    WHERE pm.user_id = ?
+");
+$stmt->execute([$_SESSION['user_id']]);
+echo json_encode(['projects' => $stmt->fetchAll()]);
+?>
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\config\db.php
+====================================================
+<?php
+// config/db.php
+
+$host = '127.0.0.1';
+$db   = 'captainslog_db';
+$user = 'root'; // Standard XAMPP User
+$pass = '';     // Standard XAMPP Passwort
+
+$dsn = "mysql:host=$host;dbname=$db;charset=utf8mb4";
+$options = [
+    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_EMULATE_PREPARES   => false,
+];
+
+try {
+    $pdo = new PDO($dsn, $user, $pass, $options);
+} catch (\PDOException $e) {
+    // Bei der API sollten wir JSON-Fehler werfen, beim Dashboard HTML
+    header('Content-Type: application/json');
+    echo json_encode(['error' => 'Datenbankverbindung fehlgeschlagen.']);
+    exit;
+}
+?>.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\index.php
+====================================================
+<?php
+// dashboard/index.php
+session_start();
+
+if (isset($_GET['logout'])) {
+    session_destroy();
+    header("Location: login.php");
+    exit;
+}
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+require '../config/db.php';
+
+// Projekte des Nutzers laden
+$stmt = $pdo->prepare("
+    SELECT p.id, p.name 
+    FROM projects p 
+    JOIN project_members pm ON p.id = pm.project_id 
+    WHERE pm.user_id = ?
+");
+$stmt->execute([$_SESSION['user_id']]);
+$projects = $stmt->fetchAll();
+?>
+<!doctype html>
+<html lang="de">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Captain's Log - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="shortcut icon" href="css/favicon.ico" />
+    <style>
+        .panel {
+            display: none;
+        }
+
+        .panel.show {
+            display: block;
+        }
+
+        .tab.active {
+            color: #1e3a8a;
+            border-color: #1e3a8a;
+            background: #eff6ff;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 flex flex-col h-screen overflow-hidden">
+
+    <div id="notificationArea" class="fixed right-4 top-4 z-[100] w-[min(92vw,520px)] space-y-3" aria-live="assertive"
+        aria-atomic="true"></div>
+
+    <!-- HEADER -->
+    <header class="border-t-4 border-amber-400 bg-[#0d3158] text-white shrink-0">
+        <div class="mx-auto flex h-24 max-w-screen-2xl items-center justify-between px-6">
+            <div class="flex items-center gap-4">
+                <img src="css/logo.png" class="h-16 w-auto" alt="Captain's Log Logo">
+                <div>
+                    <p class="text-xs uppercase tracking-[.2em] text-blue-200">Requirements · Risk · Verification</p>
+                    <h1 class="text-2xl font-bold">Captain's Log</h1>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="session" class="text-sm">User: <b><?= htmlspecialchars($_SESSION['username']) ?></b></span>
+
+                <select id="projectSelect" class="text-slate-800 rounded px-2 py-1 font-bold outline-none">
+                    <option value="">-- Projekt wählen --</option>
+                    <?php foreach ($projects as $proj): ?>
+                        <option value="<?= $proj['id'] ?>"><?= htmlspecialchars($proj['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+
+                <button onclick="document.getElementById('newProjectModal').classList.remove('hidden')"
+                    class="rounded border border-white px-3 py-1 text-sm hover:bg-white hover:text-[#0d3158] transition">Neues
+                    Projekt</button>
+                <a href="?logout=1" class="text-sm text-red-300 hover:text-red-100 transition ml-2">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- NAVIGATION (Die neuen sauberen Reiter) -->
+    <nav class="border-b bg-white shadow-sm shrink-0">
+        <div class="mx-auto flex max-w-screen-2xl px-6">
+            <button class="tab active border-b-2 px-4 py-3 font-medium transition-colors"
+                data-panel="requirements">Anforderungen</button>
+            <button
+                class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
+                data-panel="stakeholders">Stakeholder</button>
+            <button
+                class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
+                data-panel="usecases">Use Cases</button>
+            <button
+                class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
+                data-panel="userstories">User Stories</button>
+            <button
+                class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
+                data-panel="history">Historie</button>
+            <button
+                class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
+                data-panel="dashboard">Dashboard</button>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT (Lädt nur noch die Bausteine!) -->
+    <main class="mx-auto max-w-screen-2xl w-full p-6 flex-1 overflow-hidden">
+
+        <section id="requirements" class="panel show h-full">
+            <?php include 'views/requirements.php'; ?>
+        </section>
+
+        <section id="stakeholders" class="panel h-full">
+            <?php include 'views/stakeholders.php'; ?>
+        </section>
+
+        <section id="usecases" class="panel h-full">
+            <?php include 'views/usecases.php'; ?>
+        </section>
+
+        <section id="userstories" class="panel h-full">
+            <?php include 'views/userstories.php'; ?>
+        </section>
+
+        <section id="history" class="panel h-full">
+            <?php include 'views/history.php'; ?>
+        </section>
+        <section id="dashboard" class="panel h-full">
+            <?php include 'views/dashboard.php'; ?>
+        </section>
+
+    </main>
+
+    <!-- Globales Projekt Modal -->
+    <div id="newProjectModal" class="fixed inset-0 hidden items-center justify-center bg-slate-900/60 p-4 z-50">
+        <form method="POST" action="../api/web_create_project.php"
+            class="w-full max-w-md space-y-4 rounded-lg bg-white p-6 shadow-2xl">
+            <h2 class="text-xl font-bold text-blue-900">Neues Projekt erstellen</h2>
+            <label class="block text-sm font-semibold text-slate-700">Projektname
+                <input name="name" required
+                    class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
+            </label>
+            <label class="block text-sm font-semibold text-slate-700">Beschreibung
+                <textarea name="description" rows="3"
+                    class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"></textarea>
+            </label>
+            <div class="flex justify-end gap-3 mt-6 border-t pt-4">
+                <button type="button" onclick="document.getElementById('newProjectModal').classList.add('hidden')"
+                    class="rounded border px-4 py-2 hover:bg-slate-50 font-medium transition">Abbrechen</button>
+                <button type="submit"
+                    class="rounded bg-blue-900 px-4 py-2 text-white hover:bg-blue-800 font-medium transition shadow">Projekt
+                    anlegen</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="js/app.js"></script>
+    <script>
+        document.querySelectorAll('.tab').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.tab').forEach(t => {
+                    t.classList.remove('active', 'text-blue-900');
+                    t.classList.add('border-transparent', 'text-slate-600');
+                });
+                e.target.classList.add('active', 'text-blue-900');
+                e.target.classList.remove('border-transparent', 'text-slate-600');
+
+                document.querySelectorAll('.panel').forEach(p => p.classList.remove('show'));
+                document.getElementById(e.target.dataset.panel).classList.add('show');
+            });
+        });
+    </script>
+</body>
+
+</html>.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\login.php
+====================================================
+<?php
+// login.php
+session_start();
+require '../config/db.php';
+
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = $_POST['username'] ?? '';
+    $password = $_POST['password'] ?? '';
+
+    $stmt = $pdo->prepare("SELECT id, password_hash, role FROM users WHERE username = ?");
+    $stmt->execute([$username]);
+    $user = $stmt->fetch();
+
+    if ($user && password_verify($password, $user['password_hash'])) {
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['username'] = $username;
+        $_SESSION['role'] = $user['role'];
+        header("Location: index.php");
+        exit;
+    } else {
+        $error = "Falscher Benutzername oder Passwort.";
+    }
+}
+?>
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Login - Captain's Log</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="shortcut icon" href="../dashboard/css/favicon.ico" />
+</head>
+<body class="bg-slate-50 flex items-center justify-center h-screen">
+    <div class="bg-white p-8 rounded shadow-md w-96 border-t-4 border-[#0d3158]">
+        <div class="flex justify-center mb-6">
+            <img src="../dashboard/css/logo.png" class="h-20 w-auto" alt="Logo">
+        </div>
+        <h2 class="text-2xl font-bold mb-6 text-center text-[#0d3158]">System Login</h2>
+        
+        <?php if($error): ?>
+            <div class="bg-red-50 text-red-900 border border-red-300 p-3 rounded mb-4 text-sm"><?= htmlspecialchars($error) ?></div>
+        <?php endif; ?>
+
+        <form method="POST">
+            <div class="mb-4">
+                <label class="block text-sm font-semibold mb-1">Benutzername</label>
+                <input type="text" name="username" required class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-[#0d3158]">
+            </div>
+            <div class="mb-6">
+                <label class="block text-sm font-semibold mb-1">Passwort</label>
+                <input type="password" name="password" required class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-[#0d3158]">
+            </div>
+            <button type="submit" class="w-full bg-[#0d3158] text-white font-bold py-2 px-4 rounded hover:bg-blue-900 transition">Einloggen</button>
+        </form>
+    </div>
+</body>
+</html>
+.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\css\style.css
+====================================================
+/* css/style.css */
+:root {
+    --primary-color: #2c3e50;
+    --accent-color: #3498db;
+    --success-color: #2ecc71;
+    --warning-color: #f1c40f;
+    --bg-light: #f4f7f6;
+    --text-dark: #333;
+    --text-light: #fff;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Navbar */
+.navbar {
+    background-color: var(--primary-color);
+    color: var(--text-light);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+/* Layout */
+.dashboard-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 250px;
+    background-color: #fff;
+    border-right: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    padding: 1.5rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+}
+
+.project-list {
+    list-style: none;
+    overflow-y: auto;
+}
+
+.project-list li {
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.project-list li:hover, .project-list li.active {
+    background-color: #e8f4fd;
+    border-left: 4px solid var(--accent-color);
+}
+
+/* Content Area */
+.content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.project-header {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.badge-id {
+    display: inline-block;
+    background: #eee;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    color: #666;
+}
+
+/* Progress Bar */
+.progress-wrapper {
+    margin-top: 1.5rem;
+}
+
+.progress-label {
+    font-size: 0.9rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.progress-bar-bg {
+    background-color: #ecf0f1;
+    border-radius: 20px;
+    height: 20px;
+    width: 100%;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    background-color: var(--success-color);
+    height: 100%;
+    color: white;
+    text-align: center;
+    font-size: 0.8rem;
+    line-height: 20px;
+    transition: width 0.5s ease-in-out;
+}
+
+/* Requirements Grid */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.requirements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.req-card {
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    border-top: 4px solid var(--primary-color);
+}
+
+.req-card h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.req-card .status {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-top: 1rem;
+}
+
+/* Status Colors */
+.status-open { background: #e74c3c; color: white; }
+.status-in_progress { background: var(--warning-color); color: #333; }
+.status-implemented { background: var(--accent-color); color: white; }
+.status-tested { background: var(--success-color); color: white; }
+
+/* Buttons */
+button {
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    font-weight: bold;
+}
+.btn-primary { background: var(--accent-color); color: white; }
+.btn-secondary { background: var(--primary-color); color: white; }
+button:disabled { background: #ccc; cursor: not-allowed; }.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\js\api.js
+====================================================
+// dashboard/js/api.js
+import { currentProjectId } from './state.js';
+
+export async function fetchProjects() {
+    try {
+        const res = await fetch('../api/web_get_projects.php');
+        const data = await res.json();
+        return Array.isArray(data) ? data : (data.projects || []);
+    } catch (err) {
+        console.error("Fehler beim Laden der Projekte:", err);
+        return [];
+    }
+}
+
+export async function fetchRequirements() {
+    if (!currentProjectId) return [];
+    try {
+        const res = await fetch(`../api/get_requirements.php?project_id=${currentProjectId}`);
+        const data = await res.json();
+        return Array.isArray(data) ? data : (data.requirements || []);
+    } catch (err) {
+        console.error("Fehler beim Laden der Anforderungen:", err);
+        return [];
+    }
+}
+
+export async function fetchHistory() {
+    if (!currentProjectId) return [];
+    try {
+        const res = await fetch(`../api/get_history.php?project_id=${currentProjectId}`);
+        const data = await res.json();
+        return Array.isArray(data) ? data : (data.history || []);
+    } catch (err) {
+        console.error("Fehler beim Laden der Historie:", err);
+        return [];
+    }
+}
+
+export async function sendReqApi(apiUrl, payload) {
+    try {
+        const res = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        return await res.json();
+    } catch (err) {
+        console.error("API-Fehler bei POST-Request:", err);
+        return { success: false, error: err.message };
+    }
+}.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\js\app.js
+====================================================
+// dashboard/js/app.js
+import { setCurrentProjectId, currentProjectId } from './state.js';
+import { fetchProjects } from './api.js';
+import { loadRequirements, initRequirementEvents } from './requirements.js';
+import { loadStakeholders, initStakeholderEvents } from './stakeholders.js';
+import { loadUseCases, initUseCaseEvents } from './usecases.js';
+import { loadUserStories, initUserStoryEvents } from './userstories.js';
+import { loadHistory } from './history.js';
+import { loadDashboard } from './dashboard.js';
+
+document.addEventListener("DOMContentLoaded", async () => {
+    try {
+        await initProjectsDropdown();
+        
+        initRequirementEvents();
+        initStakeholderEvents();
+        initUseCaseEvents();
+        initUserStoryEvents();
+
+        const projectSelect = document.getElementById('projectSelect');
+        if (projectSelect) {
+            projectSelect.addEventListener('change', async (e) => {
+                setCurrentProjectId(e.target.value);
+                
+                if (currentProjectId) {
+                    loadRequirements();
+                    loadStakeholders();
+                    loadUseCases();
+                    loadUserStories();
+                    loadDashboard();
+                } else {
+                    const items = document.getElementById('items');
+                    if (items) items.innerHTML = '<div class="p-4 text-sm text-slate-500">Bitte wähle oben ein Projekt aus.</div>';
+                    const detail = document.getElementById('detail');
+                    if (detail) detail.innerHTML = '<div class="flex h-full items-center justify-center text-slate-400 italic">Anforderung auswählen</div>';
+                }
+            });
+        }
+
+        document.querySelectorAll('.tab').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                if (e.target.dataset.panel === 'history') {
+                    loadHistory();
+                }
+                if (e.target.dataset.panel === 'dashboard') {
+                    loadDashboard();
+                }
+            });
+        });
+    } catch (error) {
+        console.error("Kritischer Fehler beim Start der Anwendung:", error);
+    }
+});
+
+async function initProjectsDropdown() {
+    try {
+        const projects = await fetchProjects();
+        const select = document.getElementById('projectSelect');
+        if (!select) return;
+        select.innerHTML = '<option value="">-- Projekt wählen --</option>';
+        projects.forEach(p => {
+            select.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+        });
+    } catch (e) {
+        console.error("Fehler beim Füllen des Projekt-Dropdowns:", e);
+    }
+}.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\js\dashboard.js
+====================================================
+// dashboard/js/dashboard.js
+import { currentProjectId } from './state.js';
+
+let dashboardData = null;
+
+export async function loadDashboard() {
+    if (!currentProjectId) {
+        ['kpiTotalReqs', 'kpiWaitingReqs', 'kpiApprovedReqs', 'kpiRiskReqs', 'kpiSecReqs'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.textContent = '0';
+        });
+        const elCont = document.getElementById('dashboardListContainer');
+        if(elCont) elCont.innerHTML = '<p class="text-slate-500 text-sm">Bitte Projekt wählen.</p>';
+        return;
+    }
+    
+    try {
+        const res = await fetch(`../api/get_dashboard_kpis.php?project_id=${currentProjectId}`);
+        const data = await res.json();
+        
+        if (data.success) {
+            dashboardData = data.kpis;
+            document.getElementById('kpiTotalReqs').textContent = dashboardData.total.count;
+            document.getElementById('kpiWaitingReqs').textContent = dashboardData.waiting.count;
+            document.getElementById('kpiApprovedReqs').textContent = dashboardData.approved.count;
+            document.getElementById('kpiRiskReqs').textContent = dashboardData.risks.count;
+            document.getElementById('kpiSecReqs').textContent = dashboardData.sec.count;
+            document.getElementById('dashboardListContainer').innerHTML = '<p class="text-slate-500 text-sm italic">Klicke oben auf eine Karte.</p>';
+        }
+    } catch (err) {
+        console.error("Fehler beim Laden des Dashboards:", err);
+    }
+}
+
+window.renderDashboardList = function(type) {
+    if (!dashboardData) return;
+    
+    let title = '';
+    let items = [];
+
+    if (type === 'total') { title = 'Alle Anforderungen & Ziele'; items = dashboardData.total.items; } 
+    else if (type === 'waiting') { title = 'Wartet auf Überprüfung'; items = dashboardData.waiting.items; } 
+    else if (type === 'approved') { title = 'Geprüft & Freigegeben'; items = dashboardData.approved.items; }
+    else if (type === 'risks') { title = 'Erfasste Risiken (RISK)'; items = dashboardData.risks.items; }
+    else if (type === 'sec') { title = 'Security Anforderungen (SEC)'; items = dashboardData.sec.items; }
+
+    const elTitle = document.getElementById('dashboardListTitle');
+    if(elTitle) elTitle.textContent = title;
+    
+    const container = document.getElementById('dashboardListContainer');
+    if(!container) return;
+    
+    if(!items || items.length === 0) {
+        container.innerHTML = '<p class="text-slate-500 text-sm italic">Keine Einträge in dieser Kategorie.</p>';
+        return;
+    }
+
+    let html = '';
+    items.forEach(item => {
+        html += `
+            <div onclick="window.openReqFromDashboard(${item.id})" class="p-3 border rounded bg-slate-50 hover:bg-blue-50 cursor-pointer flex justify-between items-center transition">
+                <div>
+                    <span class="font-bold font-mono text-blue-900 mr-2">${item.req_key}</span>
+                    <span class="text-slate-700 font-medium">${item.title}</span>
+                </div>
+                <span class="text-xs bg-white border px-2 py-1 rounded text-slate-500">${item.review_status || 'Neu'}</span>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+};
+
+window.openReqFromDashboard = function(id) {
+    const tab = document.querySelector('[data-panel="requirements"]');
+    if(tab) tab.click();
+    if(window.showRequirementDetailById) {
+        window.showRequirementDetailById(id);
+    }
+};.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\js\history.js
+====================================================
+// dashboard/js/history.js
+import { currentProjectId } from './state.js';
+
+export async function loadHistory() {
+    const container = document.getElementById('historyContainer');
+    if (!container) return;
+
+    if (!currentProjectId) {
+        container.innerHTML = '<p class="text-sm text-slate-500 italic">Bitte wähle oben ein Projekt aus.</p>';
+        return;
+    }
+
+    try {
+        const res = await fetch(`../api/get_history.php?project_id=${currentProjectId}`);
+        const data = await res.json();
+
+        if (!data.success || !data.history || data.history.length === 0) {
+            container.innerHTML = '<p class="text-sm text-slate-500 italic">Keine Historie für dieses Projekt vorhanden.</p>';
+            return;
+        }
+
+        let html = '<div class="space-y-3">';
+        data.history.forEach(h => {
+            html += `
+                <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs">
+                    <div class="flex items-center justify-between text-slate-500 mb-1 font-mono">
+                        <span class="font-bold text-slate-700">${h.req_key || 'EINTRAG'} (${h.modified_at || ''})</span>
+                        <span>User: <strong>${h.modified_by_user || 'System'}</strong></span>
+                    </div>
+                    <h3 class="font-bold text-slate-800 text-sm mt-1">${h.title || ''}</h3>
+                    <p class="text-slate-600 mt-1"><strong>Aktion:</strong> ${h.action || 'Änderung'}</p>
+                </div>
+            `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    } catch (e) {
+        console.error("Fehler beim Laden der Historie:", e);
+        container.innerHTML = '<p class="text-sm text-red-500">Fehler beim Laden der Historie.</p>';
+    }
+}.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\js\requirements.js
+====================================================
+// dashboard/js/requirements.js
+import { currentProjectId } from './state.js';
+
+let loadedRequirements = [];
+let globalStakeholders = [];
+
+window.filterCheckboxes = function(inputId, listId) {
+    const input = document.getElementById(inputId);
+    const list = document.getElementById(listId);
+    if(!input || !list) return;
+    const filter = input.value.toLowerCase();
+    const items = list.querySelectorAll('.checkbox-item');
+    items.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(filter) ? 'flex' : 'none';
+    });
+};
+
+function populateRelationshipCheckboxes(currentReqId = null, selectedParents = [], selectedChildren = []) {
+    const parentList = document.getElementById('parentsCheckboxList');
+    const childList = document.getElementById('childrenCheckboxList');
+    
+    if (!parentList || !childList) return;
+    
+    parentList.innerHTML = '';
+    childList.innerHTML = '';
+
+    loadedRequirements.forEach(req => {
+        if (req.id == currentReqId) return;
+        const isParent = selectedParents.includes(req.req_key) ? 'checked' : '';
+        const isChild = selectedChildren.includes(req.req_key) ? 'checked' : '';
+        const labelStr = `${req.req_key} - ${req.title}`;
+
+        parentList.innerHTML += `
+            <div class="checkbox-item flex items-center gap-2 p-1 hover:bg-slate-50">
+                <input type="checkbox" id="parent_${req.req_key}" value="${req.req_key}" class="req-parent-cb w-4 h-4 rounded text-blue-900 focus:ring-blue-500" ${isParent}>
+                <label for="parent_${req.req_key}" class="cursor-pointer truncate w-full text-slate-700" title="${labelStr}">${labelStr}</label>
+            </div>
+        `;
+        childList.innerHTML += `
+            <div class="checkbox-item flex items-center gap-2 p-1 hover:bg-slate-50">
+                <input type="checkbox" id="child_${req.req_key}" value="${req.req_key}" class="req-child-cb w-4 h-4 rounded text-blue-900 focus:ring-blue-500" ${isChild}>
+                <label for="child_${req.req_key}" class="cursor-pointer truncate w-full text-slate-700" title="${labelStr}">${labelStr}</label>
+            </div>
+        `;
+    });
+}
+
+// Global verfügbare Handler-Funktion für das Dropdown
+window.handleTypeChange = function(loadedAttrs = {}) {
+    const typeDropdown = document.getElementById('type');
+    const container = document.getElementById('dynamicAttributes');
+    const fields = document.getElementById('attributeFields');
+    if(!typeDropdown || !container || !fields) return;
+    
+    const type = typeDropdown.value;
+    
+    if (type === 'RISK') {
+        fields.innerHTML = `
+            <label class="block text-sm font-semibold text-slate-700">Wahrscheinlichkeit
+                <select id="attr_prob" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
+                    <option value="">-- Wählen --</option>
+                    <option value="Häufig" ${loadedAttrs.initial_probability === 'Häufig' ? 'selected' : ''}>Häufig</option>
+                    <option value="Gelegentlich" ${loadedAttrs.initial_probability === 'Gelegentlich' ? 'selected' : ''}>Gelegentlich</option>
+                    <option value="Selten" ${loadedAttrs.initial_probability === 'Selten' ? 'selected' : ''}>Selten</option>
+                    <option value="Unwahrscheinlich" ${loadedAttrs.initial_probability === 'Unwahrscheinlich' ? 'selected' : ''}>Unwahrscheinlich</option>
+                </select>
+            </label>
+            <label class="block text-sm font-semibold text-slate-700">Schadensausmaß
+                <select id="attr_sev" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
+                    <option value="">-- Wählen --</option>
+                    <option value="Kritisch" ${loadedAttrs.initial_severity === 'Kritisch' ? 'selected' : ''}>Kritisch</option>
+                    <option value="Marginal" ${loadedAttrs.initial_severity === 'Marginal' ? 'selected' : ''}>Marginal</option>
+                    <option value="Vernachlässigbar" ${loadedAttrs.initial_severity === 'Vernachlässigbar' ? 'selected' : ''}>Vernachlässigbar</option>
+                </select>
+            </label>
+            <label class="block text-sm font-semibold text-slate-700 md:col-span-2">Gefahr / Bedrohung
+                <input id="attr_hazard" type="text" value="${loadedAttrs.hazard || ''}" placeholder="Was ist die Bedrohung?" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
+            </label>
+        `;
+        container.classList.remove('hidden');
+    } else if (type === 'SEC') {
+        fields.innerHTML = `
+            <label class="block text-sm font-semibold text-slate-700">Schutzziele (CIA)
+                <input id="attr_cia" type="text" value="${loadedAttrs.cia || ''}" placeholder="z.B. Confidentiality, Integrity" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
+            </label>
+            <label class="block text-sm font-semibold text-slate-700">STRIDE Kategorie
+                <select id="attr_stride" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
+                    <option value="">-- Wählen --</option>
+                    <option value="Spoofing" ${loadedAttrs.stride === 'Spoofing' ? 'selected' : ''}>Spoofing</option>
+                    <option value="Tampering" ${loadedAttrs.stride === 'Tampering' ? 'selected' : ''}>Tampering</option>
+                    <option value="Repudiation" ${loadedAttrs.stride === 'Repudiation' ? 'selected' : ''}>Repudiation</option>
+                    <option value="Information Disclosure" ${loadedAttrs.stride === 'Information Disclosure' ? 'selected' : ''}>Information Disclosure</option>
+                    <option value="Denial of Service" ${loadedAttrs.stride === 'Denial of Service' ? 'selected' : ''}>Denial of Service (DoS)</option>
+                    <option value="Elevation of Privilege" ${loadedAttrs.stride === 'Elevation of Privilege' ? 'selected' : ''}>Elevation of Privilege</option>
+                </select>
+            </label>
+        `;
+        container.classList.remove('hidden');
+    } else {
+        fields.innerHTML = '';
+        container.classList.add('hidden');
+    }
+};
+
+async function loadStakeholdersForDropdown(selectedValue = '') {
+    if (!currentProjectId) return;
+    try {
+        const res = await fetch(`../api/get_stakeholders.php?project_id=${currentProjectId}`);
+        const data = await res.json();
+        const sel = document.getElementById('source_contact');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">-- Kein Stakeholder --</option>';
+        if (data.success && data.stakeholders) {
+            globalStakeholders = data.stakeholders; // Für Detail-Ansicht speichern
+            data.stakeholders.forEach(s => {
+                const selected = s.id == selectedValue ? 'selected' : '';
+                sel.innerHTML += `<option value="${s.id}" ${selected}>${s.name} (${s.role || 'Stakeholder'})</option>`;
+            });
+        }
+    } catch(e) {
+        console.error("Stakeholder konnten nicht geladen werden:", e);
+    }
+}
+
+// Hilfsfunktion um ID in Namen umzuwandeln
+function getStakeholderName(id) {
+    if (!id) return 'Nicht angegeben';
+    const s = globalStakeholders.find(x => x.id == id);
+    return s ? s.name : id; // Zeige Name, wenn gefunden, sonst die ID
+}
+
+export async function loadRequirements() {
+    if (!currentProjectId) return;
+    
+    // Stelle sicher, dass die Stakeholder geladen sind für die Namensauflösung
+    if (globalStakeholders.length === 0) {
+        await loadStakeholdersForDropdown(); 
+    }
+
+    try {
+        const res = await fetch(`../api/get_requirements.php?project_id=${currentProjectId}`);
+        const data = await res.json();
+
+        const listContainer = document.getElementById('items');
+        if(!listContainer) return;
+
+        if (!data.success || data.requirements.length === 0) {
+            listContainer.innerHTML = '<div class="p-4 text-sm text-slate-500 italic">Noch keine Anforderungen vorhanden.</div>';
+            loadedRequirements = [];
+            const detail = document.getElementById('detail');
+            if(detail) detail.innerHTML = '<div class="flex h-full items-center justify-center text-slate-400 italic">Anforderung auswählen</div>';
+            return;
+        }
+
+        loadedRequirements = data.requirements;
+
+        loadedRequirements.forEach(req => {
+            let p = req.parents;
+            if (typeof p === 'string') {
+                try { p = JSON.parse(p); } catch (e) { p = []; }
+            }
+            req.parsedParents = Array.isArray(p) ? p : [];
+        });
+
+        listContainer.innerHTML = '';
+        const rendered = new Set();
+
+        function renderNode(req, level) {
+            if (rendered.has(req.req_key)) return;
+            rendered.add(req.req_key);
+
+            const btn = document.createElement('button');
+            const indentRem = level * 1.2;
+            const bgClass = level > 0 ? 'bg-slate-50/60' : 'bg-white';
+
+            btn.className = `w-full text-left p-2.5 border-b border-slate-100 hover:bg-blue-50 transition focus:bg-blue-100 flex items-center justify-between text-xs ${bgClass}`;
+            btn.style.paddingLeft = `calc(0.75rem + ${indentRem}rem)`;
+            
+            const children = loadedRequirements.filter(r => r.parsedParents.includes(req.req_key));
+            const icon = children.length > 0 ? `<span class="text-slate-400 mr-1">▼</span>` : `<span class="mr-3"></span>`;
+
+            btn.innerHTML = `
+                <div class="flex items-center truncate">
+                    ${icon}
+                    <span class="font-mono font-bold text-blue-950 mr-1">${req.req_key}</span>
+                    <span class="text-slate-700 truncate">${req.title}</span>
+                </div>
+                <span class="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5 rounded font-mono shrink-0">${req.review_status || req.status}</span>
+            `;
+            btn.onclick = () => showRequirementDetail(req);
+            listContainer.appendChild(btn);
+
+            children.forEach(child => renderNode(child, level + 1));
+        }
+
+        const roots = loadedRequirements.filter(req =>
+            req.parsedParents.length === 0 ||
+            !req.parsedParents.some(pk => loadedRequirements.find(r => r.req_key === pk))
+        );
+        roots.forEach(root => renderNode(root, 0));
+
+        loadedRequirements.forEach(req => {
+            if (!rendered.has(req.req_key)) renderNode(req, 0);
+        });
+
+    } catch (e) {
+        console.error("Fehler beim Laden der Anforderungen:", e);
+    }
+}
+
+window.showRequirementDetailById = function (id) {
+    const req = loadedRequirements.find(r => r.id == id);
+    if (req) showRequirementDetail(req);
+};
+
+window.triggerVerify = function (reqId, idx, checkbox) {
+    if (!checkbox.checked) return;
+    checkbox.checked = false; 
+
+    const textNode = checkbox.nextElementSibling.querySelector('label').textContent;
+
+    document.getElementById('verify_req_id').value = reqId;
+    document.getElementById('verify_crit_idx').value = idx;
+    document.getElementById('verify_crit_text').textContent = textNode;
+    document.getElementById('verify_note').value = '';
+
+    document.getElementById('verifyModal').classList.remove('hidden');
+};
+
+function showRequirementDetail(req) {
+    const detail = document.getElementById('detail');
+    if(!detail) return;
+
+    let attrs = {};
+    try { attrs = JSON.parse(req.attributes || '{}'); } catch (e) { }
+    
+    const states = attrs.criteria_states || {};
+
+    let criteriaHtml = '<span class="italic text-slate-400">Keine Akzeptanzkriterien definiert.</span>';
+    if (req.acceptance_criteria) {
+        const lines = req.acceptance_criteria.split('\n');
+        criteriaHtml = '<ul class="space-y-3 mt-2">';
+        lines.forEach((line, idx) => {
+            const cleanLine = line.replace(/^-\s*/, '');
+            if (cleanLine.trim() !== '') {
+                const state = states[idx];
+                const isChecked = state && state.checked ? 'checked disabled' : '';
+                const infoBadge = state ? `<div class="mt-1 text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-1 rounded">✅ <b>Geprüft von ${state.by}</b> am ${state.date}<br><span class="italic">"${state.note}"</span></div>` : '';
+
+                criteriaHtml += `
+                    <li class="flex items-start gap-3 text-sm text-slate-700 bg-white p-2 rounded border">
+                        <input type="checkbox" id="crit_${req.id}_${idx}" class="mt-1 w-4 h-4 rounded text-blue-900 focus:ring-blue-500 cursor-pointer" ${isChecked} onchange="window.triggerVerify(${req.id}, ${idx}, this)">
+                        <div class="flex flex-col w-full">
+                            <label for="crit_${req.id}_${idx}" class="cursor-pointer font-medium leading-tight">${cleanLine}</label>
+                            ${infoBadge}
+                        </div>
+                    </li>
+                `;
+            }
+        });
+        criteriaHtml += '</ul>';
+    }
+
+    const parentLinks = req.parsedParents.map(pk => `<span class="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-[10px] font-mono">${pk}</span>`).join(' ') || '-';
+    let childKeys = [];
+    try { childKeys = JSON.parse(req.children || '[]'); } catch (e) { }
+    const childLinks = childKeys.map(ck => `<span class="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded text-[10px] font-mono">${ck}</span>`).join(' ') || '-';
+
+    // Risiko / SEC Attribute rendern
+    let dynamicAttrHtml = '';
+    if (req.type === 'RISK') {
+        dynamicAttrHtml = `
+            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-red-700 font-medium bg-red-50 p-2 rounded">
+                <div>⚠️ Wahrscheinlichkeit: <b>${attrs.initial_probability || '-'}</b></div>
+                <div>🔥 Schaden: <b>${attrs.initial_severity || '-'}</b></div>
+                <div>🛑 Gefahr: <b>${attrs.hazard || '-'}</b></div>
+            </div>
+        `;
+    } else if (req.type === 'SEC') {
+        dynamicAttrHtml = `
+            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-indigo-700 font-medium bg-indigo-50 p-2 rounded">
+                <div>🛡️ Schutzziele: <b>${attrs.cia || '-'}</b></div>
+                <div>🕵️ STRIDE: <b>${attrs.stride || '-'}</b></div>
+            </div>
+        `;
+    }
+
+    const stakeholderName = getStakeholderName(req.source_contact);
+
+    detail.innerHTML = `
+        <div class="border-b pb-4 mb-4">
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="font-mono text-xs font-bold bg-slate-100 px-2 py-1 rounded text-blue-900 border">${req.type}</span>
+                    <span class="font-mono text-sm text-blue-900 font-bold ml-2">${req.req_key}</span>
+                    <h2 class="text-2xl font-bold text-slate-900 mt-1">${req.title}</h2>
+                </div>
+                <button onclick="window.editRequirement(${req.id})" class="bg-blue-900 text-white text-xs px-3 py-1.5 rounded font-bold hover:bg-blue-800 shadow">Bearbeiten</button>
+            </div>
+            <div class="flex gap-4 mt-3 text-xs text-slate-500 font-medium flex-wrap">
+                <div>👤 Quelle: <strong class="text-slate-700">${stakeholderName}</strong></div>
+                <div>⏱️ Aufwand: <strong class="text-slate-700">${req.effort || 'Offen'}</strong></div>
+                <div>📌 Status: <span class="bg-blue-50 text-blue-900 border border-blue-200 px-2 py-0.5 rounded font-bold">${req.review_status || 'Neu'}</span></div>
+            </div>
+            ${dynamicAttrHtml}
+            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-slate-500 font-medium">
+                <div>Erfüllt (Parents): ${parentLinks}</div>
+                <div>Wird erfüllt durch (Children): ${childLinks}</div>
+            </div>
+        </div>
+                
+        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Beschreibung</h3>
+        <p class="text-sm text-slate-800 whitespace-pre-wrap mb-6">${req.description || '<span class="italic text-slate-400">Keine Beschreibung</span>'}</p>                  
+
+        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Begründung (Rationale)</h3>
+        <div class="bg-slate-50 border p-3 rounded text-sm text-slate-700 whitespace-pre-wrap mb-6">${req.rationale || '-'}</div>
+
+        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Akzeptanzkriterien & Prüfungen</h3>
+        <div class="bg-slate-50 border p-4 rounded">${criteriaHtml}</div>
+    `;
+}
+
+export function initRequirementEvents() {
+    
+    // Listener für das Dropdown-Typ (SEC und RISK Felder öffnen)
+    const typeDropdown = document.getElementById('type');
+    if (typeDropdown) {
+        typeDropdown.addEventListener('change', () => window.handleTypeChange());
+    }
+
+    const newBtn = document.getElementById('new');
+    if (newBtn) {
+        newBtn.addEventListener('click', () => {
+            if (!currentProjectId) { alert("Projekt wählen!"); return; }
+            document.getElementById('reqForm').reset();
+            document.getElementById('reqForm').dataset.editId = '';
+            document.getElementById('reqHeading').textContent = 'Neues Ziel / Anforderung';
+            
+            const revStat = document.getElementById('review_status');
+            if(revStat) revStat.value = 'Neu';
+
+            window.handleTypeChange(); // Setzt dynamische Felder zurück
+            populateRelationshipCheckboxes();
+            loadStakeholdersForDropdown();
+
+            const modal = document.getElementById('reqModal');
+            if(modal) modal.classList.remove('hidden');
+        });
+    }
+
+    const form = document.getElementById('reqForm');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const selectedParents = Array.from(document.querySelectorAll('.req-parent-cb:checked')).map(cb => cb.value);
+            const selectedChildren = Array.from(document.querySelectorAll('.req-child-cb:checked')).map(cb => cb.value);
+
+            let dynamicAttrs = {};
+            const typeValue = document.getElementById('type') ? document.getElementById('type').value : '';
+            if (typeValue === 'RISK') {
+                dynamicAttrs.initial_probability = document.getElementById('attr_prob') ? document.getElementById('attr_prob').value : '';
+                dynamicAttrs.initial_severity = document.getElementById('attr_sev') ? document.getElementById('attr_sev').value : '';
+                dynamicAttrs.hazard = document.getElementById('attr_hazard') ? document.getElementById('attr_hazard').value : '';
+            } else if (typeValue === 'SEC') {
+                dynamicAttrs.cia = document.getElementById('attr_cia') ? document.getElementById('attr_cia').value : '';
+                dynamicAttrs.stride = document.getElementById('attr_stride') ? document.getElementById('attr_stride').value : '';
+            }
+
+            const payload = {
+                id: document.getElementById('reqForm').dataset.editId,
+                project_id: currentProjectId,
+                type: typeValue,
+                title: document.getElementById('title') ? document.getElementById('title').value : '',
+                description: document.getElementById('text') ? document.getElementById('text').value : '',
+                rationale: document.getElementById('rationale') ? document.getElementById('rationale').value : '',
+                source_contact: document.getElementById('source_contact') ? document.getElementById('source_contact').value : '',
+                effort: document.getElementById('effort') ? document.getElementById('effort').value : '',
+                acceptance_criteria: document.getElementById('acceptance_criteria') ? document.getElementById('acceptance_criteria').value : '',
+                review_status: document.getElementById('review_status') ? document.getElementById('review_status').value : '',
+                parents: selectedParents,
+                children: selectedChildren,
+                attributes: dynamicAttrs // <-- WICHTIG: Die Risiko und SEC-Felder mit in die DB schicken
+            };
+
+            try {
+                const res = await fetch('../api/set_requirements.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    const modal = document.getElementById('reqModal');
+                    if(modal) modal.classList.add('hidden');
+                    loadRequirements();
+                } else {
+                    alert("Fehler: " + data.error);
+                }
+            } catch (err) {
+                console.error("API Error:", err);
+            }
+        });
+    }
+
+    const verifyForm = document.getElementById('verifyForm');
+    if (verifyForm) {
+        verifyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const payload = {
+                req_id: document.getElementById('verify_req_id').value,
+                criterion_idx: document.getElementById('verify_crit_idx').value,
+                note: document.getElementById('verify_note').value
+            };
+
+            try {
+                const res = await fetch('../api/verify_criterion.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('verifyModal').classList.add('hidden');
+                    await loadRequirements();
+                    window.showRequirementDetailById(payload.req_id);
+                } else {
+                    alert("Fehler beim Prüfen: " + data.error);
+                }
+            } catch (err) {
+                console.error("API Error:", err);
+            }
+        });
+    }
+}
+
+window.editRequirement = function (id) {
+    const req = loadedRequirements.find(r => r.id == id);
+    if (!req) return;
+
+    document.getElementById('reqForm').dataset.editId = req.id;
+    
+    if(document.getElementById('type')) document.getElementById('type').value = req.type;
+    if(document.getElementById('title')) document.getElementById('title').value = req.title;
+    if(document.getElementById('text')) document.getElementById('text').value = req.description || '';
+    if(document.getElementById('rationale')) document.getElementById('rationale').value = req.rationale || '';
+    if(document.getElementById('effort')) document.getElementById('effort').value = req.effort || '';
+    if(document.getElementById('acceptance_criteria')) document.getElementById('acceptance_criteria').value = req.acceptance_criteria || '';
+    if(document.getElementById('review_status')) document.getElementById('review_status').value = req.review_status || 'Neu';
+
+    // JSON entpacken und dynamische Felder triggern
+    let attrs = {};
+    try { attrs = JSON.parse(req.attributes || '{}'); } catch (e) { }
+    window.handleTypeChange(attrs);
+
+    loadStakeholdersForDropdown(req.source_contact);
+
+    let parentKeys = [];
+    let childKeys = [];
+    try { parentKeys = JSON.parse(req.parents || '[]'); } catch (e) { }
+    try { childKeys = JSON.parse(req.children || '[]'); } catch (e) { }
+
+    populateRelationshipCheckboxes(req.id, parentKeys, childKeys);
+
+    if(document.getElementById('parentSearch')) document.getElementById('parentSearch').value = '';
+    if(document.getElementById('childSearch')) document.getElementById('childSearch').value = '';
+
+    const heading = document.getElementById('reqHeading');
+    if(heading) heading.textContent = 'Eintrag bearbeiten (' + req.req_key + ')';
+    
+    const modal = document.getElementById('reqModal');
+    if(modal) modal.classList.remove('hidden');
+};.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\js\stakeholders.js
+====================================================
+// dashboard/js/stakeholders.js
+import { currentProjectId } from './state.js';
+
+let loadedStakeholders = [];
+
+export async function loadStakeholders() {
+    if (!currentProjectId) {
+        const tbody = document.getElementById('stakeholderTableBody');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-400 italic">Bitte wähle oben ein Projekt aus.</td></tr>';
+        return;
+    }
+    
+    try {
+        const res = await fetch(`../api/get_stakeholders.php?project_id=${currentProjectId}`);
+        const data = await res.json();
+        
+        const tbody = document.getElementById('stakeholderTableBody');
+        if (!tbody) return;
+        
+        if (!data.success || !data.stakeholders || data.stakeholders.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-400 italic">Keine Stakeholder gefunden.</td></tr>';
+            loadedStakeholders = [];
+            drawStakeholderMap([]);
+            return;
+        }
+
+        loadedStakeholders = data.stakeholders;
+        tbody.innerHTML = '';
+        
+        data.stakeholders.forEach(s => {
+            tbody.innerHTML += `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-3 font-bold text-blue-900">${s.name}</td>
+                    <td class="p-3">${s.role || '-'}</td>
+                    <td class="p-3">${s.position || '-'}</td>
+                    <td class="p-3 text-xs">${s.email || ''}<br>${s.phone || ''}</td>
+                    <td class="p-3 text-xs">${s.expertise || '-'}<br><span class="text-slate-400">${s.availability || ''}</span></td>
+                    <td class="p-3 text-xs">
+                        Einfluss: <b class="${s.influence === 'High' ? 'text-red-500' : 'text-slate-500'}">${s.influence}</b><br>
+                        Interesse: <b class="${s.interest === 'High' ? 'text-red-500' : 'text-slate-500'}">${s.interest}</b>
+                    </td>
+                    <td class="p-3 text-right">
+                        <button type="button" onclick="window.editStakeholder(${s.id})" class="text-blue-600 hover:underline text-xs font-bold">Bearbeiten</button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        drawStakeholderMap(data.stakeholders);
+        
+    } catch (e) {
+        console.error("Fehler beim Laden der Stakeholder:", e);
+    }
+}
+
+function drawStakeholderMap(stakeholders) {
+    const mapContainer = document.getElementById('stakeholderMapPoints');
+    if (!mapContainer) return;
+    
+    mapContainer.innerHTML = ''; 
+
+    stakeholders.forEach(s => {
+        let xBase = s.interest === 'High' ? 75 : 25;
+        let yBase = s.influence === 'High' ? 25 : 75;
+
+        let xOffset = (Math.random() - 0.5) * 15; 
+        let yOffset = (Math.random() - 0.5) * 15;
+
+        const point = document.createElement('div');
+        point.className = 'absolute transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-transform hover:scale-110 z-10 cursor-pointer';
+        point.style.left = `${Math.max(10, Math.min(90, xBase + xOffset))}%`;
+        point.style.top = `${Math.max(10, Math.min(90, yBase + yOffset))}%`;
+        
+        point.innerHTML = `
+            <div class="bg-blue-900 text-white p-1.5 rounded-full shadow-md">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+            </div>
+            <span class="text-[10px] font-bold text-slate-800 bg-white/90 px-1.5 py-0.5 rounded shadow-sm border whitespace-nowrap mt-1">${s.name}</span>
+        `;
+
+        mapContainer.appendChild(point);
+    });
+}
+
+export function initStakeholderEvents() {
+    const btnNew = document.getElementById('btnNewStakeholder');
+    if (btnNew) {
+        btnNew.addEventListener('click', () => {
+            if (!currentProjectId) { 
+                alert("Bitte wähle oben im Header zuerst ein Projekt aus!"); 
+                return; 
+            }
+            document.getElementById('formStakeholder').reset();
+            document.getElementById('stk_id').value = '';
+            document.getElementById('modalStakeholder').classList.remove('hidden');
+        });
+    }
+
+    const formStakeholder = document.getElementById('formStakeholder');
+    if (formStakeholder) {
+        formStakeholder.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!currentProjectId) {
+                alert("Fehler: Kein Projekt ausgewählt!");
+                return;
+            }
+
+            const payload = {
+                id: document.getElementById('stk_id').value,
+                project_id: currentProjectId,
+                name: document.getElementById('stk_name').value,
+                role: document.getElementById('stk_role').value,
+                position: document.getElementById('stk_position').value,
+                email: document.getElementById('stk_email').value,
+                phone: document.getElementById('stk_phone').value,
+                expertise: document.getElementById('stk_expertise').value,
+                availability: document.getElementById('stk_availability').value,
+                influence: document.getElementById('stk_influence').value,
+                interest: document.getElementById('stk_interest').value
+            };
+
+            try {
+                const res = await fetch('../api/set_stakeholder.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('modalStakeholder').classList.add('hidden');
+                    loadStakeholders();
+                } else {
+                    alert("Fehler beim Speichern: " + (data.error || "Unbekannter Fehler"));
+                }
+            } catch (err) {
+                console.error("Netzwerkfehler:", err);
+                alert("Verbindungsfehler zum Server.");
+            }
+        });
+    }
+}
+
+window.editStakeholder = function(id) {
+    const s = loadedStakeholders.find(item => item.id == id);
+    if (!s) return;
+    
+    document.getElementById('stk_id').value = s.id;
+    document.getElementById('stk_name').value = s.name;
+    document.getElementById('stk_role').value = s.role || '';
+    document.getElementById('stk_position').value = s.position || '';
+    document.getElementById('stk_email').value = s.email || '';
+    document.getElementById('stk_phone').value = s.phone || '';
+    document.getElementById('stk_expertise').value = s.expertise || '';
+    document.getElementById('stk_availability').value = s.availability || '';
+    document.getElementById('stk_influence').value = s.influence || 'Low';
+    document.getElementById('stk_interest').value = s.interest || 'Low';
+    
+    document.getElementById('modalStakeholder').classList.remove('hidden');
+};.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\js\state.js
+====================================================
+export let currentProjectId = null;
+export let currentRequirements = [];
+export let editingReqId = null;
+
+export function setCurrentProjectId(id) { currentProjectId = id; }
+export function setCurrentRequirements(reqs) { currentRequirements = reqs; }
+export function setEditingReqId(id) { editingReqId = id; }.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\js\usecases.js
+====================================================
+// dashboard/js/usecases.js
+import { currentProjectId } from './state.js';
+
+export async function loadUseCases() {
+    if (!currentProjectId) return;
+    
+    try {
+        const res = await fetch(`../api/get_usecases.php?project_id=${currentProjectId}`);
+        const data = await res.json();
+        
+        const tbody = document.getElementById('useCaseTableBody');
+        
+        if (!data.success || data.use_cases.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400 italic">Keine Use Cases gefunden.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = '';
+        data.use_cases.forEach(uc => {
+            tbody.innerHTML += `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-3 font-mono font-bold text-blue-900">${uc.uc_key}</td>
+                    <td class="p-3 font-semibold text-slate-800">${uc.title}</td>
+                    <td class="p-3 text-xs">${uc.primary_actor || '-'}</td>
+                    <td class="p-3 text-xs truncate max-w-xs text-slate-500">${uc.main_scenario || '-'}</td>
+                    <td class="p-3 text-right">
+                        <button onclick="window.editUseCase(${uc.id})" class="text-blue-600 hover:underline text-xs font-bold">Bearbeiten</button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+    } catch (e) {
+        console.error("Fehler beim Laden der Use Cases:", e);
+    }
+}
+
+export function initUseCaseEvents() {
+    // Neuer Use Case Button
+    document.getElementById('btnNewUseCase').addEventListener('click', () => {
+        if (!currentProjectId) {
+            alert("Bitte zuerst ein Projekt auswählen!");
+            return;
+        }
+        document.getElementById('formUseCase').reset();
+        document.getElementById('uc_id').value = '';
+        document.getElementById('useCaseModalTitle').textContent = 'Neuer Use Case';
+        document.getElementById('modalUseCase').classList.remove('hidden');
+    });
+
+    // Formular Absenden (Create / Update)
+    document.getElementById('formUseCase').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const payload = {
+            id: document.getElementById('uc_id').value,
+            project_id: currentProjectId,
+            title: document.getElementById('uc_title').value,
+            primary_actor: document.getElementById('uc_primary_actor').value,
+            preconditions: document.getElementById('uc_preconditions').value,
+            main_scenario: document.getElementById('uc_main_scenario').value,
+            alt_scenario: document.getElementById('uc_alt_scenario').value
+        };
+
+        const res = await fetch('../api/set_usecase.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById('modalUseCase').classList.add('hidden');
+            loadUseCases();
+        } else {
+            alert("Fehler: " + data.error);
+        }
+    });
+}.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\js\userstories.js
+====================================================
+// dashboard/js/userstories.js
+import { currentProjectId } from './state.js';
+
+// Wir speichern die geladenen Stories kurz zwischen, damit der "Bearbeiten" Button sie direkt ins Modal laden kann
+let loadedUserStories = [];
+
+export async function loadUserStories() {
+    if (!currentProjectId) return;
+    
+    try {
+        const res = await fetch(`../api/get_userstories.php?project_id=${currentProjectId}`);
+        const data = await res.json();
+        
+        const tbody = document.getElementById('userStoryTableBody');
+        
+        if (!data.success || data.user_stories.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400 italic">Keine User Stories gefunden.</td></tr>';
+            loadedUserStories = [];
+            return;
+        }
+
+        loadedUserStories = data.user_stories;
+        tbody.innerHTML = '';
+        
+        data.user_stories.forEach(us => {
+            tbody.innerHTML += `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-3 font-mono font-bold text-blue-900">${us.us_key}</td>
+                    <td class="p-3 font-semibold text-slate-800">${us.title}</td>
+                    <td class="p-3 text-sm">${us.us_role || '-'}</td>
+                    <td class="p-3 text-sm truncate max-w-xs text-slate-500">${us.us_action || '-'}</td>
+                    <td class="p-3 text-sm text-center font-mono">${us.story_points || '-'}</td>
+                    <td class="p-3 text-right">
+                        <button onclick="window.editUserStory(${us.id})" class="text-blue-600 hover:underline text-xs font-bold">Bearbeiten</button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+    } catch (e) {
+        console.error("Fehler beim Laden der User Stories:", e);
+    }
+}
+
+export function initUserStoryEvents() {
+    // Neuer Eintrag Button
+    document.getElementById('btnNewUserStory').addEventListener('click', () => {
+        if (!currentProjectId) {
+            alert("Bitte zuerst ein Projekt auswählen!");
+            return;
+        }
+        document.getElementById('formUserStory').reset();
+        document.getElementById('us_id').value = '';
+        document.getElementById('userStoryModalTitle').textContent = 'Neue User Story';
+        document.getElementById('modalUserStory').classList.remove('hidden');
+    });
+
+    // Formular Absenden
+    document.getElementById('formUserStory').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const payload = {
+            id: document.getElementById('us_id').value,
+            project_id: currentProjectId,
+            title: document.getElementById('us_title').value,
+            us_role: document.getElementById('us_role').value,
+            us_action: document.getElementById('us_action').value,
+            us_benefit: document.getElementById('us_benefit').value,
+            acceptance_criteria: document.getElementById('us_acceptance_criteria').value,
+            story_points: document.getElementById('us_story_points').value
+        };
+
+        const res = await fetch('../api/set_userstories.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById('modalUserStory').classList.add('hidden');
+            loadUserStories();
+        } else {
+            alert("Fehler: " + data.error);
+        }
+    });
+}
+
+// Globale Funktion für den HTML "Bearbeiten" Button
+window.editUserStory = function(id) {
+    const us = loadedUserStories.find(item => item.id == id);
+    if (!us) return;
+    
+    document.getElementById('us_id').value = us.id;
+    document.getElementById('us_title').value = us.title;
+    document.getElementById('us_role').value = us.us_role || '';
+    document.getElementById('us_action').value = us.us_action || '';
+    document.getElementById('us_benefit').value = us.us_benefit || '';
+    document.getElementById('us_acceptance_criteria').value = us.acceptance_criteria || '';
+    document.getElementById('us_story_points').value = us.story_points || '';
+    
+    document.getElementById('userStoryModalTitle').textContent = 'User Story bearbeiten (' + us.us_key + ')';
+    document.getElementById('modalUserStory').classList.remove('hidden');
+};.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\views\dashboard.php
+====================================================
+<!-- dashboard/views/dashboard.php -->
+<div class="flex flex-col h-full overflow-y-auto p-2">
+    <h2 class="text-2xl font-bold text-blue-900 mb-6">Projekt-Dashboard & KPIs</h2>
+    
+    <!-- Obere Reihe (Allgemein) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div onclick="window.renderDashboardList('total')" class="bg-white p-5 rounded-xl border shadow-sm border-l-4 border-l-blue-900 cursor-pointer hover:bg-slate-50 transition">
+            <div class="text-slate-500 text-xs uppercase font-bold tracking-wider">Gesamt Anforderungen</div>
+            <div id="kpiTotalReqs" class="text-3xl font-extrabold text-blue-950 mt-2">0</div>
+        </div>
+        <div onclick="window.renderDashboardList('waiting')" class="bg-white p-5 rounded-xl border shadow-sm border-l-4 border-l-amber-500 cursor-pointer hover:bg-slate-50 transition">
+            <div class="text-slate-500 text-xs uppercase font-bold tracking-wider">Wartet auf Überprüfung</div>
+            <div id="kpiWaitingReqs" class="text-3xl font-extrabold text-amber-600 mt-2">0</div>
+        </div>
+        <div onclick="window.renderDashboardList('approved')" class="bg-white p-5 rounded-xl border shadow-sm border-l-4 border-l-emerald-500 cursor-pointer hover:bg-slate-50 transition">
+            <div class="text-slate-500 text-xs uppercase font-bold tracking-wider">Geprüft & Freigegeben</div>
+            <div id="kpiApprovedReqs" class="text-3xl font-extrabold text-emerald-600 mt-2">0</div>
+        </div>
+    </div>
+
+    <!-- Untere Reihe (Risiko & Security) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div onclick="window.renderDashboardList('risks')" class="bg-white p-5 rounded-xl border shadow-sm border-l-4 border-l-red-600 cursor-pointer hover:bg-slate-50 transition">
+            <div class="text-slate-500 text-xs uppercase font-bold tracking-wider">Erfasste Risiken</div>
+            <div id="kpiRiskReqs" class="text-3xl font-extrabold text-red-700 mt-2">0</div>
+        </div>
+        <div onclick="window.renderDashboardList('sec')" class="bg-white p-5 rounded-xl border shadow-sm border-l-4 border-l-indigo-600 cursor-pointer hover:bg-slate-50 transition">
+            <div class="text-slate-500 text-xs uppercase font-bold tracking-wider">Cyber Security & Normen</div>
+            <div id="kpiSecReqs" class="text-3xl font-extrabold text-indigo-700 mt-2">0</div>
+        </div>
+        <div class="bg-white p-5 rounded-xl border shadow-sm border-l-4 border-l-purple-600">
+            <div class="text-slate-500 text-xs uppercase font-bold tracking-wider">Phasen-Fortschritt</div>
+            <div class="text-3xl font-extrabold text-purple-700 mt-2">Aktiv</div>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl border shadow-sm flex-1">
+        <h3 id="dashboardListTitle" class="font-bold text-slate-800 text-lg mb-4">Detail-Ansicht</h3>
+        <div id="dashboardListContainer" class="space-y-2">
+            <p class="text-slate-500 text-sm">Klicke oben auf eine Kennzahl, um hier die zugehörigen Einträge zu sehen.</p>
+        </div>
+    </div>
+</div>.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\views\history.php
+====================================================
+<!-- dashboard/views/history.php -->
+<div class="flex flex-col h-full">
+    <h2 class="text-xl font-bold text-blue-900 mb-4">Projekt Historie</h2>
+    <div id="historyContainer" class="rounded-lg border bg-white p-6 shadow-sm overflow-y-auto flex-1">
+        <p class="text-slate-500 italic">Bitte wähle oben ein Projekt aus.</p>
+    </div>
+</div>.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\views\requirements.php
+====================================================
+<!-- dashboard/views/requirements.php -->
+<div class="flex flex-col h-full">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold text-blue-900">Ziele & Anforderungen</h2>
+        <button id="new"
+            class="rounded bg-blue-900 px-4 py-2 font-semibold text-white shadow hover:bg-blue-800 transition">
+            + Neuer Eintrag
+        </button>
+    </div>
+    <div class="grid gap-5 lg:grid-cols-[350px_1fr] flex-1 min-h-0">
+        <aside class="rounded-lg border bg-white shadow-sm overflow-y-auto h-full">
+            <div id="items" class="p-4 text-sm text-slate-500">Bitte wähle oben ein Projekt aus.</div>
+        </aside>
+        <article id="detail" class="rounded-lg border bg-white p-6 shadow-sm overflow-y-auto h-full relative">
+            <div class="flex h-full items-center justify-center text-slate-400 italic">
+                Wähle einen Eintrag aus dem Baum aus, um Details zu sehen.
+            </div>
+        </article>
+    </div>
+</div>
+
+<!-- dashboard/views/requirements.php -->
+<div class="flex flex-col h-full">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold text-blue-900">Ziele & Anforderungen</h2>
+        <button id="new" class="rounded bg-blue-900 px-4 py-2 font-semibold text-white shadow hover:bg-blue-800 transition">
+            + Neuer Eintrag
+        </button>
+    </div>
+    <div class="grid gap-5 lg:grid-cols-[350px_1fr] flex-1 min-h-0">
+        <aside class="rounded-lg border bg-white shadow-sm overflow-y-auto h-full">
+            <div id="items" class="p-4 text-sm text-slate-500">Bitte wähle oben ein Projekt aus.</div>
+        </aside>
+        <article id="detail" class="rounded-lg border bg-white p-6 shadow-sm overflow-y-auto h-full relative">
+            <div class="flex h-full items-center justify-center text-slate-400 italic">
+                Wähle einen Eintrag aus dem Baum aus, um Details zu sehen.
+            </div>
+        </article>
+    </div>
+</div>
+
+<!-- Modal für Neue Anforderungen & Ziele -->
+<div id="reqModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/70 p-4 sm:p-6 backdrop-blur-sm">
+    <form id="reqForm" class="w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col space-y-4 rounded-xl bg-white p-6 sm:p-8 shadow-2xl">
+        <h2 id="reqHeading" class="text-xl font-bold text-blue-900 border-b pb-3">Neuer Eintrag</h2>
+        
+        <div>
+            <label class="text-sm font-semibold block mb-1 text-slate-700">Typ</label>
+            <select id="type" class="w-full rounded border p-2 text-sm bg-slate-50 font-medium focus:border-blue-500 outline-none">
+                <optgroup label="Ziele & Strategie">
+                    <option value="GOAL">Ziel (Stakeholder Goal)</option>
+                </optgroup>
+                <optgroup label="Regularien & Risiken">
+                    <option value="NORM">Norm / Standard (ISO, IEC, CRA)</option>
+                    <option value="RISK">Risiko / Bedrohung (RISK)</option>
+                </optgroup>
+                <optgroup label="System & Architektur">
+                    <option value="USR">User Requirement (USR)</option>
+                    <option value="SYS">System Requirement (SYS)</option>
+                    <option value="SEC">Security & Cyber Resilience (SEC)</option>
+                    <option value="SRS">Software/Hardware Requirement (SRS)</option>
+                    <option value="SWC">Komponente / Modul (SWC)</option>
+                </optgroup>
+                <optgroup label="Verifikation & Test">
+                    <option value="TC">Test Case / Specification (TC)</option>
+                    <option value="TR">Test Result / Protocol (TR)</option>
+                </optgroup>
+            </select>
+        </div>
+
+        <label class="block text-sm font-semibold text-slate-700">Titel / Name
+            <input id="title" required class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 outline-none">
+        </label>
+        
+        <label class="block text-sm font-semibold text-slate-700">Beschreibung
+            <textarea id="text" required rows="3" class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
+        </label>
+        
+        <label class="block text-sm font-semibold text-slate-700">Begründung (Rationale)
+            <textarea id="rationale" rows="2" class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
+        </label>
+
+        <!-- Dynamische Attribute -->
+        <div id="dynamicAttributes" class="hidden rounded-lg bg-indigo-50 p-4 border border-indigo-100 shadow-inner mt-2">
+            <h3 class="mb-3 text-xs font-bold uppercase tracking-wider text-indigo-800">Spezifische Attribute</h3>
+            <div id="attributeFields" class="grid gap-4 md:grid-cols-2"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+            <label class="block text-sm font-semibold text-slate-700">Stakeholder (Ziel-Besitzer)
+                <select id="source_contact" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-slate-50">
+                    <option value="">-- Kein Stakeholder --</option>
+                </select>
+            </label>
+            <label class="block text-sm font-semibold text-slate-700">Aufwandschätzung
+                <input id="effort" type="text" placeholder="z.B. 3 Tage / 5 Story Points" class="mt-1 w-full rounded border p-2 font-normal outline-none">
+            </label>
+        </div>
+
+        <label class="block text-sm font-semibold text-slate-700 mt-2">Akzeptanzkriterien (Ein Kriterium pro Zeile)
+            <textarea id="acceptance_criteria" rows="3" placeholder="- Kriterium 1&#10;- Kriterium 2" class="mt-1 w-full rounded border p-2 font-normal outline-none"></textarea>
+        </label>
+
+        <label class="block text-sm font-semibold text-slate-700 mt-2">Prüf-Status & Workflow
+            <select id="review_status" class="mt-1 w-full rounded border p-2 font-normal bg-slate-50 outline-none">
+                <option value="Neu">Neu</option>
+                <option value="Wartet auf Überprüfung">Wartet auf Überprüfung</option>
+                <option value="Geprüft & Freigegeben">Geprüft & Freigegeben</option>
+                <option value="Abgelehnt">Abgelehnt</option>
+            </select>
+        </label>
+
+        <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-200 pt-5 mt-2">
+            <div>
+                <label class="text-sm font-semibold block mb-1 text-slate-700">Parents (Erfüllt)</label>
+                <input type="text" id="parentSearch" placeholder="Suchen..." class="w-full text-xs rounded border p-1.5 mb-2 bg-slate-50 outline-none" oninput="window.filterCheckboxes('parentSearch', 'parentsCheckboxList')">
+                <div id="parentsCheckboxList" class="h-40 overflow-y-auto rounded border bg-white p-2 space-y-1 text-xs shadow-inner"></div>
+            </div>
+            <div>
+                <label class="text-sm font-semibold block mb-1 text-slate-700">Children (Wird erfüllt durch)</label>
+                <input type="text" id="childSearch" placeholder="Suchen..." class="w-full text-xs rounded border p-1.5 mb-2 bg-slate-50 outline-none" oninput="window.filterCheckboxes('childSearch', 'childrenCheckboxList')">
+                <div id="childrenCheckboxList" class="h-40 overflow-y-auto rounded border bg-white p-2 space-y-1 text-xs shadow-inner"></div>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6 border-t pt-4">
+            <button type="button" onclick="document.getElementById('reqModal').classList.add('hidden')" class="rounded border px-4 py-2 hover:bg-slate-50 font-medium transition">Abbrechen</button>
+            <button type="submit" class="rounded bg-blue-900 px-5 py-2 font-medium text-white shadow hover:bg-blue-800 transition">Speichern</button>
+        </div>
+    </form>
+</div>
+
+<!-- Modal für Akzeptanzkriterien-Prüfung -->
+<div id="verifyModal" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
+    <form id="verifyForm" class="w-full max-w-md space-y-4 rounded-xl bg-white p-6 shadow-2xl">
+        <h2 class="text-xl font-bold text-blue-900 border-b pb-2">Kriterium prüfen</h2>
+        
+        <input type="hidden" id="verify_req_id">
+        <input type="hidden" id="verify_crit_idx">
+        
+        <p id="verify_crit_text" class="text-sm font-semibold text-slate-800 bg-slate-100 p-3 rounded border"></p>
+
+        <label class="block text-sm font-semibold text-slate-700 mt-4">Notiz / Link zum Testprotokoll
+            <textarea id="verify_note" required rows="3" placeholder="z.B. Test T-045 erfolgreich durchgeführt. Link: \\Server\..." class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
+        </label>
+
+        <div class="flex justify-end gap-3 mt-6 border-t pt-4">
+            <button type="button" onclick="document.getElementById('verifyModal').classList.add('hidden')" class="rounded border px-4 py-2 hover:bg-slate-50 font-medium transition">Abbrechen</button>
+            <button type="submit" class="rounded bg-emerald-600 px-5 py-2 font-medium text-white shadow hover:bg-emerald-500 transition">Als 'Geprüft' markieren</button>
+        </div>
+    </form>
+</div>
+
+<!-- Modal für Akzeptanzkriterien-Prüfung -->
+<div id="verifyModal"
+    class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
+    <form id="verifyForm" class="w-full max-w-md space-y-4 rounded-xl bg-white p-6 shadow-2xl">
+        <h2 class="text-xl font-bold text-blue-900 border-b pb-2">Kriterium prüfen</h2>
+
+        <input type="hidden" id="verify_req_id">
+        <input type="hidden" id="verify_crit_idx">
+
+        <p id="verify_crit_text" class="text-sm font-semibold text-slate-800 bg-slate-100 p-3 rounded border"></p>
+
+        <label class="block text-sm font-semibold text-slate-700 mt-4">Notiz / Link zum Testprotokoll
+            <textarea id="verify_note" required rows="3"
+                placeholder="z.B. Test T-045 erfolgreich durchgeführt. Link: \\Server\..."
+                class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
+        </label>
+
+        <div class="flex justify-end gap-3 mt-6 border-t pt-4">
+            <button type="button" onclick="document.getElementById('verifyModal').classList.add('hidden')"
+                class="rounded border px-4 py-2 hover:bg-slate-50 font-medium transition">Abbrechen</button>
+            <button type="submit"
+                class="rounded bg-emerald-600 px-5 py-2 font-medium text-white shadow hover:bg-emerald-500 transition">Als
+                'Geprüft' markieren</button>
+        </div>
+    </form>
+</div>.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\views\stakeholders.php
+====================================================
+<!-- dashboard/views/stakeholders.php -->
+<div class="rounded-lg border bg-white shadow-sm h-[calc(100vh-250px)] flex flex-col p-6 overflow-y-auto">
+    
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-blue-900">Stakeholder Management</h2>
+        <button id="btnNewStakeholder" class="rounded bg-blue-900 px-4 py-2 font-semibold text-white shadow hover:bg-blue-800 transition">
+            + Neuer Stakeholder
+        </button>
+    </div>
+
+    <!-- Die flache Tabelle für alle Details -->
+    <div class="overflow-x-auto mb-8 border rounded-lg">
+        <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-50 text-slate-800 uppercase font-semibold border-b">
+                <tr>
+                    <th class="p-3">Name</th>
+                    <th class="p-3">Rolle</th>
+                    <th class="p-3">Position</th>
+                    <th class="p-3">Kontakt</th>
+                    <th class="p-3">Wissen / Verfügbarkeit</th>
+                    <th class="p-3">Einfluss / Interesse</th>
+                    <th class="p-3 text-right">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody id="stakeholderTableBody" class="divide-y">
+                <tr>
+                    <td colspan="7" class="p-4 text-center text-slate-400 italic">Lade Stakeholder...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Hier kommt später die visuelle Matrix rein -->
+    <h3 class="text-xl font-bold text-blue-900 mb-4 border-t pt-6">Stakeholder Matrix / Map</h3>
+    <div class="relative w-full max-w-3xl aspect-video bg-slate-50 border-2 border-slate-200 rounded-xl overflow-hidden self-center">
+        <!-- Achsen-Beschriftungen -->
+        <div class="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-bold text-slate-400 tracking-widest">Einfluss (Influence)</div>
+        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-bold text-slate-400 tracking-widest">Interesse (Interest)</div>
+        
+        <!-- Die 4 Quadranten (farblich passend zu deiner Vorlage) -->
+        <div class="absolute inset-0 grid grid-cols-2 grid-rows-2 p-8 gap-2">
+            <div class="bg-amber-100 rounded-lg opacity-50"></div> <!-- Handle with care -->
+            <div class="bg-blue-100 rounded-lg opacity-50"></div>  <!-- Top priority -->
+            <div class="bg-slate-200 rounded-lg opacity-50"></div> <!-- Low priority -->
+            <div class="bg-emerald-100 rounded-lg opacity-50"></div><!-- Keep informed -->
+        </div>
+
+        <!-- Hier wirft unser JavaScript später die Namen (Punkte) rein -->
+        <div id="stakeholderMapPoints" class="absolute inset-0 p-8"></div>
+    </div>
+
+</div>
+
+<!-- Stakeholder Modal -->
+<div id="modalStakeholder" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
+    <form id="formStakeholder" class="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white p-8 rounded-xl shadow-2xl">
+        <h2 class="text-xl font-bold text-blue-900 mb-4 border-b pb-2">Stakeholder bearbeiten</h2>
+        
+        <input type="hidden" id="stk_id">
+        
+        <div class="grid grid-cols-2 gap-4">
+            <label class="block text-sm font-semibold col-span-2">Name <input id="stk_name" required class="mt-1 w-full rounded border p-2"></label>
+            <label class="block text-sm font-semibold">Rolle im Projekt <input id="stk_role" class="mt-1 w-full rounded border p-2"></label>
+            <label class="block text-sm font-semibold">Position im Unternehmen <input id="stk_position" class="mt-1 w-full rounded border p-2"></label>
+            <label class="block text-sm font-semibold">E-Mail <input id="stk_email" type="email" class="mt-1 w-full rounded border p-2"></label>
+            <label class="block text-sm font-semibold">Telefon <input id="stk_phone" class="mt-1 w-full rounded border p-2"></label>
+            <label class="block text-sm font-semibold">Wissensgebiet <input id="stk_expertise" class="mt-1 w-full rounded border p-2"></label>
+            <label class="block text-sm font-semibold">Verfügbarkeit <input id="stk_availability" class="mt-1 w-full rounded border p-2"></label>
+            
+            <label class="block text-sm font-semibold">Einfluss (Influence)
+                <select id="stk_influence" class="mt-1 w-full rounded border p-2">
+                    <option value="Low">Gering (Low)</option>
+                    <option value="High">Hoch (High)</option>
+                </select>
+            </label>
+            <label class="block text-sm font-semibold">Interesse (Interest)
+                <select id="stk_interest" class="mt-1 w-full rounded border p-2">
+                    <option value="Low">Gering (Low)</option>
+                    <option value="High">Hoch (High)</option>
+                </select>
+            </label>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6 border-t pt-4">
+            <button type="button" onclick="document.getElementById('modalStakeholder').classList.add('hidden')" class="border px-4 py-2 rounded">Abbrechen</button>
+            <button type="submit" class="bg-blue-900 text-white px-4 py-2 rounded shadow">Speichern</button>
+        </div>
+    </form>
+</div>.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\views\usecases.php
+====================================================
+<!-- dashboard/views/usecases.php -->
+<div class="rounded-lg border bg-white shadow-sm h-[calc(100vh-250px)] flex flex-col p-6 overflow-y-auto">
+
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-blue-900">Use Case Management</h2>
+        <button id="btnNewUseCase"
+            class="rounded bg-blue-900 px-4 py-2 font-semibold text-white shadow hover:bg-blue-800 transition">
+            + Neuer Use Case
+        </button>
+    </div>
+
+    <!-- Tabelle für Use Cases -->
+    <div class="overflow-x-auto border rounded-lg">
+        <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-50 text-slate-800 uppercase font-semibold border-b">
+                <tr>
+                    <th class="p-3">Key</th>
+                    <th class="p-3">Titel</th>
+                    <th class="p-3">Primärer Akteur</th>
+                    <th class="p-3">Hauptszenario (Auszug)</th>
+                    <th class="p-3 text-right">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody id="useCaseTableBody" class="divide-y">
+                <tr>
+                    <td colspan="5" class="p-4 text-center text-slate-400 italic">Bitte wähle ein Projekt aus.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- Use Case Modal (Neu & Bearbeiten) -->
+<div id="modalUseCase"
+    class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
+    <form id="formUseCase"
+        class="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white p-8 rounded-xl shadow-2xl space-y-4">
+        <h2 id="useCaseModalTitle" class="text-xl font-bold text-blue-900 border-b pb-2">Neuer Use Case</h2>
+
+        <input type="hidden" id="uc_id">
+
+        <label class="block text-sm font-semibold">Titel / Name
+            <input id="uc_title" required
+                class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 outline-none">
+        </label>
+
+        <label class="block text-sm font-semibold">Primärer Akteur
+            <input id="uc_primary_actor"
+                class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 outline-none"
+                placeholder="z.B. Systemadministrator, Kunde">
+        </label>
+
+        <label class="block text-sm font-semibold">Vorbedingungen (Preconditions)
+            <textarea id="uc_preconditions" rows="2"
+                class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
+        </label>
+
+        <label class="block text-sm font-semibold">Hauptszenario (Erfolgsfall)
+            <textarea id="uc_main_scenario" rows="3"
+                class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
+        </label>
+
+        <label class="block text-sm font-semibold">Alternativ- & Fehlerszenarien
+            <textarea id="uc_alt_scenario" rows="2"
+                class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
+        </label>
+
+        <div class="flex justify-end gap-3 mt-6 border-t pt-4">
+            <button type="button" onclick="document.getElementById('modalUseCase').classList.add('hidden')"
+                class="border px-4 py-2 rounded hover:bg-slate-50 transition">Abbrechen</button>
+            <button type="submit"
+                class="bg-blue-900 text-white px-5 py-2 rounded shadow hover:bg-blue-800 transition">Speichern</button>
+        </div>
+    </form>
+</div>.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\views\userstories.php
+====================================================
+<!-- dashboard/views/userstories.php -->
+<div class="rounded-lg border bg-white shadow-sm h-full flex flex-col p-6 overflow-y-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-blue-900">User Stories</h2>
+        <button id="btnNewUserStory" class="rounded bg-blue-900 px-4 py-2 font-semibold text-white shadow hover:bg-blue-800 transition">
+            + Neue User Story
+        </button>
+    </div>
+
+    <!-- Tabelle -->
+    <div class="overflow-x-auto border rounded-lg">
+        <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-50 text-slate-800 uppercase font-semibold border-b">
+                <tr>
+                    <th class="p-3">Key</th>
+                    <th class="p-3">Titel</th>
+                    <th class="p-3">Als (Rolle)</th>
+                    <th class="p-3">möchte ich (Aktion)</th>
+                    <th class="p-3">Story Points</th>
+                    <th class="p-3 text-right">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody id="userStoryTableBody" class="divide-y">
+                <tr>
+                    <td colspan="6" class="p-4 text-center text-slate-400 italic">Bitte wähle ein Projekt aus.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- User Story Modal -->
+<div id="modalUserStory" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
+    <form id="formUserStory" class="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white p-8 rounded-xl shadow-2xl space-y-4">
+        <h2 id="userStoryModalTitle" class="text-xl font-bold text-blue-900 border-b pb-2">Neue User Story</h2>
+        
+        <input type="hidden" id="us_id">
+        
+        <label class="block text-sm font-semibold">Titel (Kurzbezeichnung)
+            <input id="us_title" required class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 outline-none">
+        </label>
+        
+        <div class="p-4 bg-blue-50 border border-blue-100 rounded-lg space-y-4 my-4">
+            <label class="block text-sm font-semibold text-blue-900">Als (Rolle/Person)
+                <input id="us_role" class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 outline-none" placeholder="z.B. Endanwender">
+            </label>
+            
+            <label class="block text-sm font-semibold text-blue-900">möchte ich (Ziel/Aktion)
+                <textarea id="us_action" rows="2" class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
+            </label>
+            
+            <label class="block text-sm font-semibold text-blue-900">so dass (Nutzen/Mehrwert)
+                <textarea id="us_benefit" rows="2" class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
+            </label>
+        </div>
+        
+        <label class="block text-sm font-semibold">Akzeptanzkriterien
+            <textarea id="us_acceptance_criteria" rows="3" class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 outline-none" placeholder="- Kriterium 1...&#10;- Kriterium 2..."></textarea>
+        </label>
+        
+        <label class="block text-sm font-semibold">Story Points (Aufwand)
+            <input id="us_story_points" type="number" class="mt-1 w-32 rounded border p-2 font-normal focus:border-blue-500 outline-none">
+        </label>
+
+        <div class="flex justify-end gap-3 mt-6 border-t pt-4">
+            <button type="button" onclick="document.getElementById('modalUserStory').classList.add('hidden')" class="border px-4 py-2 rounded hover:bg-slate-50 transition">Abbrechen</button>
+            <button type="submit" class="bg-blue-900 text-white px-5 py-2 rounded shadow hover:bg-blue-800 transition">Speichern</button>
+        </div>
+    </form>
+</div>.

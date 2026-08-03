@@ -29,16 +29,21 @@ try {
     $parents = (isset($data['parents']) && is_array($data['parents'])) ? json_encode($data['parents']) : '[]';
     $children = (isset($data['children']) && is_array($data['children'])) ? json_encode($data['children']) : '[]';
 
-    // JSON Attribute extrem sicher laden (verhindert den Absturz!)
+    // JSON Attribute sicher laden
     $existing_attrs = [];
+    $req_key = '';
+
     if ($id) {
-        $stmtAttr = $pdo->prepare("SELECT attributes FROM requirements WHERE id = ?");
+        $stmtAttr = $pdo->prepare("SELECT req_key, attributes FROM requirements WHERE id = ?");
         $stmtAttr->execute([$id]);
         $row = $stmtAttr->fetch();
-        if ($row && !empty($row['attributes'])) {
-            $decoded = json_decode($row['attributes'], true);
-            if (is_array($decoded)) {
-                $existing_attrs = $decoded;
+        if ($row) {
+            $req_key = $row['req_key'];
+            if (!empty($row['attributes'])) {
+                $decoded = json_decode($row['attributes'], true);
+                if (is_array($decoded)) {
+                    $existing_attrs = $decoded;
+                }
             }
         }
     }
@@ -49,10 +54,14 @@ try {
         }
     }
     $attributes_json = json_encode($existing_attrs);
+    
+    // Wer macht die Änderung?
+    $user_id = $_SESSION['user_id'] ?? 1;
 
     if ($id) {
         $stmt = $pdo->prepare("UPDATE requirements SET type=?, title=?, description=?, rationale=?, status=?, source_contact=?, effort=?, acceptance_criteria=?, review_status=?, parents=?, children=?, attributes=? WHERE id=? AND project_id=?");
         $stmt->execute([$type, $title, $description, $rationale, $status, $source_contact, $effort, $acceptance_criteria, $review_status, $parents, $children, $attributes_json, $id, $project_id]);
+        $action = 'UPDATE';
     } else {
         $countStmt = $pdo->prepare("SELECT COUNT(*) FROM requirements WHERE project_id = ? AND type = ?");
         $countStmt->execute([$project_id, $type]);
@@ -61,7 +70,14 @@ try {
         
         $stmt = $pdo->prepare("INSERT INTO requirements (project_id, req_key, type, title, description, rationale, status, source_contact, effort, acceptance_criteria, review_status, parents, children, attributes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([$project_id, $req_key, $type, $title, $description, $rationale, $status, $source_contact, $effort, $acceptance_criteria, $review_status, $parents, $children, $attributes_json]);
+        
+        $id = $pdo->lastInsertId();
+        $action = 'CREATE';
     }
+    
+    // NEU: HIER WIRD DIE HISTORIE GESCHRIEBEN!
+    $histStmt = $pdo->prepare("INSERT INTO requirement_history (requirement_id, req_key, project_id, type, title, description, rationale, status, parents, children, modified_by, action, attributes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $histStmt->execute([$id, $req_key, $project_id, $type, $title, $description, $rationale, $status, $parents, $children, $user_id, $action, $attributes_json]);
     
     echo json_encode(['success' => true]);
 } catch (Exception $e) {
