@@ -2515,3 +2515,485 @@ window.editUserStory = function(id) {
     document.getElementById('modalUserStory').classList.remove('hidden');
 };.
 .
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\views\dashboard.php
+====================================================
+<!-- dashboard/views/dashboard.php -->
+<div class="flex flex-col h-full overflow-y-auto p-2">
+    <h2 class="text-2xl font-bold text-blue-900 mb-6">Projekt-Dashboard & KPIs</h2>
+
+    <!-- Obere Reihe (Allgemein) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div onclick="window.renderDashboardList('total', window.dashboardData.total.items)"
+            class="bg-white p-5  border shadow-sm border-l-4 border-l-blue-900 cursor-pointer hover:bg-slate-50 transition">
+            <div class="text-slate-500 text-xs uppercase font-bold tracking-wider">Gesamt Anforderungen</div>
+            <div id="kpiTotalReqs" class="text-3xl font-extrabold text-blue-950 mt-2">0</div>
+        </div>
+        <div onclick="window.renderDashboardList('waiting', window.dashboardData.waiting.items)"
+            class="bg-white p-5  border shadow-sm border-l-4 border-l-amber-500 cursor-pointer hover:bg-slate-50 transition">
+            <div class="text-slate-500 text-xs uppercase font-bold tracking-wider">Wartet auf Überprüfung</div>
+            <div id="kpiWaitingReqs" class="text-3xl font-extrabold text-amber-600 mt-2">0</div>
+        </div>
+        <div onclick="window.renderDashboardList('approved', window.dashboardData.approved.items)"
+            class="bg-white p-5  border shadow-sm border-l-4 border-l-emerald-500 cursor-pointer hover:bg-slate-50 transition">
+            <div class="text-slate-500 text-xs uppercase font-bold tracking-wider">Geprüft & Freigegeben</div>
+            <div id="kpiApprovedReqs" class="text-3xl font-extrabold text-emerald-600 mt-2">0</div>
+        </div>
+    </div>
+
+    <!-- Untere Reihe (Risiko & Security) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div onclick="window.renderDashboardList('risks', window.dashboardData.risks.items)"
+            class="bg-white p-5  border shadow-sm border-l-4 border-l-red-600 cursor-pointer hover:bg-slate-50 transition">
+            <div class="text-slate-500 text-xs uppercase font-bold tracking-wider">Erfasste Risiken</div>
+            <div id="kpiRiskReqs" class="text-3xl font-extrabold text-red-700 mt-2">0</div>
+        </div>
+        <div onclick="window.renderDashboardList('sec', window.dashboardData.sec.items)"
+            class="bg-white p-5  border shadow-sm border-l-4 border-l-indigo-600 cursor-pointer hover:bg-slate-50 transition">
+            <div class="text-slate-500 text-xs uppercase font-bold tracking-wider">Cyber Security & Normen</div>
+            <div id="kpiSecReqs" class="text-3xl font-extrabold text-indigo-700 mt-2">0</div>
+        </div>
+        <div class="bg-white p-5  border shadow-sm border-l-4 border-l-purple-600">
+            <div class="text-slate-500 text-xs uppercase font-bold tracking-wider">Phasen-Fortschritt</div>
+            <div class="text-3xl font-extrabold text-purple-700 mt-2">Aktiv</div>
+        </div>
+    </div>
+
+    <div class="mt-8  border bg-white p-6 shadow-sm">
+        <!-- ID für die Überschrift angepasst (wahrscheinlich dashboardListTitle) -->
+        <h3 id="dashboardListTitle" class="mb-4 text-lg font-bold text-blue-900">Detailansicht</h3>
+
+        <!-- ID für den Container korrigiert! -->
+        <div id="dashboardListContainer" class="text-sm text-slate-500 italic">
+            Bitte wähle oben eine Kennzahl aus, um die Details zu sehen.
+        </div>
+    </div>
+</div>.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\views\history.php
+====================================================
+<!-- dashboard/views/history.php -->
+<div class="flex flex-col h-full">
+    <h2 class="text-xl font-bold text-blue-900 mb-4">Projekt Historie</h2>
+    <div id="historyContainer" class="rounded-none border bg-white p-6 overflow-y-auto flex-1">
+</div>.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\views\requirements.php
+====================================================
+<!-- dashboard/views/requirements.php -->
+<div class="flex flex-col h-full">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold text-blue-900">System-Elemente (Anforderungen, Risiken, Assets)</h2>
+        <button id="new"
+            class=" bg-blue-900 px-4 py-2 font-semibold text-white shadow hover:bg-blue-800 transition">
+            + Neues Element
+        </button>
+    </div>
+    <div class="grid gap-5 lg:grid-cols-[350px_1fr] flex-1 min-h-0">
+        <aside class="-lg border bg-white shadow-sm overflow-hidden flex flex-col h-full">
+            <!-- Filter Tabs -->
+            <div class="p-3 border-b bg-slate-50 flex flex-wrap gap-1">
+                <button onclick="window.applyTreeFilter('ALL')" id="filter-ALL"
+                    class="filter-tab active  bg-slate-200 px-3 py-1 text-xs font-bold text-slate-700 transition">Alle</button>
+                <button onclick="window.applyTreeFilter('REQ')" id="filter-REQ"
+                    class="filter-tab  px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition">Anforderungen</button>
+                <button onclick="window.applyTreeFilter('SEC')" id="filter-SEC"
+                    class="filter-tab  px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition">Risiko
+                    & Sec</button>
+                <button onclick="window.applyTreeFilter('AST')" id="filter-AST"
+                    class="filter-tab  px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition">Assets</button>
+            </div>
+            <div id="items" class="p-4 text-sm text-slate-500 overflow-y-auto flex-1">Bitte wähle oben ein Projekt aus.
+            </div>
+        </aside>
+        <article id="detail" class="-lg border bg-white p-6 shadow-sm overflow-y-auto h-full relative">
+            <div class="flex h-full items-center justify-center text-slate-400 italic">
+                Wähle ein Element aus, um Details zu sehen.
+            </div>
+        </article>
+    </div>
+</div>
+
+<!-- Modal für Neues Element -->
+<div id="reqModal"
+    class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/70 p-4 sm:p-6 backdrop-blur-sm">
+    <form id="reqForm"
+        class="w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col space-y-4  bg-white p-6 sm:p-8 shadow-2xl">
+        <h2 id="reqHeading" class="text-xl font-bold text-blue-900 border-b pb-3">Neues Element anlegen</h2>
+
+        <div>
+            <label class="text-sm font-semibold block mb-1 text-slate-700">Typ</label>
+            <select id="type"
+                class="w-full  border p-2 text-sm bg-slate-50 font-medium focus:border-blue-500 outline-none">
+                <optgroup label="Ziele & Strategie">
+                    <option value="GOAL">Ziel (Stakeholder Goal)</option>
+                </optgroup>
+                <optgroup label="Systemkontext & Architektur">
+                    <option value="AST">Asset (Schützenswertes Gut)</option>
+                </optgroup>
+                <optgroup label="Regularien & Risiken">
+                    <!-- <option value="NORM">Norm / Standard (ISO, IEC, CRA Vorgabe)</option> -->
+                    <option value="RISK">Risiko / Bedrohung (RISK)</option>
+                </optgroup>
+                <optgroup label="System & Architektur">
+                    <option value="USR">User Requirement (USR)</option>
+                    <option value="SYS">System Requirement (SYS)</option>
+                    <option value="SEC">Security & Cyber Resilience (SEC)</option>
+                    <option value="SRS">Software/Hardware Requirement (SRS)</option>
+                    <option value="SWC">Komponente / Modul (SWC)</option>
+                </optgroup>
+                <optgroup label="Verifikation & Test">
+                    <option value="TC">Test Case / Specification (TC)</option>
+                    <option value="TR">Test Result / Protocol (TR)</option>
+                </optgroup>
+            </select>
+        </div>
+
+        <label class="block text-sm font-semibold text-slate-700">Titel / Name
+            <input id="title" required
+                class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none">
+        </label>
+
+        <label class="block text-sm font-semibold text-slate-700">Beschreibung
+            <textarea id="text" required rows="3"
+                class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
+        </label>
+
+        <label class="block text-sm font-semibold text-slate-700">Begründung (Rationale)
+            <textarea id="rationale" rows="2"
+                class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
+        </label>
+
+        <!-- Dynamische Attribute -->
+        <div id="dynamicAttributes"
+            class="hidden -lg bg-indigo-50 p-4 border border-indigo-100 shadow-inner mt-2">
+            <h3 class="mb-3 text-xs font-bold uppercase tracking-wider text-indigo-800">Spezifische Attribute</h3>
+            <div id="attributeFields" class="grid gap-4 md:grid-cols-2"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+            <label class="block text-sm font-semibold text-slate-700">Zuständigkeit (Stakeholder)
+                <select id="source_contact" class="mt-1 w-full  border p-2 font-normal outline-none bg-slate-50">
+                    <option value="">-- Niemand zugewiesen --</option>
+                </select>
+            </label>
+            <label class="block text-sm font-semibold text-slate-700">Aufwandschätzung
+                <input id="effort" type="text" placeholder="z.B. 3 Tage / 5 Story Points"
+                    class="mt-1 w-full  border p-2 font-normal outline-none">
+            </label>
+        </div>
+
+        <div id="criteria_container" class="mt-2 transition-all">
+            <label class="block text-sm font-semibold text-slate-700">Akzeptanzkriterien (Ein Kriterium pro Zeile)
+                <textarea id="acceptance_criteria" rows="3" placeholder="- Kriterium 1&#10;- Kriterium 2"
+                    class="mt-1 w-full  border p-2 font-normal outline-none"></textarea>
+            </label>
+        </div>
+
+        <label class="block text-sm font-semibold text-slate-700 mt-2">Prüf-Status & Workflow
+            <select id="review_status" class="mt-1 w-full  border p-2 font-normal bg-slate-50 outline-none">
+                <option value="Neu">Neu</option>
+                <option value="Wartet auf Überprüfung">Wartet auf Überprüfung</option>
+                <option value="Geprüft & Freigegeben">Geprüft & Freigegeben</option>
+                <option value="Abgelehnt">Abgelehnt</option>
+            </select>
+        </label>
+
+        <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-200 pt-5 mt-2">
+            <div>
+                <label class="text-sm font-semibold block mb-1 text-slate-700">Parents (Erfüllt)</label>
+                <input type="text" id="parentSearch" placeholder="Suchen..."
+                    class="w-full text-xs  border p-1.5 mb-2 bg-slate-50 outline-none"
+                    oninput="window.filterCheckboxes('parentSearch', 'parentsCheckboxList')">
+                <div id="parentsCheckboxList"
+                    class="h-40 overflow-y-auto  border bg-white p-2 space-y-1 text-xs shadow-inner"></div>
+            </div>
+            <div>
+                <label class="text-sm font-semibold block mb-1 text-slate-700">Children (Wird erfüllt durch)</label>
+                <input type="text" id="childSearch" placeholder="Suchen..."
+                    class="w-full text-xs  border p-1.5 mb-2 bg-slate-50 outline-none"
+                    oninput="window.filterCheckboxes('childSearch', 'childrenCheckboxList')">
+                <div id="childrenCheckboxList"
+                    class="h-40 overflow-y-auto  border bg-white p-2 space-y-1 text-xs shadow-inner"></div>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6 border-t pt-4">
+            <button type="button" onclick="document.getElementById('reqModal').classList.add('hidden')"
+                class=" border px-4 py-2 hover:bg-slate-50 font-medium transition">Abbrechen</button>
+            <button type="submit"
+                class=" bg-blue-900 px-5 py-2 font-medium text-white shadow hover:bg-blue-800 transition">Speichern</button>
+        </div>
+    </form>
+</div>
+
+<!-- Modal für Akzeptanzkriterien-Prüfung bleibt unverändert -->
+<div id="verifyModal"
+    class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
+    <form id="verifyForm" class="w-full max-w-md space-y-4  bg-white p-6 shadow-2xl">
+        <h2 class="text-xl font-bold text-blue-900 border-b pb-2">Kriterium prüfen</h2>
+        <input type="hidden" id="verify_req_id">
+        <input type="hidden" id="verify_crit_idx">
+        <p id="verify_crit_text" class="text-sm font-semibold text-slate-800 bg-slate-100 p-3  border"></p>
+        <label class="block text-sm font-semibold text-slate-700 mt-4">Notiz / Link zum Testprotokoll
+            <textarea id="verify_note" required rows="3" placeholder="z.B. Test T-045 erfolgreich durchgeführt..."
+                class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
+        </label>
+        <div class="flex justify-end gap-3 mt-6 border-t pt-4">
+            <button type="button" onclick="document.getElementById('verifyModal').classList.add('hidden')"
+                class=" border px-4 py-2 hover:bg-slate-50 font-medium transition">Abbrechen</button>
+            <button type="submit"
+                class=" bg-emerald-600 px-5 py-2 font-medium text-white shadow hover:bg-emerald-500 transition">Als
+                'Geprüft' markieren</button>
+        </div>
+    </form>
+</div>.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\views\stakeholders.php
+====================================================
+<!-- dashboard/views/stakeholders.php -->
+<div class="-lg border bg-white shadow-sm h-[calc(100vh-250px)] flex flex-col p-6 overflow-y-auto">
+    
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-blue-900">Stakeholder Management</h2>
+        <button id="btnNewStakeholder" class=" bg-blue-900 px-4 py-2 font-semibold text-white shadow hover:bg-blue-800 transition">
+            + Neuer Stakeholder
+        </button>
+    </div>
+
+    <!-- Die flache Tabelle für alle Details -->
+    <div class="overflow-x-auto mb-8 border -lg">
+        <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-50 text-slate-800 uppercase font-semibold border-b">
+                <tr>
+                    <th class="p-3">Name</th>
+                    <th class="p-3">Rolle</th>
+                    <th class="p-3">Position</th>
+                    <th class="p-3">Kontakt</th>
+                    <th class="p-3">Wissen / Verfügbarkeit</th>
+                    <th class="p-3">Einfluss / Interesse</th>
+                    <th class="p-3 text-right">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody id="stakeholderTableBody" class="divide-y">
+                <tr>
+                    <td colspan="7" class="p-4 text-center text-slate-400 italic">Lade Stakeholder...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Hier kommt später die visuelle Matrix rein -->
+    <h3 class="text-xl font-bold text-blue-900 mb-4 border-t pt-6">Stakeholder Matrix / Map</h3>
+    <div class="relative w-full max-w-3xl aspect-video bg-slate-50 border-2 border-slate-200  overflow-hidden self-center">
+        <!-- Achsen-Beschriftungen -->
+        <div class="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-bold text-slate-400 tracking-widest">Einfluss (Influence)</div>
+        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs font-bold text-slate-400 tracking-widest">Interesse (Interest)</div>
+        
+        <!-- Die 4 Quadranten (farblich passend zu deiner Vorlage) -->
+        <div class="absolute inset-0 grid grid-cols-2 grid-rows-2 p-8 gap-2">
+            <div class="bg-amber-100 -lg opacity-50"></div> <!-- Handle with care -->
+            <div class="bg-blue-100 -lg opacity-50"></div>  <!-- Top priority -->
+            <div class="bg-slate-200 -lg opacity-50"></div> <!-- Low priority -->
+            <div class="bg-emerald-100 -lg opacity-50"></div><!-- Keep informed -->
+        </div>
+
+        <!-- Hier wirft unser JavaScript später die Namen (Punkte) rein -->
+        <div id="stakeholderMapPoints" class="absolute inset-0 p-8"></div>
+    </div>
+
+</div>
+
+<!-- Stakeholder Modal -->
+<div id="modalStakeholder" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
+    <form id="formStakeholder" class="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white p-8  shadow-2xl">
+        <h2 class="text-xl font-bold text-blue-900 mb-4 border-b pb-2">Stakeholder bearbeiten</h2>
+        
+        <input type="hidden" id="stk_id">
+        
+        <div class="grid grid-cols-2 gap-4">
+            <label class="block text-sm font-semibold col-span-2">Name <input id="stk_name" required class="mt-1 w-full  border p-2"></label>
+            <label class="block text-sm font-semibold">Rolle im Projekt <input id="stk_role" class="mt-1 w-full  border p-2"></label>
+            <label class="block text-sm font-semibold">Position im Unternehmen <input id="stk_position" class="mt-1 w-full  border p-2"></label>
+            <label class="block text-sm font-semibold">E-Mail <input id="stk_email" type="email" class="mt-1 w-full  border p-2"></label>
+            <label class="block text-sm font-semibold">Telefon <input id="stk_phone" class="mt-1 w-full  border p-2"></label>
+            <label class="block text-sm font-semibold">Wissensgebiet <input id="stk_expertise" class="mt-1 w-full  border p-2"></label>
+            <label class="block text-sm font-semibold">Verfügbarkeit <input id="stk_availability" class="mt-1 w-full  border p-2"></label>
+            
+            <label class="block text-sm font-semibold">Einfluss (Influence)
+                <select id="stk_influence" class="mt-1 w-full  border p-2">
+                    <option value="Low">Gering (Low)</option>
+                    <option value="High">Hoch (High)</option>
+                </select>
+            </label>
+            <label class="block text-sm font-semibold">Interesse (Interest)
+                <select id="stk_interest" class="mt-1 w-full  border p-2">
+                    <option value="Low">Gering (Low)</option>
+                    <option value="High">Hoch (High)</option>
+                </select>
+            </label>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6 border-t pt-4">
+            <button type="button" onclick="document.getElementById('modalStakeholder').classList.add('hidden')" class="border px-4 py-2 ">Abbrechen</button>
+            <button type="submit" class="bg-blue-900 text-white px-4 py-2  shadow">Speichern</button>
+        </div>
+    </form>
+</div>.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\views\usecases.php
+====================================================
+<!-- dashboard/views/usecases.php -->
+<div class="-lg border bg-white shadow-sm h-[calc(100vh-250px)] flex flex-col p-6 overflow-y-auto">
+
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-blue-900">Use Case Management</h2>
+        <button id="btnNewUseCase"
+            class=" bg-blue-900 px-4 py-2 font-semibold text-white shadow hover:bg-blue-800 transition">
+            + Neuer Use Case
+        </button>
+    </div>
+
+    <!-- Tabelle für Use Cases -->
+    <div class="overflow-x-auto border -lg">
+        <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-50 text-slate-800 uppercase font-semibold border-b">
+                <tr>
+                    <th class="p-3">Key</th>
+                    <th class="p-3">Titel</th>
+                    <th class="p-3">Primärer Akteur</th>
+                    <th class="p-3">Hauptszenario (Auszug)</th>
+                    <th class="p-3 text-right">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody id="useCaseTableBody" class="divide-y">
+                <tr>
+                    <td colspan="5" class="p-4 text-center text-slate-400 italic">Bitte wähle ein Projekt aus.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- Use Case Modal (Neu & Bearbeiten) -->
+<div id="modalUseCase"
+    class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
+    <form id="formUseCase"
+        class="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white p-8  shadow-2xl space-y-4">
+        <h2 id="useCaseModalTitle" class="text-xl font-bold text-blue-900 border-b pb-2">Neuer Use Case</h2>
+
+        <input type="hidden" id="uc_id">
+
+        <label class="block text-sm font-semibold">Titel / Name
+            <input id="uc_title" required
+                class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none">
+        </label>
+
+        <label class="block text-sm font-semibold">Primärer Akteur
+            <input id="uc_primary_actor"
+                class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none"
+                placeholder="z.B. Systemadministrator, Kunde">
+        </label>
+
+        <label class="block text-sm font-semibold">Vorbedingungen (Preconditions)
+            <textarea id="uc_preconditions" rows="2"
+                class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
+        </label>
+
+        <label class="block text-sm font-semibold">Hauptszenario (Erfolgsfall)
+            <textarea id="uc_main_scenario" rows="3"
+                class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
+        </label>
+
+        <label class="block text-sm font-semibold">Alternativ- & Fehlerszenarien
+            <textarea id="uc_alt_scenario" rows="2"
+                class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
+        </label>
+
+        <div class="flex justify-end gap-3 mt-6 border-t pt-4">
+            <button type="button" onclick="document.getElementById('modalUseCase').classList.add('hidden')"
+                class="border px-4 py-2  hover:bg-slate-50 transition">Abbrechen</button>
+            <button type="submit"
+                class="bg-blue-900 text-white px-5 py-2  shadow hover:bg-blue-800 transition">Speichern</button>
+        </div>
+    </form>
+</div>.
+.
+====================================================
+DATEI: C:\xampp\htdocs\captainslog-web\dashboard\views\userstories.php
+====================================================
+<!-- dashboard/views/userstories.php -->
+<div class="-lg border bg-white shadow-sm h-full flex flex-col p-6 overflow-y-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-blue-900">User Stories</h2>
+        <button id="btnNewUserStory" class=" bg-blue-900 px-4 py-2 font-semibold text-white shadow hover:bg-blue-800 transition">
+            + Neue User Story
+        </button>
+    </div>
+
+    <!-- Tabelle -->
+    <div class="overflow-x-auto border -lg">
+        <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-50 text-slate-800 uppercase font-semibold border-b">
+                <tr>
+                    <th class="p-3">Key</th>
+                    <th class="p-3">Titel</th>
+                    <th class="p-3">Als (Rolle)</th>
+                    <th class="p-3">möchte ich (Aktion)</th>
+                    <th class="p-3">Story Points</th>
+                    <th class="p-3 text-right">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody id="userStoryTableBody" class="divide-y">
+                <tr>
+                    <td colspan="6" class="p-4 text-center text-slate-400 italic">Bitte wähle ein Projekt aus.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- User Story Modal -->
+<div id="modalUserStory" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
+    <form id="formUserStory" class="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white p-8  shadow-2xl space-y-4">
+        <h2 id="userStoryModalTitle" class="text-xl font-bold text-blue-900 border-b pb-2">Neue User Story</h2>
+        
+        <input type="hidden" id="us_id">
+        
+        <label class="block text-sm font-semibold">Titel (Kurzbezeichnung)
+            <input id="us_title" required class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none">
+        </label>
+        
+        <div class="p-4 bg-blue-50 border border-blue-100 -lg space-y-4 my-4">
+            <label class="block text-sm font-semibold text-blue-900">Als (Rolle/Person)
+                <input id="us_role" class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none" placeholder="z.B. Endanwender">
+            </label>
+            
+            <label class="block text-sm font-semibold text-blue-900">möchte ich (Ziel/Aktion)
+                <textarea id="us_action" rows="2" class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
+            </label>
+            
+            <label class="block text-sm font-semibold text-blue-900">so dass (Nutzen/Mehrwert)
+                <textarea id="us_benefit" rows="2" class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
+            </label>
+        </div>
+        
+        <label class="block text-sm font-semibold">Akzeptanzkriterien
+            <textarea id="us_acceptance_criteria" rows="3" class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none" placeholder="- Kriterium 1...&#10;- Kriterium 2..."></textarea>
+        </label>
+        
+        <label class="block text-sm font-semibold">Story Points (Aufwand)
+            <input id="us_story_points" type="number" class="mt-1 w-32  border p-2 font-normal focus:border-blue-500 outline-none">
+        </label>
+
+        <div class="flex justify-end gap-3 mt-6 border-t pt-4">
+            <button type="button" onclick="document.getElementById('modalUserStory').classList.add('hidden')" class="border px-4 py-2  hover:bg-slate-50 transition">Abbrechen</button>
+            <button type="submit" class="bg-blue-900 text-white px-5 py-2  shadow hover:bg-blue-800 transition">Speichern</button>
+        </div>
+    </form>
+</div>.
