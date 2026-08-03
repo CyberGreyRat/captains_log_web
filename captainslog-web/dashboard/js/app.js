@@ -6,12 +6,13 @@ import { loadStakeholders, initStakeholderEvents } from './stakeholders.js';
 import { loadUseCases, initUseCaseEvents } from './usecases.js';
 import { loadUserStories, initUserStoryEvents } from './userstories.js';
 import { loadHistory } from './history.js';
+import { loadDashboard } from './dashboard.js';
 
 document.addEventListener("DOMContentLoaded", async () => {
     try {
         // 1. Projekte laden
         await initProjectsDropdown();
-        
+
         // 2. Event-Listener initialisieren (Buttons scharf schalten)
         initRequirementEvents();
         initStakeholderEvents();
@@ -23,12 +24,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (projectSelect) {
             projectSelect.addEventListener('change', async (e) => {
                 setCurrentProjectId(e.target.value);
-                
+
                 if (currentProjectId) {
                     loadRequirements();
                     loadStakeholders();
                     loadUseCases();
                     loadUserStories();
+                    loadDashboard();
                 } else {
                     const items = document.getElementById('items');
                     if (items) items.innerHTML = '<div class="p-4 text-sm text-slate-500">Bitte wähle oben ein Projekt aus.</div>';
@@ -43,6 +45,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             btn.addEventListener('click', (e) => {
                 if (e.target.dataset.panel === 'history') {
                     loadHistory();
+                }
+                if (e.target.dataset.panel === 'dashboard') {
+                    loadDashboard(); 
                 }
             });
         });

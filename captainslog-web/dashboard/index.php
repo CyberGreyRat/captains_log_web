@@ -100,6 +100,9 @@ $projects = $stmt->fetchAll();
             <button
                 class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
                 data-panel="history">Historie</button>
+            <button
+                class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
+                data-panel="dashboard">Dashboard</button>
         </div>
     </nav>
 
@@ -124,6 +127,9 @@ $projects = $stmt->fetchAll();
 
         <section id="history" class="panel h-full">
             <?php include 'views/history.php'; ?>
+        </section>
+        <section id="dashboard" class="panel h-full">
+            <?php include 'views/dashboard.php'; ?>
         </section>
 
     </main>
