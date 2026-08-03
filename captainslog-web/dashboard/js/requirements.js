@@ -48,13 +48,13 @@ function populateRelationshipCheckboxes(currentReqId = null, selectedParents = [
 
         parentList.innerHTML += `
             <div class="checkbox-item flex items-center gap-2 p-1 hover:bg-slate-50">
-                <input type="checkbox" id="parent_${req.req_key}" value="${req.req_key}" class="req-parent-cb w-4 h-4 rounded text-blue-900 focus:ring-blue-500" ${isParent}>
+                <input type="checkbox" id="parent_${req.req_key}" value="${req.req_key}" class="req-parent-cb w-4 h-4  text-blue-900 focus:ring-blue-500" ${isParent}>
                 <label for="parent_${req.req_key}" class="cursor-pointer truncate w-full text-slate-700" title="${labelStr}">${labelStr}</label>
             </div>
         `;
         childList.innerHTML += `
             <div class="checkbox-item flex items-center gap-2 p-1 hover:bg-slate-50">
-                <input type="checkbox" id="child_${req.req_key}" value="${req.req_key}" class="req-child-cb w-4 h-4 rounded text-blue-900 focus:ring-blue-500" ${isChild}>
+                <input type="checkbox" id="child_${req.req_key}" value="${req.req_key}" class="req-child-cb w-4 h-4  text-blue-900 focus:ring-blue-500" ${isChild}>
                 <label for="child_${req.req_key}" class="cursor-pointer truncate w-full text-slate-700" title="${labelStr}">${labelStr}</label>
             </div>
         `;
@@ -107,7 +107,7 @@ window.handleTypeChange = function (loadedAttrs = {}) {
         fields.innerHTML = `
             <div class="col-span-1">
                 <label class="block text-sm font-semibold text-slate-700">Kategorie des Assets
-                    <select id="attr_asset_type" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
+                    <select id="attr_asset_type" class="mt-1 w-full  border p-2 font-normal outline-none bg-white">
                         <option value="">-- Wählen --</option>
                         <optgroup label="Digital & IT">
                             <option value="Daten / Informationen" ${loadedAttrs.asset_type === 'Daten / Informationen' ? 'selected' : ''}>Daten / PII / Passwörter</option>
@@ -126,7 +126,7 @@ window.handleTypeChange = function (loadedAttrs = {}) {
             </div>
             <div class="col-span-1">
                 <label class="block text-sm font-semibold text-slate-700">Physischer Zugang (Exposition)
-                    <select id="attr_asset_exposure" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
+                    <select id="attr_asset_exposure" class="mt-1 w-full  border p-2 font-normal outline-none bg-white">
                         <option value="">-- Wählen --</option>
                         <option value="Öffentlich zugänglich (Public)" ${loadedAttrs.asset_exposure === 'Öffentlich zugänglich (Public)' ? 'selected' : ''}>Öffentlich zugänglich (Public Space, unbeaufsichtigt)</option>
                         <option value="Eingeschränkter Zugang (Restricted)" ${loadedAttrs.asset_exposure === 'Eingeschränkter Zugang (Restricted)' ? 'selected' : ''}>Eingeschränkter Zugang (z.B. Büro, Bahnhofspersonal)</option>
@@ -140,7 +140,7 @@ window.handleTypeChange = function (loadedAttrs = {}) {
     } else if (type === 'RISK') {
         fields.innerHTML = `
             <label class="block text-sm font-semibold text-slate-700">Wahrscheinlichkeit
-                <select id="attr_prob" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
+                <select id="attr_prob" class="mt-1 w-full  border p-2 font-normal outline-none bg-white">
                     <option value="">-- Wählen --</option>
                     <option value="Häufig" ${loadedAttrs.initial_probability === 'Häufig' ? 'selected' : ''}>Häufig</option>
                     <option value="Gelegentlich" ${loadedAttrs.initial_probability === 'Gelegentlich' ? 'selected' : ''}>Gelegentlich</option>
@@ -149,7 +149,7 @@ window.handleTypeChange = function (loadedAttrs = {}) {
                 </select>
             </label>
             <label class="block text-sm font-semibold text-slate-700">Schadensausmaß
-                <select id="attr_sev" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
+                <select id="attr_sev" class="mt-1 w-full  border p-2 font-normal outline-none bg-white">
                     <option value="">-- Wählen --</option>
                     <option value="Kritisch" ${loadedAttrs.initial_severity === 'Kritisch' ? 'selected' : ''}>Kritisch</option>
                     <option value="Marginal" ${loadedAttrs.initial_severity === 'Marginal' ? 'selected' : ''}>Marginal</option>
@@ -157,7 +157,7 @@ window.handleTypeChange = function (loadedAttrs = {}) {
                 </select>
             </label>
             <label class="block text-sm font-semibold text-slate-700 md:col-span-2">Gefahr / Bedrohung
-                <input id="attr_hazard" type="text" value="${loadedAttrs.hazard || ''}" placeholder="Was ist die Bedrohung?" class="mt-1 w-full rounded border p-2 font-normal outline-none bg-white">
+                <input id="attr_hazard" type="text" value="${loadedAttrs.hazard || ''}" placeholder="Was ist die Bedrohung?" class="mt-1 w-full  border p-2 font-normal outline-none bg-white">
             </label>
         `;
         container.classList.remove('hidden');
@@ -167,18 +167,18 @@ window.handleTypeChange = function (loadedAttrs = {}) {
         fields.innerHTML = `
             <div class="md:col-span-2">
                 <label class="block text-sm font-semibold text-slate-700 mb-2">Schutzziele (Erweiterte CIA-Triade)</label>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 bg-white p-2 border rounded">
-                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Vertraulichkeit" class="cia-cb w-4 h-4 rounded text-blue-900 focus:ring-blue-500" ${isChecked('Vertraulichkeit')}> Vertraulichkeit</label>
-                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Integrität" class="cia-cb w-4 h-4 rounded text-blue-900 focus:ring-blue-500" ${isChecked('Integrität')}> Integrität</label>
-                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Verfügbarkeit" class="cia-cb w-4 h-4 rounded text-blue-900 focus:ring-blue-500" ${isChecked('Verfügbarkeit')}> Verfügbarkeit</label>
-                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Authentizität" class="cia-cb w-4 h-4 rounded text-blue-900 focus:ring-blue-500" ${isChecked('Authentizität')}> Authentizität</label>
-                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Zurechenbarkeit" class="cia-cb w-4 h-4 rounded text-blue-900 focus:ring-blue-500" ${isChecked('Zurechenbarkeit')}> Zurechenbarkeit</label>
-                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Autorisierung" class="cia-cb w-4 h-4 rounded text-blue-900 focus:ring-blue-500" ${isChecked('Autorisierung')}> Autorisierung</label>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 bg-white p-2 border ">
+                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Vertraulichkeit" class="cia-cb w-4 h-4  text-blue-900 focus:ring-blue-500" ${isChecked('Vertraulichkeit')}> Vertraulichkeit</label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Integrität" class="cia-cb w-4 h-4  text-blue-900 focus:ring-blue-500" ${isChecked('Integrität')}> Integrität</label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Verfügbarkeit" class="cia-cb w-4 h-4  text-blue-900 focus:ring-blue-500" ${isChecked('Verfügbarkeit')}> Verfügbarkeit</label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Authentizität" class="cia-cb w-4 h-4  text-blue-900 focus:ring-blue-500" ${isChecked('Authentizität')}> Authentizität</label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Zurechenbarkeit" class="cia-cb w-4 h-4  text-blue-900 focus:ring-blue-500" ${isChecked('Zurechenbarkeit')}> Zurechenbarkeit</label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Autorisierung" class="cia-cb w-4 h-4  text-blue-900 focus:ring-blue-500" ${isChecked('Autorisierung')}> Autorisierung</label>
                 </div>
             </div>
             <div class="md:col-span-2">
                 <label class="block text-sm font-semibold text-slate-700 mb-2">STRIDE Kategorie</label>
-                <select id="attr_stride" onchange="window.autoSelectCIA(this.value)" class="w-full rounded border p-2 font-normal outline-none bg-white">
+                <select id="attr_stride" onchange="window.autoSelectCIA(this.value)" class="w-full  border p-2 font-normal outline-none bg-white">
                     <option value="">-- Wählen --</option>
                     <option value="Spoofing" ${loadedAttrs.stride === 'Spoofing' ? 'selected' : ''}>Spoofing (Identitätstäuschung)</option>
                     <option value="Tampering" ${loadedAttrs.stride === 'Tampering' ? 'selected' : ''}>Tampering (Datenmanipulation)</option>
@@ -291,7 +291,7 @@ window.renderTreeList = function () {
                     <span class="font-mono font-bold text-blue-950 mr-2">${req.req_key}</span>
                     <span class="text-slate-700 truncate">${req.title}</span>
                 </div>
-                <span class="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5 rounded font-mono shrink-0">${req.review_status || req.status}</span>
+                <span class="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5  font-mono shrink-0">${req.review_status || req.status}</span>
             `;
             btn.onclick = () => showRequirementDetail(req);
             listContainer.appendChild(btn);
@@ -318,7 +318,7 @@ window.renderTreeList = function () {
                     <span class="font-mono font-bold text-blue-950 mr-1">${req.req_key}</span>
                     <span class="text-slate-700 truncate">${req.title}</span>
                 </div>
-                <span class="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5 rounded font-mono shrink-0">${req.review_status || req.status}</span>
+                <span class="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5  font-mono shrink-0">${req.review_status || req.status}</span>
             `;
             btn.onclick = () => showRequirementDetail(req);
             listContainer.appendChild(btn);
@@ -368,10 +368,10 @@ function showRequirementDetail(req) {
             if (cleanLine.trim() !== '') {
                 const state = states[idx];
                 const isChecked = state && state.checked ? 'checked disabled' : '';
-                const infoBadge = state ? `<div class="mt-1 text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-1 rounded">✅ <b>Geprüft von ${state.by}</b> am ${state.date}<br><span class="italic">"${state.note}"</span></div>` : '';
+                const infoBadge = state ? `<div class="mt-1 text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-1 ">✅ <b>Geprüft von ${state.by}</b> am ${state.date}<br><span class="italic">"${state.note}"</span></div>` : '';
                 criteriaHtml += `
-                    <li class="flex items-start gap-3 text-sm text-slate-700 bg-white p-2 rounded border">
-                        <input type="checkbox" id="crit_${req.id}_${idx}" class="mt-1 w-4 h-4 rounded text-blue-900 focus:ring-blue-500 cursor-pointer" ${isChecked} onchange="window.triggerVerify(${req.id}, ${idx}, this)">
+                    <li class="flex items-start gap-3 text-sm text-slate-700 bg-white p-2  border">
+                        <input type="checkbox" id="crit_${req.id}_${idx}" class="mt-1 w-4 h-4  text-blue-900 focus:ring-blue-500 cursor-pointer" ${isChecked} onchange="window.triggerVerify(${req.id}, ${idx}, this)">
                         <div class="flex flex-col w-full">
                             <label for="crit_${req.id}_${idx}" class="cursor-pointer font-medium leading-tight">${cleanLine}</label>
                             ${infoBadge}
@@ -383,22 +383,22 @@ function showRequirementDetail(req) {
         criteriaHtml += '</ul>';
     }
 
-    const parentLinks = req.parsedParents.map(pk => `<span class="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded text-[10px] font-mono">${pk}</span>`).join(' ') || '-';
+    const parentLinks = req.parsedParents.map(pk => `<span class="bg-blue-100 text-blue-800 px-1.5 py-0.5  text-[10px] font-mono">${pk}</span>`).join(' ') || '-';
     let childKeys = [];
     try { childKeys = JSON.parse(req.children || '[]'); } catch (e) { }
-    const childLinks = childKeys.map(ck => `<span class="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded text-[10px] font-mono">${ck}</span>`).join(' ') || '-';
+    const childLinks = childKeys.map(ck => `<span class="bg-emerald-100 text-emerald-800 px-1.5 py-0.5  text-[10px] font-mono">${ck}</span>`).join(' ') || '-';
 
     let dynamicAttrHtml = '';
     if (req.type === 'AST') {
         dynamicAttrHtml = `
-           <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-emerald-700 font-medium bg-emerald-50 p-2 rounded border border-emerald-100">
+           <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-emerald-700 font-medium bg-emerald-50 p-2  border border-emerald-100">
                 <div>💎 Asset-Kategorie: <b>${attrs.asset_type || '-'}</b></div>
                 <div>📍 Exposition: <b>${attrs.asset_exposure || '-'}</b></div>
             </div>
         `;
     } else if (req.type === 'RISK') {
         dynamicAttrHtml = `
-            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-red-700 font-medium bg-red-50 p-2 rounded border border-red-100">
+            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-red-700 font-medium bg-red-50 p-2  border border-red-100">
                 <div>⚠️ Wahrscheinlichkeit: <b>${attrs.initial_probability || '-'}</b></div>
                 <div>🔥 Schaden: <b>${attrs.initial_severity || '-'}</b></div>
                 <div>🛑 Gefahr: <b>${attrs.hazard || '-'}</b></div>
@@ -406,7 +406,7 @@ function showRequirementDetail(req) {
         `;
     } else if (req.type === 'SEC') {
         dynamicAttrHtml = `
-            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-indigo-700 font-medium bg-indigo-50 p-2 rounded border border-indigo-100">
+            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-indigo-700 font-medium bg-indigo-50 p-2  border border-indigo-100">
                 <div>🛡️ Schutzziele: <b>${attrs.cia || '-'}</b></div>
                 <div>🕵️ STRIDE: <b>${attrs.stride || '-'}</b></div>
             </div>
@@ -419,16 +419,16 @@ function showRequirementDetail(req) {
         <div class="border-b pb-4 mb-4">
             <div class="flex justify-between items-start">
                 <div>
-                    <span class="font-mono text-xs font-bold bg-slate-100 px-2 py-1 rounded text-blue-900 border">${req.type}</span>
+                    <span class="font-mono text-xs font-bold bg-slate-100 px-2 py-1  text-blue-900 border">${req.type}</span>
                     <span class="font-mono text-sm text-blue-900 font-bold ml-2">${req.req_key}</span>
                     <h2 class="text-2xl font-bold text-slate-900 mt-1">${req.title}</h2>
                 </div>
-                <button onclick="window.editRequirement(${req.id})" class="bg-blue-900 text-white text-xs px-3 py-1.5 rounded font-bold hover:bg-blue-800 shadow">Bearbeiten</button>
+                <button onclick="window.editRequirement(${req.id})" class="bg-blue-900 text-white text-xs px-3 py-1.5  font-bold hover:bg-blue-800 shadow">Bearbeiten</button>
             </div>
             <div class="flex gap-4 mt-3 text-xs text-slate-500 font-medium flex-wrap">
                 <div>👤 Quelle: <strong class="text-slate-700">${stakeholderName}</strong></div>
                 <div>⏱️ Aufwand: <strong class="text-slate-700">${req.effort || 'Offen'}</strong></div>
-                <div>📌 Status: <span class="bg-blue-50 text-blue-900 border border-blue-200 px-2 py-0.5 rounded font-bold">${req.review_status || 'Neu'}</span></div>
+                <div>📌 Status: <span class="bg-blue-50 text-blue-900 border border-blue-200 px-2 py-0.5  font-bold">${req.review_status || 'Neu'}</span></div>
             </div>
             ${dynamicAttrHtml}
             <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-slate-500 font-medium">
@@ -439,9 +439,9 @@ function showRequirementDetail(req) {
         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Beschreibung</h3>
         <p class="text-sm text-slate-800 whitespace-pre-wrap mb-6">${req.description || '<span class="italic text-slate-400">Keine Beschreibung</span>'}</p>                  
         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Begründung (Rationale)</h3>
-        <div class="bg-slate-50 border p-3 rounded text-sm text-slate-700 whitespace-pre-wrap mb-6">${req.rationale || '-'}</div>
+        <div class="bg-slate-50 border p-3  text-sm text-slate-700 whitespace-pre-wrap mb-6">${req.rationale || '-'}</div>
         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Prüfungen & Kriterien</h3>
-        <div class="bg-slate-50 border p-4 rounded">${criteriaHtml}</div>
+        <div class="bg-slate-50 border p-4 ">${criteriaHtml}</div>
     `;
 }
 

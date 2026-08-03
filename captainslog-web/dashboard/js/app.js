@@ -11,17 +11,53 @@ import { loadDashboard } from './dashboard.js';
 document.addEventListener("DOMContentLoaded", async () => {
     try {
         await initProjectsDropdown();
-        
+
         initRequirementEvents();
         initStakeholderEvents();
         initUseCaseEvents();
         initUserStoryEvents();
 
         const projectSelect = document.getElementById('projectSelect');
-        if (projectSelect) {
-            projectSelect.addEventListener('change', async (e) => {
-                setCurrentProjectId(e.target.value);
-                
+        const modal = document.getElementById('projectSwitchModal');
+        const modalProjectName = document.getElementById('modalProjectName');
+        const confirmBtn = document.getElementById('modalConfirmBtn');
+        const cancelBtn = document.getElementById('modalCancelBtn');
+
+        let pendingProjectId = null;
+
+        if (projectSelect && modal) {
+            projectSelect.addEventListener('change', (e) => {
+                const selectedOption = projectSelect.options[projectSelect.selectedIndex];
+
+                const projectName = selectedOption ? selectedOption.text : '';
+
+                pendingProjectId = e.target.value;
+
+                e.target.value = currentProjectId || "";
+
+                if (!pendingProjectId) return;
+
+                modalProjectName.textContent = `"${projectName}"`;
+
+                modal.classList.remove('hidden');
+            });
+
+            // Klick auf "Abbrechen" im Modal
+            cancelBtn.onclick = () => {
+                pendingProjectId = null;
+                modal.classList.add('hidden');
+            };
+
+            // Klick auf "Ja, Projekt öffnen" im Modal
+            confirmBtn.onclick = async () => {
+                modal.classList.add('hidden');
+
+                if (!pendingProjectId) return;
+
+                // Jetzt den echten Wechsel durchführen
+                setCurrentProjectId(pendingProjectId);
+                projectSelect.value = pendingProjectId; // Dropdown final setzen
+
                 if (currentProjectId) {
                     loadRequirements();
                     loadStakeholders();
@@ -34,7 +70,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                     const detail = document.getElementById('detail');
                     if (detail) detail.innerHTML = '<div class="flex h-full items-center justify-center text-slate-400 italic">Anforderung auswählen</div>';
                 }
-            });
+                pendingProjectId = null;
+            };
         }
 
         document.querySelectorAll('.tab').forEach(btn => {

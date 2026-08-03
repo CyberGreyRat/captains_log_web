@@ -13,7 +13,7 @@ if (!$project_id) {
 
 try {
     // Wir laden jetzt auch die 'children' Spalte mit!
-    $stmt = $pdo->prepare("SELECT id, req_key, title, review_status, type, children FROM requirements WHERE project_id = ? ORDER BY req_key ASC");
+    $stmt = $pdo->prepare("SELECT id, req_key, title, review_status, type, children, parents FROM requirements WHERE project_id = ? ORDER BY req_key ASC");
     $stmt->execute([$project_id]);
     $all = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -67,13 +67,17 @@ try {
     }
 
     $waiting = array_values(array_filter($all, function ($r) {
-        return $r['review_status'] === 'Wartet auf Überprüfung'; }));
+        return $r['review_status'] === 'Wartet auf Überprüfung';
+    }));
     $approved = array_values(array_filter($all, function ($r) {
-        return $r['review_status'] === 'Geprüft & Freigegeben'; }));
+        return $r['review_status'] === 'Geprüft & Freigegeben';
+    }));
     $risks = array_values(array_filter($all, function ($r) {
-        return $r['type'] === 'RISK'; }));
+        return $r['type'] === 'RISK';
+    }));
     $sec = array_values(array_filter($all, function ($r) {
-        return $r['type'] === 'SEC'; }));
+        return $r['type'] === 'SEC';
+    }));
 
     echo json_encode([
         'success' => true,

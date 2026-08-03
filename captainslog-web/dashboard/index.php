@@ -68,7 +68,7 @@ $projects = $stmt->fetchAll();
             <div class="flex items-center gap-4">
                 <span id="session" class="text-sm">User: <b><?= htmlspecialchars($_SESSION['username']) ?></b></span>
 
-                <select id="projectSelect" class="text-slate-800 rounded px-2 py-1 font-bold outline-none">
+                <select id="projectSelect" class="text-slate-800 px-2 py-1 font-bold outline-none">
                     <option value="">-- Projekt wählen --</option>
                     <?php foreach ($projects as $proj): ?>
                         <option value="<?= $proj['id'] ?>"><?= htmlspecialchars($proj['name']) ?></option>
@@ -76,7 +76,7 @@ $projects = $stmt->fetchAll();
                 </select>
 
                 <button onclick="document.getElementById('newProjectModal').classList.remove('hidden')"
-                    class="rounded border border-white px-3 py-1 text-sm hover:bg-white hover:text-[#0d3158] transition">Neues
+                    class="border border-white px-3 py-1 text-sm hover:bg-white hover:text-[#0d3158] transition">Neues
                     Projekt</button>
                 <a href="?logout=1" class="text-sm text-red-300 hover:text-red-100 transition ml-2">Logout</a>
             </div>
@@ -137,25 +137,53 @@ $projects = $stmt->fetchAll();
     <!-- Globales Projekt Modal -->
     <div id="newProjectModal" class="fixed inset-0 hidden items-center justify-center bg-slate-900/60 p-4 z-50">
         <form method="POST" action="../api/web_create_project.php"
-            class="w-full max-w-md space-y-4 rounded-lg bg-white p-6 shadow-2xl">
+            class="w-full max-w-md space-y-4 -lg bg-white p-6 shadow-2xl">
             <h2 class="text-xl font-bold text-blue-900">Neues Projekt erstellen</h2>
             <label class="block text-sm font-semibold text-slate-700">Projektname
                 <input name="name" required
-                    class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
+                    class="mt-1 w-full border p-2 font-normal focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
             </label>
             <label class="block text-sm font-semibold text-slate-700">Beschreibung
                 <textarea name="description" rows="3"
-                    class="mt-1 w-full rounded border p-2 font-normal focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"></textarea>
+                    class="mt-1 w-full border p-2 font-normal focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"></textarea>
             </label>
             <div class="flex justify-end gap-3 mt-6 border-t pt-4">
                 <button type="button" onclick="document.getElementById('newProjectModal').classList.add('hidden')"
-                    class="rounded border px-4 py-2 hover:bg-slate-50 font-medium transition">Abbrechen</button>
+                    class="border px-4 py-2 hover:bg-slate-50 font-medium transition">Abbrechen</button>
                 <button type="submit"
-                    class="rounded bg-blue-900 px-4 py-2 text-white hover:bg-blue-800 font-medium transition shadow">Projekt
+                    class="bg-blue-900 px-4 py-2 text-white hover:bg-blue-800 font-medium transition shadow">Projekt
                     anlegen</button>
             </div>
         </form>
     </div>
+
+    <!-- Projektwechsel Bestätigungs-Modal -->
+<div id="projectSwitchModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden">
+    <div class="bg-white -xl shadow-2xl border border-slate-200 w-full max-w-md p-6 transform transition-all">
+        <div class="flex items-center space-x-3 mb-4">
+            <div class="w-10 h-10 -full bg-blue-50 flex items-center justify-center text-blue-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-slate-900">Projekt wechseln?</h3>
+                <p class="text-xs text-slate-500">Du bist im Begriff, den Arbeitsbereich zu wechseln.</p>
+            </div>
+        </div>
+        
+        <p class="text-sm text-slate-600 mb-6">
+            Möchtest du das Projekt <span id="modalProjectName" class="font-bold text-blue-900"></span> öffnen? Nicht gespeicherte Änderungen gehen dabei verloren.
+        </p>
+
+        <div class="flex justify-end space-x-3">
+            <button id="modalCancelBtn" type="button" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 -lg hover:bg-slate-50 transition">
+                Abbrechen
+            </button>
+            <button id="modalConfirmBtn" type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 -lg hover:bg-blue-700 transition shadow-sm">
+                Ja, Projekt öffnen
+            </button>
+        </div>
+    </div>
+</div>
 
     <!-- Scripts -->
     <script type="module" src="js/app.js"></script>

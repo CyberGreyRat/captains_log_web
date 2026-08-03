@@ -72,10 +72,10 @@ function drawStakeholderMap(stakeholders) {
         point.style.top = `${Math.max(10, Math.min(90, yBase + yOffset))}%`;
         
         point.innerHTML = `
-            <div class="bg-blue-900 text-white p-1.5 rounded-full shadow-md">
+            <div class="bg-blue-900 text-white p-1.5 -full shadow-md">
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
             </div>
-            <span class="text-[10px] font-bold text-slate-800 bg-white/90 px-1.5 py-0.5 rounded shadow-sm border whitespace-nowrap mt-1">${s.name}</span>
+            <span class="text-[10px] font-bold text-slate-800 bg-white/90 px-1.5 py-0.5  shadow-sm border whitespace-nowrap mt-1">${s.name}</span>
         `;
 
         mapContainer.appendChild(point);

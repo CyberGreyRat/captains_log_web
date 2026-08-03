@@ -22,7 +22,7 @@ export async function loadHistory() {
         let html = '<div class="space-y-3">';
         data.history.forEach(h => {
             html += `
-                <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs">
+                <div class="-lg border border-slate-200 bg-slate-50 p-4 text-xs">
                     <div class="flex items-center justify-between text-slate-500 mb-1 font-mono">
                         <span class="font-bold text-slate-700">${h.req_key || 'EINTRAG'} (${h.modified_at || ''})</span>
                         <span>User: <strong>${h.modified_by_user || 'System'}</strong></span>
