@@ -43,6 +43,9 @@ require_once 'header.php';
             data-panel="requirements">Anforderungen</button>
         <button
             class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
+            data-panel="risks">Risiko</button>
+        <button
+            class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
             data-panel="stakeholders">Stakeholder</button>
         <button
             class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
@@ -56,9 +59,9 @@ require_once 'header.php';
         <button
             class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
             data-panel="dashboard">Dashboard</button>
-            <button 
+        <button
             class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
-            data-panel="sbom">SBOM</button> 
+            data-panel="sbom">SBOM</button>
     </div>
 </nav>
 
@@ -67,6 +70,10 @@ require_once 'header.php';
 
     <section id="requirements" class="panel show h-full">
         <?php include 'views/requirements.php'; ?>
+    </section>
+
+    <section id="risks" class="panel h-full">
+        <?php include 'views/risks.php'; ?>
     </section>
 
     <section id="stakeholders" class="panel h-full">

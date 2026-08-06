@@ -15,9 +15,6 @@
                     class="filter-tab active  bg-slate-200 px-3 py-1 text-xs font-bold text-slate-700 transition">Alle</button>
                 <button onclick="window.applyTreeFilter('REQ')" id="filter-REQ"
                     class="filter-tab  px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition">Anforderungen</button>
-                <button onclick="window.applyTreeFilter('SEC')" id="filter-SEC"
-                    class="filter-tab  px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition">Risiko
-                    & Sec</button>
                 <button onclick="window.applyTreeFilter('AST')" id="filter-AST"
                     class="filter-tab  px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition">Assets</button>
             </div>
@@ -48,10 +45,6 @@
                 </optgroup>
                 <optgroup label="Systemkontext & Architektur">
                     <option value="AST">Asset (Schützenswertes Gut)</option>
-                </optgroup>
-                <optgroup label="Regularien & Risiken">
-                    <!-- <option value="NORM">Norm / Standard (ISO, IEC, CRA Vorgabe)</option> -->
-                    <option value="RISK">Risiko / Bedrohung (RISK)</option>
                 </optgroup>
                 <optgroup label="System & Architektur">
                     <option value="USR">User Requirement (USR)</option>

@@ -8,6 +8,7 @@ import { loadUserStories, initUserStoryEvents } from './userstories.js';
 import { loadHistory } from './history.js';
 import { loadDashboard } from './dashboard.js';
 import { loadSBOM } from './sbom.js';
+import { loadRisks, initRiskEvents } from './risks.js';
 
 document.addEventListener("DOMContentLoaded", async () => {
     try {
@@ -25,6 +26,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             loadUserStories();
             loadDashboard();
             loadSBOM();
+            loadRisks();
         }
 
         initRequirementEvents();
@@ -80,6 +82,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                         await loadUserStories();
                         await loadDashboard();
                         await loadSBOM();
+                        await loadRisks();
                     };
 
                     // Wartet, bis SOWOHL die 500ms um sind, ALS AUCH die Daten geladen wurden
@@ -108,6 +111,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
                 if (e.target.dataset.panel === 'sbom') {
                     loadSBOM();
+                }
+                if (e.target.dataset.panel === 'risks') {
+                    loadRisks();
                 }
             });
         });

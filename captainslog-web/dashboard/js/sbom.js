@@ -29,24 +29,36 @@ export async function loadSBOM() {
             return;
         }
 
-        // Metadaten aus dem SPDX-Dokument auslesen
         const spdxVersion = sbom.spdxVersion || 'Unbekannt';
         const created = sbom.creationInfo?.created ? new Date(sbom.creationInfo.created).toLocaleString('de-DE') : 'Unbekannt';
         const tool = sbom.creationInfo?.creators?.find(c => c.startsWith('Tool:'))?.replace('Tool:', '').trim() || 'Unbekannt';
         const packages = sbom.packages || [];
 
-        // HTML für Metadaten und Tabellenkopf aufbauen
+        // 1. DUPLIKATE FILTERN (nur eindeutige Name+Versions-Kombinationen behalten)
+        const uniquePackagesMap = new Map();
+        packages.forEach(pkg => {
+            const name = pkg.name || 'Unbekannt';
+            const version = pkg.versionInfo || 'UNKNOWN';
+            const key = `${name}@@${version}`;
+            
+            if (!uniquePackagesMap.has(key)) {
+                uniquePackagesMap.set(key, pkg);
+            }
+        });
+        const uniquePackages = Array.from(uniquePackagesMap.values());
+
+        // 2. HELLES HTML AUFBAUEN
         let html = `
-            <div class="mb-4 text-sm text-slate-300 border-b border-slate-700 pb-4">
-                <span class="mr-4"><strong>Format:</strong> ${spdxVersion}</span>
-                <span class="mr-4"><strong>Generiert am:</strong> ${created}</span>
-                <span class="mr-4"><strong>Scanner-Tool:</strong> ${tool}</span><br>
-                <span class="text-blue-400 font-bold mt-2 inline-block">Gesamtanzahl Komponenten: ${packages.length}</span>
+            <div class="mb-4 text-sm text-slate-600 border-b border-slate-200 pb-4">
+                <span class="mr-4"><strong>Format:</strong> ${escapeHtml(spdxVersion)}</span>
+                <span class="mr-4"><strong>Generiert am:</strong> ${escapeHtml(created)}</span>
+                <span class="mr-4"><strong>Scanner-Tool:</strong> ${escapeHtml(tool)}</span><br>
+                <span class="text-blue-900 font-bold mt-2 inline-block">Gesamtanzahl Komponenten: ${uniquePackages.length} <span class="text-slate-400 font-normal">(gefiltert von ursprünglich ${packages.length})</span></span>
             </div>
             
-            <div class="overflow-x-auto border border-slate-700 rounded-lg">
-                <table class="w-full text-left text-sm text-slate-300">
-                    <thead class="bg-slate-800 text-slate-100 uppercase font-semibold border-b border-slate-700">
+            <div class="overflow-x-auto border border-slate-200 rounded-lg shadow-sm">
+                <table class="w-full text-left text-sm text-slate-600">
+                    <thead class="bg-slate-50 text-slate-800 uppercase font-semibold border-b border-slate-200">
                         <tr>
                             <th class="p-3">Paket / Komponente</th>
                             <th class="p-3">Version</th>
@@ -54,35 +66,33 @@ export async function loadSBOM() {
                             <th class="p-3">Lieferant / Quelle</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-700">
+                    <tbody class="divide-y divide-slate-100">
         `;
 
-        if (packages.length === 0) {
+        if (uniquePackages.length === 0) {
             html += `<tr><td colspan="4" class="p-4 text-center text-slate-500 italic">Keine Pakete in dieser SBOM gefunden.</td></tr>`;
         } else {
-            // Jedes Paket als Tabellenzeile hinzufügen
-            packages.forEach(pkg => {
-                // Lizenzen bereinigen (NOASSERTION bedeutet "nicht angegeben")
+            uniquePackages.forEach(pkg => {
+                // Bereinigung
                 let license = pkg.licenseDeclared || pkg.licenseConcluded || 'Unbekannt';
-                if (license === 'NOASSERTION' || license === 'NONE') {
-                    license = '<span class="text-slate-500 italic">Nicht angegeben</span>';
-                }
+                if (license === 'NOASSERTION' || license === 'NONE') license = 'Nicht angegeben';
 
-                // Lieferant bereinigen ("Organization: " oder "Person: " abschneiden)
                 let supplier = pkg.supplier || pkg.originator || 'Unbekannt';
-                if (supplier === 'NOASSERTION') {
-                    supplier = '<span class="text-slate-500 italic">Unbekannt</span>';
-                }
+                if (supplier === 'NOASSERTION') supplier = 'Unbekannt';
                 supplier = supplier.replace('Organization: ', '').replace('Person: ', '');
 
-                const version = pkg.versionInfo || '-';
+                const version = pkg.versionInfo || 'UNKNOWN';
+
+                // CSS-Klassen für fehlende Daten direkt ins <td> statt über escapeHtml
+                const licenseStyle = license === 'Nicht angegeben' ? 'text-slate-400 italic' : 'text-slate-700';
+                const supplierStyle = supplier === 'Unbekannt' ? 'text-slate-400 italic' : 'text-slate-700';
 
                 html += `
-                    <tr class="hover:bg-slate-800/50 transition-colors">
-                        <td class="p-3 font-bold text-blue-300">${escapeHtml(pkg.name)}</td>
-                        <td class="p-3 font-mono text-emerald-400">${escapeHtml(version)}</td>
-                        <td class="p-3 text-xs">${license}</td>
-                        <td class="p-3 text-xs text-slate-400">${escapeHtml(supplier)}</td>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-3 font-bold text-blue-900">${escapeHtml(pkg.name)}</td>
+                        <td class="p-3 font-mono text-slate-600">${escapeHtml(version)}</td>
+                        <td class="p-3 text-xs ${licenseStyle}">${escapeHtml(license)}</td>
+                        <td class="p-3 text-xs ${supplierStyle}">${escapeHtml(supplier)}</td>
                     </tr>
                 `;
             });
