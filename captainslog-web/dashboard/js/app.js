@@ -7,10 +7,25 @@ import { loadUseCases, initUseCaseEvents } from './usecases.js';
 import { loadUserStories, initUserStoryEvents } from './userstories.js';
 import { loadHistory } from './history.js';
 import { loadDashboard } from './dashboard.js';
+import { loadSBOM } from './sbom.js';
 
 document.addEventListener("DOMContentLoaded", async () => {
     try {
+
         await initProjectsDropdown();
+
+            if (currentProjectId) {
+            const projectSelect = document.getElementById('projectSelect');
+            if (projectSelect) projectSelect.value = currentProjectId;
+            
+            // Lade direkt alle Daten des gemerkten Projekts
+            loadRequirements();
+            loadStakeholders();
+            loadUseCases();
+            loadUserStories();
+            loadDashboard();
+            loadSBOM();
+        }
 
         initRequirementEvents();
         initStakeholderEvents();
@@ -42,34 +57,43 @@ document.addEventListener("DOMContentLoaded", async () => {
                 modal.classList.remove('hidden');
             });
 
-            // Klick auf "Abbrechen" im Modal
-            cancelBtn.onclick = () => {
-                pendingProjectId = null;
-                modal.classList.add('hidden');
-            };
-
-            // Klick auf "Ja, Projekt öffnen" im Modal
+           // Klick auf "Ja, Projekt öffnen" im Modal
             confirmBtn.onclick = async () => {
                 modal.classList.add('hidden');
 
                 if (!pendingProjectId) return;
 
-                // Jetzt den echten Wechsel durchführen
+                // 1. TRIGGER: Ladebalken einblenden
+                document.getElementById('loadingOverlay').classList.remove('hidden');
+
                 setCurrentProjectId(pendingProjectId);
-                projectSelect.value = pendingProjectId; // Dropdown final setzen
+                projectSelect.value = pendingProjectId;
 
                 if (currentProjectId) {
-                    loadRequirements();
-                    loadStakeholders();
-                    loadUseCases();
-                    loadUserStories();
-                    loadDashboard();
+                    // 2. Mindestens 500ms warten + Daten laden
+                    const minWait = new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    const loadData = async () => {
+                        await loadRequirements();
+                        await loadStakeholders();
+                        await loadUseCases();
+                        await loadUserStories();
+                        await loadDashboard();
+                        await loadSBOM();
+                    };
+
+                    // Wartet, bis SOWOHL die 500ms um sind, ALS AUCH die Daten geladen wurden
+                    await Promise.all([loadData(), minWait]);
                 } else {
                     const items = document.getElementById('items');
                     if (items) items.innerHTML = '<div class="p-4 text-sm text-slate-500">Bitte wähle oben ein Projekt aus.</div>';
                     const detail = document.getElementById('detail');
                     if (detail) detail.innerHTML = '<div class="flex h-full items-center justify-center text-slate-400 italic">Anforderung auswählen</div>';
                 }
+                
+                // 3. TRIGGER: Ladebalken wieder ausblenden
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                
                 pendingProjectId = null;
             };
         }
@@ -81,6 +105,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
                 if (e.target.dataset.panel === 'dashboard') {
                     loadDashboard();
+                }
+                if (e.target.dataset.panel === 'sbom') {
+                    loadSBOM();
                 }
             });
         });

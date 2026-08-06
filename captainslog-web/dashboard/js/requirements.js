@@ -1,8 +1,10 @@
 // dashboard/js/requirements.js
 import { currentProjectId } from './state.js';
+import { renderHistory } from './history.js';
 
 let loadedRequirements = [];
 let globalStakeholders = [];
+
 window.currentTreeFilter = 'ALL'; // Speichert den aktiven Tab
 
 // Filter für Tabs wechseln
@@ -36,25 +38,22 @@ function populateRelationshipCheckboxes(currentReqId = null, selectedParents = [
     const parentList = document.getElementById('parentsCheckboxList');
     const childList = document.getElementById('childrenCheckboxList');
     if (!parentList || !childList) return;
-
     parentList.innerHTML = '';
     childList.innerHTML = '';
-
     loadedRequirements.forEach(req => {
         if (req.id == currentReqId) return;
         const isParent = selectedParents.includes(req.req_key) ? 'checked' : '';
         const isChild = selectedChildren.includes(req.req_key) ? 'checked' : '';
         const labelStr = `${req.req_key} - ${req.title}`;
-
         parentList.innerHTML += `
             <div class="checkbox-item flex items-center gap-2 p-1 hover:bg-slate-50">
-                <input type="checkbox" id="parent_${req.req_key}" value="${req.req_key}" class="req-parent-cb w-4 h-4  text-blue-900 focus:ring-blue-500" ${isParent}>
+                <input type="checkbox" id="parent_${req.req_key}" value="${req.req_key}" class="req-parent-cb w-4 h-4 text-blue-900 focus:ring-blue-500" ${isParent}>
                 <label for="parent_${req.req_key}" class="cursor-pointer truncate w-full text-slate-700" title="${labelStr}">${labelStr}</label>
             </div>
         `;
         childList.innerHTML += `
             <div class="checkbox-item flex items-center gap-2 p-1 hover:bg-slate-50">
-                <input type="checkbox" id="child_${req.req_key}" value="${req.req_key}" class="req-child-cb w-4 h-4  text-blue-900 focus:ring-blue-500" ${isChild}>
+                <input type="checkbox" id="child_${req.req_key}" value="${req.req_key}" class="req-child-cb w-4 h-4 text-blue-900 focus:ring-blue-500" ${isChild}>
                 <label for="child_${req.req_key}" class="cursor-pointer truncate w-full text-slate-700" title="${labelStr}">${labelStr}</label>
             </div>
         `;
@@ -85,12 +84,10 @@ window.handleTypeChange = function (loadedAttrs = {}) {
     const container = document.getElementById('dynamicAttributes');
     const fields = document.getElementById('attributeFields');
     if (!typeDropdown || !container || !fields) return;
-
     const type = typeDropdown.value;
 
     const criteriaContainer = document.getElementById('criteria_container');
     const needsCriteria = ['USR', 'SYS', 'SEC', 'SRS', 'SWC'];
-
     if (criteriaContainer) {
         if (needsCriteria.includes(type)) {
             criteriaContainer.classList.remove('hidden');
@@ -107,7 +104,7 @@ window.handleTypeChange = function (loadedAttrs = {}) {
         fields.innerHTML = `
             <div class="col-span-1">
                 <label class="block text-sm font-semibold text-slate-700">Kategorie des Assets
-                    <select id="attr_asset_type" class="mt-1 w-full  border p-2 font-normal outline-none bg-white">
+                    <select id="attr_asset_type" class="mt-1 w-full border p-2 font-normal outline-none bg-white">
                         <option value="">-- Wählen --</option>
                         <optgroup label="Digital & IT">
                             <option value="Daten / Informationen" ${loadedAttrs.asset_type === 'Daten / Informationen' ? 'selected' : ''}>Daten / PII / Passwörter</option>
@@ -126,7 +123,7 @@ window.handleTypeChange = function (loadedAttrs = {}) {
             </div>
             <div class="col-span-1">
                 <label class="block text-sm font-semibold text-slate-700">Physischer Zugang (Exposition)
-                    <select id="attr_asset_exposure" class="mt-1 w-full  border p-2 font-normal outline-none bg-white">
+                    <select id="attr_asset_exposure" class="mt-1 w-full border p-2 font-normal outline-none bg-white">
                         <option value="">-- Wählen --</option>
                         <option value="Öffentlich zugänglich (Public)" ${loadedAttrs.asset_exposure === 'Öffentlich zugänglich (Public)' ? 'selected' : ''}>Öffentlich zugänglich (Public Space, unbeaufsichtigt)</option>
                         <option value="Eingeschränkter Zugang (Restricted)" ${loadedAttrs.asset_exposure === 'Eingeschränkter Zugang (Restricted)' ? 'selected' : ''}>Eingeschränkter Zugang (z.B. Büro, Bahnhofspersonal)</option>
@@ -140,7 +137,7 @@ window.handleTypeChange = function (loadedAttrs = {}) {
     } else if (type === 'RISK') {
         fields.innerHTML = `
             <label class="block text-sm font-semibold text-slate-700">Wahrscheinlichkeit
-                <select id="attr_prob" class="mt-1 w-full  border p-2 font-normal outline-none bg-white">
+                <select id="attr_prob" class="mt-1 w-full border p-2 font-normal outline-none bg-white">
                     <option value="">-- Wählen --</option>
                     <option value="Häufig" ${loadedAttrs.initial_probability === 'Häufig' ? 'selected' : ''}>Häufig</option>
                     <option value="Gelegentlich" ${loadedAttrs.initial_probability === 'Gelegentlich' ? 'selected' : ''}>Gelegentlich</option>
@@ -149,7 +146,7 @@ window.handleTypeChange = function (loadedAttrs = {}) {
                 </select>
             </label>
             <label class="block text-sm font-semibold text-slate-700">Schadensausmaß
-                <select id="attr_sev" class="mt-1 w-full  border p-2 font-normal outline-none bg-white">
+                <select id="attr_sev" class="mt-1 w-full border p-2 font-normal outline-none bg-white">
                     <option value="">-- Wählen --</option>
                     <option value="Kritisch" ${loadedAttrs.initial_severity === 'Kritisch' ? 'selected' : ''}>Kritisch</option>
                     <option value="Marginal" ${loadedAttrs.initial_severity === 'Marginal' ? 'selected' : ''}>Marginal</option>
@@ -157,7 +154,7 @@ window.handleTypeChange = function (loadedAttrs = {}) {
                 </select>
             </label>
             <label class="block text-sm font-semibold text-slate-700 md:col-span-2">Gefahr / Bedrohung
-                <input id="attr_hazard" type="text" value="${loadedAttrs.hazard || ''}" placeholder="Was ist die Bedrohung?" class="mt-1 w-full  border p-2 font-normal outline-none bg-white">
+                <input id="attr_hazard" type="text" value="${loadedAttrs.hazard || ''}" placeholder="Was ist die Bedrohung?" class="mt-1 w-full border p-2 font-normal outline-none bg-white">
             </label>
         `;
         container.classList.remove('hidden');
@@ -167,18 +164,18 @@ window.handleTypeChange = function (loadedAttrs = {}) {
         fields.innerHTML = `
             <div class="md:col-span-2">
                 <label class="block text-sm font-semibold text-slate-700 mb-2">Schutzziele (Erweiterte CIA-Triade)</label>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 bg-white p-2 border ">
-                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Vertraulichkeit" class="cia-cb w-4 h-4  text-blue-900 focus:ring-blue-500" ${isChecked('Vertraulichkeit')}> Vertraulichkeit</label>
-                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Integrität" class="cia-cb w-4 h-4  text-blue-900 focus:ring-blue-500" ${isChecked('Integrität')}> Integrität</label>
-                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Verfügbarkeit" class="cia-cb w-4 h-4  text-blue-900 focus:ring-blue-500" ${isChecked('Verfügbarkeit')}> Verfügbarkeit</label>
-                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Authentizität" class="cia-cb w-4 h-4  text-blue-900 focus:ring-blue-500" ${isChecked('Authentizität')}> Authentizität</label>
-                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Zurechenbarkeit" class="cia-cb w-4 h-4  text-blue-900 focus:ring-blue-500" ${isChecked('Zurechenbarkeit')}> Zurechenbarkeit</label>
-                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Autorisierung" class="cia-cb w-4 h-4  text-blue-900 focus:ring-blue-500" ${isChecked('Autorisierung')}> Autorisierung</label>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 bg-white p-2 border">
+                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Vertraulichkeit" class="cia-cb w-4 h-4 text-blue-900 focus:ring-blue-500" ${isChecked('Vertraulichkeit')}> Vertraulichkeit</label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Integrität" class="cia-cb w-4 h-4 text-blue-900 focus:ring-blue-500" ${isChecked('Integrität')}> Integrität</label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Verfügbarkeit" class="cia-cb w-4 h-4 text-blue-900 focus:ring-blue-500" ${isChecked('Verfügbarkeit')}> Verfügbarkeit</label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Authentizität" class="cia-cb w-4 h-4 text-blue-900 focus:ring-blue-500" ${isChecked('Authentizität')}> Authentizität</label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Zurechenbarkeit" class="cia-cb w-4 h-4 text-blue-900 focus:ring-blue-500" ${isChecked('Zurechenbarkeit')}> Zurechenbarkeit</label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Autorisierung" class="cia-cb w-4 h-4 text-blue-900 focus:ring-blue-500" ${isChecked('Autorisierung')}> Autorisierung</label>
                 </div>
             </div>
             <div class="md:col-span-2">
                 <label class="block text-sm font-semibold text-slate-700 mb-2">STRIDE Kategorie</label>
-                <select id="attr_stride" onchange="window.autoSelectCIA(this.value)" class="w-full  border p-2 font-normal outline-none bg-white">
+                <select id="attr_stride" onchange="window.autoSelectCIA(this.value)" class="w-full border p-2 font-normal outline-none bg-white">
                     <option value="">-- Wählen --</option>
                     <option value="Spoofing" ${loadedAttrs.stride === 'Spoofing' ? 'selected' : ''}>Spoofing (Identitätstäuschung)</option>
                     <option value="Tampering" ${loadedAttrs.stride === 'Tampering' ? 'selected' : ''}>Tampering (Datenmanipulation)</option>
@@ -225,11 +222,9 @@ function getStakeholderName(id) {
 export async function loadRequirements() {
     if (!currentProjectId) return;
     if (globalStakeholders.length === 0) await loadStakeholdersForDropdown();
-
     try {
         const res = await fetch(`../api/get_requirements.php?project_id=${currentProjectId}`);
         const data = await res.json();
-
         if (!data.success || data.requirements.length === 0) {
             loadedRequirements = [];
             window.renderTreeList();
@@ -237,30 +232,27 @@ export async function loadRequirements() {
             if (detail) detail.innerHTML = '<div class="flex h-full items-center justify-center text-slate-400 italic">Noch keine Elemente vorhanden.</div>';
             return;
         }
-
         loadedRequirements = data.requirements;
         loadedRequirements.forEach(req => {
             let p = req.parents;
             if (typeof p === 'string') { try { p = JSON.parse(p); } catch (e) { p = []; } }
             req.parsedParents = Array.isArray(p) ? p : [];
         });
-
         window.renderTreeList(); // Startet das Rendering inkl. aktuellem Filter
-
     } catch (e) {
         console.error("Fehler beim Laden:", e);
+    } finally {
+        window.hideLoader(); // Ladebalken aus (egal ob Erfolg oder Fehler)
     }
 }
 
 window.renderTreeList = function () {
     const listContainer = document.getElementById('items');
     if (!listContainer) return;
-
     if (loadedRequirements.length === 0) {
         listContainer.innerHTML = '<div class="p-4 text-sm text-slate-500 italic">Keine Elemente vorhanden.</div>';
         return;
     }
-
     listContainer.innerHTML = '';
     const filter = window.currentTreeFilter || 'ALL';
     let isFlat = false;
@@ -291,7 +283,7 @@ window.renderTreeList = function () {
                     <span class="font-mono font-bold text-blue-950 mr-2">${req.req_key}</span>
                     <span class="text-slate-700 truncate">${req.title}</span>
                 </div>
-                <span class="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5  font-mono shrink-0">${req.review_status || req.status}</span>
+                <span class="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5 font-mono shrink-0">${req.review_status || req.status}</span>
             `;
             btn.onclick = () => showRequirementDetail(req);
             listContainer.appendChild(btn);
@@ -302,30 +294,25 @@ window.renderTreeList = function () {
         function renderNode(req, level) {
             if (rendered.has(req.req_key)) return;
             rendered.add(req.req_key);
-
             const btn = document.createElement('button');
             const indentRem = level * 1.2;
             const bgClass = level > 0 ? 'bg-slate-50/60' : 'bg-white';
             btn.className = `w-full text-left p-2.5 border-b border-slate-100 hover:bg-blue-50 transition focus:bg-blue-100 flex items-center justify-between text-xs ${bgClass}`;
             btn.style.paddingLeft = `calc(0.75rem + ${indentRem}rem)`;
-
             const children = loadedRequirements.filter(r => r.parsedParents.includes(req.req_key));
-            const icon = children.length > 0 ? `<span class="text-slate-400 mr-1">▼</span>` : `<span class="mr-3"></span>`;
-
+            const icon = children.length > 0 ? `<span class="text-slate-400 mr-1"> </span>` : `<span class="mr-3"></span>`;
             btn.innerHTML = `
                 <div class="flex items-center truncate">
                     ${icon}
                     <span class="font-mono font-bold text-blue-950 mr-1">${req.req_key}</span>
                     <span class="text-slate-700 truncate">${req.title}</span>
                 </div>
-                <span class="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5  font-mono shrink-0">${req.review_status || req.status}</span>
+                <span class="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5 font-mono shrink-0">${req.review_status || req.status}</span>
             `;
             btn.onclick = () => showRequirementDetail(req);
             listContainer.appendChild(btn);
-
             children.forEach(child => renderNode(child, level + 1));
         }
-
         const roots = loadedRequirements.filter(req =>
             req.parsedParents.length === 0 ||
             !req.parsedParents.some(pk => loadedRequirements.find(r => r.req_key === pk))
@@ -368,10 +355,11 @@ function showRequirementDetail(req) {
             if (cleanLine.trim() !== '') {
                 const state = states[idx];
                 const isChecked = state && state.checked ? 'checked disabled' : '';
-                const infoBadge = state ? `<div class="mt-1 text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-1 ">✅ <b>Geprüft von ${state.by}</b> am ${state.date}<br><span class="italic">"${state.note}"</span></div>` : '';
+                const infoBadge = state ? `<div class="mt-1 text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-1 "> <b>Geprüft von ${state.by}</b> am ${state.date}<br><span class="italic">"${state.note}"</span></div>` : '';
+
                 criteriaHtml += `
-                    <li class="flex items-start gap-3 text-sm text-slate-700 bg-white p-2  border">
-                        <input type="checkbox" id="crit_${req.id}_${idx}" class="mt-1 w-4 h-4  text-blue-900 focus:ring-blue-500 cursor-pointer" ${isChecked} onchange="window.triggerVerify(${req.id}, ${idx}, this)">
+                    <li class="flex items-start gap-3 text-sm text-slate-700 bg-white p-2 border">
+                        <input type="checkbox" id="crit_${req.id}_${idx}" class="mt-1 w-4 h-4 text-blue-900 focus:ring-blue-500 cursor-pointer" ${isChecked} onchange="window.triggerVerify(${req.id}, ${idx}, this)">
                         <div class="flex flex-col w-full">
                             <label for="crit_${req.id}_${idx}" class="cursor-pointer font-medium leading-tight">${cleanLine}</label>
                             ${infoBadge}
@@ -383,32 +371,33 @@ function showRequirementDetail(req) {
         criteriaHtml += '</ul>';
     }
 
-    const parentLinks = req.parsedParents.map(pk => `<span class="bg-blue-100 text-blue-800 px-1.5 py-0.5  text-[10px] font-mono">${pk}</span>`).join(' ') || '-';
+    const parentLinks = req.parsedParents.map(pk => `<span class="bg-blue-100 text-blue-800 px-1.5 py-0.5 text-[10px] font-mono">${pk}</span>`).join(' ') || '-';
+
     let childKeys = [];
     try { childKeys = JSON.parse(req.children || '[]'); } catch (e) { }
-    const childLinks = childKeys.map(ck => `<span class="bg-emerald-100 text-emerald-800 px-1.5 py-0.5  text-[10px] font-mono">${ck}</span>`).join(' ') || '-';
+    const childLinks = childKeys.map(ck => `<span class="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[10px] font-mono">${ck}</span>`).join(' ') || '-';
 
     let dynamicAttrHtml = '';
     if (req.type === 'AST') {
         dynamicAttrHtml = `
-           <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-emerald-700 font-medium bg-emerald-50 p-2  border border-emerald-100">
-                <div>💎 Asset-Kategorie: <b>${attrs.asset_type || '-'}</b></div>
-                <div>📍 Exposition: <b>${attrs.asset_exposure || '-'}</b></div>
+            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-emerald-700 font-medium bg-emerald-50 p-2 border border-emerald-100">
+                <div> Asset-Kategorie: <b>${attrs.asset_type || '-'}</b></div>
+                <div> Exposition: <b>${attrs.asset_exposure || '-'}</b></div>
             </div>
         `;
     } else if (req.type === 'RISK') {
         dynamicAttrHtml = `
-            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-red-700 font-medium bg-red-50 p-2  border border-red-100">
-                <div>⚠️ Wahrscheinlichkeit: <b>${attrs.initial_probability || '-'}</b></div>
-                <div>🔥 Schaden: <b>${attrs.initial_severity || '-'}</b></div>
-                <div>🛑 Gefahr: <b>${attrs.hazard || '-'}</b></div>
+            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-red-700 font-medium bg-red-50 p-2 border border-red-100">
+                <div> Wahrscheinlichkeit: <b>${attrs.initial_probability || '-'}</b></div>
+                <div> Schaden: <b>${attrs.initial_severity || '-'}</b></div>
+                <div> Gefahr: <b>${attrs.hazard || '-'}</b></div>
             </div>
         `;
     } else if (req.type === 'SEC') {
         dynamicAttrHtml = `
-            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-indigo-700 font-medium bg-indigo-50 p-2  border border-indigo-100">
-                <div>🛡️ Schutzziele: <b>${attrs.cia || '-'}</b></div>
-                <div>🕵️ STRIDE: <b>${attrs.stride || '-'}</b></div>
+            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-indigo-700 font-medium bg-indigo-50 p-2 border border-indigo-100">
+                <div> Schutzziele: <b>${attrs.cia || '-'}</b></div>
+                <div> STRIDE: <b>${attrs.stride || '-'}</b></div>
             </div>
         `;
     }
@@ -419,16 +408,16 @@ function showRequirementDetail(req) {
         <div class="border-b pb-4 mb-4">
             <div class="flex justify-between items-start">
                 <div>
-                    <span class="font-mono text-xs font-bold bg-slate-100 px-2 py-1  text-blue-900 border">${req.type}</span>
+                    <span class="font-mono text-xs font-bold bg-slate-100 px-2 py-1 text-blue-900 border">${req.type}</span>
                     <span class="font-mono text-sm text-blue-900 font-bold ml-2">${req.req_key}</span>
                     <h2 class="text-2xl font-bold text-slate-900 mt-1">${req.title}</h2>
                 </div>
-                <button onclick="window.editRequirement(${req.id})" class="bg-blue-900 text-white text-xs px-3 py-1.5  font-bold hover:bg-blue-800 shadow">Bearbeiten</button>
+                <button onclick="window.editRequirement(${req.id})" class="bg-blue-900 text-white text-xs px-3 py-1.5 font-bold hover:bg-blue-800 shadow">Bearbeiten</button>
             </div>
             <div class="flex gap-4 mt-3 text-xs text-slate-500 font-medium flex-wrap">
-                <div>👤 Quelle: <strong class="text-slate-700">${stakeholderName}</strong></div>
-                <div>⏱️ Aufwand: <strong class="text-slate-700">${req.effort || 'Offen'}</strong></div>
-                <div>📌 Status: <span class="bg-blue-50 text-blue-900 border border-blue-200 px-2 py-0.5  font-bold">${req.review_status || 'Neu'}</span></div>
+                <div> Quelle: <strong class="text-slate-700">${stakeholderName}</strong></div>
+                <div> Aufwand: <strong class="text-slate-700">${req.effort || 'Offen'}</strong></div>
+                <div> Status: <span class="bg-blue-50 text-blue-900 border border-blue-200 px-2 py-0.5 font-bold">${req.review_status || 'Neu'}</span></div>
             </div>
             ${dynamicAttrHtml}
             <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-slate-500 font-medium">
@@ -437,12 +426,17 @@ function showRequirementDetail(req) {
             </div>
         </div>
         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Beschreibung</h3>
-        <p class="text-sm text-slate-800 whitespace-pre-wrap mb-6">${req.description || '<span class="italic text-slate-400">Keine Beschreibung</span>'}</p>                  
+        <p class="text-sm text-slate-800 whitespace-pre-wrap mb-6">${req.description || '<span class="italic text-slate-400">Keine Beschreibung</span>'}</p>
+        
         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Begründung (Rationale)</h3>
-        <div class="bg-slate-50 border p-3  text-sm text-slate-700 whitespace-pre-wrap mb-6">${req.rationale || '-'}</div>
+        <div class="bg-slate-50 border p-3 text-sm text-slate-700 whitespace-pre-wrap mb-6">${req.rationale || '-'}</div>
+        
         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Prüfungen & Kriterien</h3>
         <div class="bg-slate-50 border p-4 ">${criteriaHtml}</div>
     `;
+
+    // HIER: Rendert die Historie direkt unten dran!
+    renderHistory(req.req_key);
 }
 
 export function initRequirementEvents() {
@@ -458,11 +452,14 @@ export function initRequirementEvents() {
             document.getElementById('reqForm').reset();
             document.getElementById('reqForm').dataset.editId = '';
             document.getElementById('reqHeading').textContent = 'Neues Element anlegen';
+
             const revStat = document.getElementById('review_status');
             if (revStat) revStat.value = 'Neu';
+
             window.handleTypeChange();
             populateRelationshipCheckboxes();
             loadStakeholdersForDropdown();
+
             const modal = document.getElementById('reqModal');
             if (modal) modal.classList.remove('hidden');
         });
@@ -472,6 +469,7 @@ export function initRequirementEvents() {
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+
             const typeValue = document.getElementById('type') ? document.getElementById('type').value : '';
 
             // Intelligenter Kriterien-Zwang
@@ -483,12 +481,11 @@ export function initRequirementEvents() {
                     return;
                 }
             }
+
             const selectedParents = Array.from(document.querySelectorAll('.req-parent-cb:checked')).map(cb => cb.value);
             const selectedChildren = Array.from(document.querySelectorAll('.req-child-cb:checked')).map(cb => cb.value);
 
-
             let dynamicAttrs = {};
-
             if (typeValue === 'AST') {
                 dynamicAttrs.asset_type = document.getElementById('attr_asset_type') ? document.getElementById('attr_asset_type').value : '';
                 dynamicAttrs.asset_exposure = document.getElementById('attr_asset_exposure') ? document.getElementById('attr_asset_exposure').value : '';
@@ -524,10 +521,19 @@ export function initRequirementEvents() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+
                 const data = await res.json();
                 if (data.success) {
                     document.getElementById('reqModal').classList.add('hidden');
-                    loadRequirements();
+
+                    // 1. Liste im Hintergrund neu laden
+                    await loadRequirements();
+
+                    // 2. Detailansicht sofort aktualisieren (ohne F5!)
+                    const updatedId = payload.id || data.id; // Nimmt die ID der bearbeiteten oder neuen Anforderung
+                    if (updatedId) {
+                        window.showRequirementDetailById(updatedId);
+                    }
                 } else {
                     alert("Fehler: " + data.error);
                 }
@@ -546,6 +552,7 @@ export function initRequirementEvents() {
                 criterion_idx: document.getElementById('verify_crit_idx').value,
                 note: document.getElementById('verify_note').value
             };
+
             try {
                 const res = await fetch('../api/verify_criterion.php', {
                     method: 'POST',
@@ -553,6 +560,7 @@ export function initRequirementEvents() {
                     body: JSON.stringify(payload)
                 });
                 const data = await res.json();
+
                 if (data.success) {
                     document.getElementById('verifyModal').classList.add('hidden');
                     await loadRequirements();
@@ -570,8 +578,8 @@ export function initRequirementEvents() {
 window.editRequirement = function (id) {
     const req = loadedRequirements.find(r => r.id == id);
     if (!req) return;
-    document.getElementById('reqForm').dataset.editId = req.id;
 
+    document.getElementById('reqForm').dataset.editId = req.id;
     if (document.getElementById('type')) document.getElementById('type').value = req.type;
     if (document.getElementById('title')) document.getElementById('title').value = req.title;
     if (document.getElementById('text')) document.getElementById('text').value = req.description || '';
@@ -583,17 +591,20 @@ window.editRequirement = function (id) {
     let attrs = {};
     try { attrs = JSON.parse(req.attributes || '{}'); } catch (e) { }
     window.handleTypeChange(attrs);
+
     loadStakeholdersForDropdown(req.source_contact);
 
     let parentKeys = []; let childKeys = [];
     try { parentKeys = JSON.parse(req.parents || '[]'); } catch (e) { }
     try { childKeys = JSON.parse(req.children || '[]'); } catch (e) { }
-    populateRelationshipCheckboxes(req.id, parentKeys, childKeys);
 
+    populateRelationshipCheckboxes(req.id, parentKeys, childKeys);
     if (document.getElementById('parentSearch')) document.getElementById('parentSearch').value = '';
     if (document.getElementById('childSearch')) document.getElementById('childSearch').value = '';
+
     const heading = document.getElementById('reqHeading');
     if (heading) heading.textContent = 'Eintrag bearbeiten (' + req.req_key + ')';
+
     const modal = document.getElementById('reqModal');
     if (modal) modal.classList.remove('hidden');
 };
