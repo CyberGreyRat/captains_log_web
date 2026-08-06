@@ -8,6 +8,7 @@
     </div>
 
     <!-- Excel-Style Tabelle -->
+  <!-- Excel-Style Tabelle -->
     <div class="overflow-x-auto border rounded-lg mb-8">
         <table class="w-full text-left text-sm text-slate-600">
             <thead class="bg-slate-50 text-slate-800 font-semibold border-b">
@@ -22,11 +23,12 @@
                     <th class="p-2 border-r">Termin</th>
                     <th class="p-2 border-r">Mitigations-Strat.</th>
                     <th class="p-2 border-r">Entscheidung</th>
-                    <th class="p-2">Auswirkung</th>
+                    <th class="p-2 border-r">Auswirkung</th>
+                    <th class="p-2 text-center">Aktionen</th>
                 </tr>
             </thead>
             <tbody id="riskTableBody" class="divide-y">
-                <tr><td colspan="11" class="p-4 text-center text-slate-400 italic">Bitte Projekt auswählen.</td></tr>
+                <tr><td colspan="12" class="p-4 text-center text-slate-400 italic">Bitte Projekt auswählen.</td></tr>
             </tbody>
         </table>
     </div>
@@ -101,4 +103,29 @@
             <button type="submit" class="bg-blue-900 rounded text-white px-5 py-2 shadow hover:bg-blue-800 transition">Speichern</button>
         </div>
     </form>
+</div>
+
+
+<!-- Risiko Archivieren (Löschen) Bestätigungs-Modal -->
+<div id="riskArchiveModal" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md p-6 transform transition-all">
+        <div class="flex items-center space-x-3 mb-4">
+            <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-slate-900">Risiko archivieren?</h3>
+                <p class="text-xs text-slate-500">Dieser Vorgang entfernt das Risiko aus der Übersicht.</p>
+            </div>
+        </div>
+        <p class="text-sm text-slate-600 mb-6">
+            Möchtest du das Risiko <span id="modalArchiveRiskName" class="font-bold text-red-600"></span> wirklich archivieren? Aus Revisionsgründen bleibt es in der Historie erhalten.
+        </p>
+        <div class="flex justify-end space-x-3">
+            <button id="modalRiskCancelBtn" type="button" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition">Abbrechen</button>
+            <button id="modalRiskConfirmBtn" type="button" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition shadow-sm">Ja, archivieren</button>
+        </div>
+    </div>
 </div>

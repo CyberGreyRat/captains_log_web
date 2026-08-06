@@ -26,7 +26,7 @@ export async function loadHistory() {
                 <div class="-lg border border-slate-200 bg-slate-50 p-4 text-xs">
                     <div class="flex items-center justify-between text-slate-500 mb-1 font-mono">
                         <span class="font-bold text-slate-700">${h.req_key || 'EINTRAG'} (${h.modified_at || ''})</span>
-                        <span>User: <strong>${h.modified_by_user || 'System'}</strong></span>
+                        <span>User: <strong>${h.modified_by_user || 'System'} @ ${h.hostname || 'Unbekannt'}</strong></span>
                     </div>
                     <h3 class="font-bold text-slate-800 text-sm mt-1">${h.title || ''}</h3>
                     <p class="text-slate-600 mt-1"><strong>Aktion:</strong> ${h.action || 'Änderung'}</p>
@@ -68,7 +68,7 @@ export async function renderHistory(reqKey) {
                 <tbody>`;
             history.forEach(entry => {
                 const date = new Date(entry.modified_at).toLocaleString('de-DE');
-                const user = entry.modified_by_user || 'System / CLI';
+                const user = `${entry.modified_by_user || 'System'} @ ${entry.hostname || 'Unbekannt'}`;
                 const action = entry.action; 
                 
                 html += `<tr class="border-b hover:bg-slate-50">

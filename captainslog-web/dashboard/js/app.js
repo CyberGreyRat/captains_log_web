@@ -33,6 +33,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         initStakeholderEvents();
         initUseCaseEvents();
         initUserStoryEvents();
+        initRiskEvents();
 
         const projectSelect = document.getElementById('projectSelect');
         const modal = document.getElementById('projectSwitchModal');
