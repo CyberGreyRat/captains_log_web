@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Erstellungszeit: 07. Aug 2026 um 11:16
+-- Erstellungszeit: 07. Aug 2026 um 12:15
 -- Server-Version: 10.4.32-MariaDB
 -- PHP-Version: 8.2.12
 
@@ -350,7 +350,15 @@ INSERT INTO `requirements` (`id`, `project_id`, `req_key`, `type`, `title`, `des
 (54, 'proj-7a800ad3cd8f', 'RISK-002', 'RISK', 'Ausgewähltes Bauteil nicht Lieferbar', 'Ausgewähltes Bauteil nicht Lieferbar', '', '{\"w\":\"2\",\"e\":\"4\",\"review_date\":\"2026-08-13\",\"mitigation_plan\":\"Lieferkette verfolgen qwesdf\",\"decision\":\"Lieferkette verfolgen, ggf. anpassen\",\"effect\":\"Zeit: kein Mehraufwand\\nKosten Realisierung: kein Mehraufwand\\nKosten Produkt: kein Mehraufwandqweqwe\"}', '[]', '[]', 'open', '7', '', '', 'Neu'),
 (55, 'proj-7a800ad3cd8f', 'RISK-003', '', 'testrisiko neu', 'testrisiko neu', '', '{\"w\":\"2\",\"e\":\"5\",\"review_date\":\"2026-08-07\",\"mitigation_plan\":\"tete\",\"decision\":\"tete\",\"effect\":\"teete\"}', '[]', '[]', 'open', '1', '', '', 'Geprüft & Freigegeben'),
 (56, 'proj-7a800ad3cd8f', 'GOAL-001', 'GOAL', 'izle', 'asd', 'asd', '[]', '[]', '[]', 'open', NULL, NULL, NULL, 'Wartet auf Überprüfung'),
-(57, 'proj-7a800ad3cd8f', 'GOAL-002', 'GOAL', 'ziel2', '2', '2', '[]', '[]', '[]', 'open', NULL, NULL, NULL, 'Neu');
+(57, 'proj-7a800ad3cd8f', 'GOAL-002', 'GOAL', 'ziel2', '2', '2', '[]', '[]', '[]', 'open', NULL, NULL, NULL, 'Neu'),
+(58, 'proj-7a800ad3cd8f', 'ENV-001', 'ENV', 'RS', 'Ressourcenerschöpfung (durch Verbrauch seltener Erden/Metalle)', 'keine', '{\"phase\":\"Rohstoffe\",\"relevance\":\"Mittel\"}', '[]', '[]', 'open', NULL, NULL, NULL, 'Neu'),
+(59, 'proj-7a800ad3cd8f', 'ENV-002', 'ENV', 'bestimmungsgemäßer Gebrauch', 'Mögliche Umweltauswirkung in dieser Phase minimieren.', 'bestimmungsgemäßer Gebrauch', '{\"phase\":\"Betrieb\",\"relevance\":\"Mittel\"}', '[]', '[]', 'open', NULL, NULL, NULL, 'Neu'),
+(60, 'proj-7a800ad3cd8f', 'ENV-003', 'ENV', 'Gehäuse so groß wie nötig,', 'Mögliche Umweltauswirkung in dieser Phase minimieren.', 'Gehäuse so groß wie nötig,', '{\"phase\":\"Betrieb\",\"relevance\":\"Mittel\"}', '[]', '[]', 'open', NULL, NULL, NULL, 'Neu'),
+(62, 'proj-7a800ad3cd8f', 'ENV-005', 'ENV', '3D Druck statt aufwendige Musterfertigung in Metall oder Kunststoff', 'Mögliche Umweltauswirkung in dieser Phase minimieren.', '3D Druck statt aufwendige Musterfertigung in Metall oder Kunststoff', '{\"phase\":\"Entwicklung\",\"relevance\":\"Mittel\"}', '[]', '[]', 'open', NULL, NULL, NULL, 'Neu'),
+(63, 'proj-7a800ad3cd8f', 'ENV-006', 'ENV', 'Homeoffice; Teams Meetings; ÖPNV; moderne Rechner; Iterationen reduzieren durch Nutzung bekannter Qu...', 'Mögliche Umweltauswirkung in dieser Phase minimieren.', 'Homeoffice; Teams Meetings; ÖPNV; moderne Rechner; Iterationen reduzieren durch Nutzung bekannter Quellen; Material-Verwendung, Abmessungen;', '{\"phase\":\"Entwicklung\",\"relevance\":\"Mittel\"}', '[]', '[]', 'open', NULL, NULL, NULL, 'Neu'),
+(64, 'proj-7a800ad3cd8f', 'ENV-007', 'ENV', 'Rapidprototyping verwenden (3D-Druck), Simulation über 3D-Modellierung, Normteile verwenden', 'Mögliche Umweltauswirkung in dieser Phase minimieren.', 'Rapidprototyping verwenden (3D-Druck), Simulation über 3D-Modellierung, Normteile verwenden', '{\"phase\":\"Entwicklung\",\"relevance\":\"Mittel\"}', '[]', '[]', 'open', NULL, NULL, NULL, 'Neu'),
+(65, 'proj-7a800ad3cd8f', 'ENV-008', 'ENV', 'wenig \'Sonderwuensche\' sondern Material von der Stange -> reduktion beim Hersteller', 'Mögliche Umweltauswirkung in dieser Phase minimieren.', 'wenig \'Sonderwuensche\' sondern Material von der Stange -> reduktion beim Hersteller', '{\"phase\":\"Rohstoffe\",\"relevance\":\"Mittel\"}', '[]', '[]', 'open', NULL, NULL, NULL, 'Neu'),
+(66, 'proj-7a800ad3cd8f', 'ENV-009', 'ENV', 'Delta-Updates implementieren', 'Mögliche Umweltauswirkung in dieser Phase minimieren.', 'Bei Updates nur die geänderten Code-Blöcke übertragen (Delta) statt des gesamten Images, um Netzwerklast zu minimieren.', '{\"phase\":\"Lieferung\",\"relevance\":\"Mittel\"}', '[]', '[]', 'open', NULL, NULL, NULL, 'Neu');
 
 -- --------------------------------------------------------
 
@@ -454,7 +462,15 @@ INSERT INTO `requirement_history` (`id`, `requirement_id`, `req_key`, `project_i
 (70, 0, 'AST-001', 'proj-7a800ad3cd8f', 'AST', '1', '1', '1', 'open', '[]', '[]', 1, '2026-08-07 07:29:34', 'AE-WS-8826743.saalfeld.epsa.intern', 'UPDATE', '{\"asset_type\":\"Elektronik \\/ PCB\",\"asset_exposure\":\"\\u00d6ffentlich zug\\u00e4nglich (Public)\"}'),
 (71, 70, 'AST-001', 'proj-7a800ad3cd8f', 'AST', '1', '1', '1', 'open', '[]', '[]', 1, '2026-08-07 07:29:34', 'localhost', 'CREATE (Neu angelegt)', '{\"asset_type\":\"Elektronik \\/ PCB\",\"asset_exposure\":\"\\u00d6ffentlich zug\\u00e4nglich (Public)\"}'),
 (72, 56, 'GOAL-001', 'proj-7a800ad3cd8f', 'GOAL', 'izle', 'asd', 'asd', 'open', '[]', '[]', 1, '2026-08-07 07:45:32', 'AE-WS-8826743.saalfeld.epsa.intern', 'CREATE (Neu angelegt)', '[]'),
-(73, 57, 'GOAL-002', 'proj-7a800ad3cd8f', 'GOAL', 'ziel2', '2', '2', 'open', '[]', '[]', 1, '2026-08-07 07:45:47', 'AE-WS-8826743.saalfeld.epsa.intern', 'CREATE (Neu angelegt)', '[]');
+(73, 57, 'GOAL-002', 'proj-7a800ad3cd8f', 'GOAL', 'ziel2', '2', '2', 'open', '[]', '[]', 1, '2026-08-07 07:45:47', 'AE-WS-8826743.saalfeld.epsa.intern', 'CREATE (Neu angelegt)', '[]'),
+(74, 58, 'ENV-001', 'proj-7a800ad3cd8f', 'ENV', 'RS', 'Ressourcenerschöpfung (durch Verbrauch seltener Erden/Metalle)', 'keine', 'open', '[]', '[]', 1, '2026-08-07 09:16:35', 'AE-WS-8826743.saalfeld.epsa.intern', 'CREATE (Neu angelegt)', '{\"phase\":\"Rohstoffe\",\"relevance\":\"Mittel\"}'),
+(75, 59, 'ENV-002', 'proj-7a800ad3cd8f', 'ENV', 'bestimmungsgemäßer Gebrauch', 'Mögliche Umweltauswirkung in dieser Phase minimieren.', 'bestimmungsgemäßer Gebrauch', 'open', '[]', '[]', 1, '2026-08-07 09:27:22', 'AE-WS-8826743.saalfeld.epsa.intern', 'CREATE (Neu angelegt)', '{\"phase\":\"Betrieb\",\"relevance\":\"Mittel\"}'),
+(76, 60, 'ENV-003', 'proj-7a800ad3cd8f', 'ENV', 'Gehäuse so groß wie nötig,', 'Mögliche Umweltauswirkung in dieser Phase minimieren.', 'Gehäuse so groß wie nötig,', 'open', '[]', '[]', 1, '2026-08-07 09:27:50', 'AE-WS-8826743.saalfeld.epsa.intern', 'CREATE (Neu angelegt)', '{\"phase\":\"Betrieb\",\"relevance\":\"Mittel\"}'),
+(78, 62, 'ENV-005', 'proj-7a800ad3cd8f', 'ENV', '3D Druck statt aufwendige Musterfertigung in Metall oder Kunststoff', 'Mögliche Umweltauswirkung in dieser Phase minimieren.', '3D Druck statt aufwendige Musterfertigung in Metall oder Kunststoff', 'open', '[]', '[]', 1, '2026-08-07 09:28:00', 'AE-WS-8826743.saalfeld.epsa.intern', 'CREATE (Neu angelegt)', '{\"phase\":\"Entwicklung\",\"relevance\":\"Mittel\"}'),
+(79, 63, 'ENV-006', 'proj-7a800ad3cd8f', 'ENV', 'Homeoffice; Teams Meetings; ÖPNV; moderne Rechner; Iterationen reduzieren durch Nutzung bekannter Qu...', 'Mögliche Umweltauswirkung in dieser Phase minimieren.', 'Homeoffice; Teams Meetings; ÖPNV; moderne Rechner; Iterationen reduzieren durch Nutzung bekannter Quellen; Material-Verwendung, Abmessungen;', 'open', '[]', '[]', 1, '2026-08-07 09:28:05', 'AE-WS-8826743.saalfeld.epsa.intern', 'CREATE (Neu angelegt)', '{\"phase\":\"Entwicklung\",\"relevance\":\"Mittel\"}'),
+(80, 64, 'ENV-007', 'proj-7a800ad3cd8f', 'ENV', 'Rapidprototyping verwenden (3D-Druck), Simulation über 3D-Modellierung, Normteile verwenden', 'Mögliche Umweltauswirkung in dieser Phase minimieren.', 'Rapidprototyping verwenden (3D-Druck), Simulation über 3D-Modellierung, Normteile verwenden', 'open', '[]', '[]', 1, '2026-08-07 09:28:26', 'AE-WS-8826743.saalfeld.epsa.intern', 'CREATE (Neu angelegt)', '{\"phase\":\"Entwicklung\",\"relevance\":\"Mittel\"}'),
+(81, 65, 'ENV-008', 'proj-7a800ad3cd8f', 'ENV', 'wenig \'Sonderwuensche\' sondern Material von der Stange -> reduktion beim Hersteller', 'Mögliche Umweltauswirkung in dieser Phase minimieren.', 'wenig \'Sonderwuensche\' sondern Material von der Stange -> reduktion beim Hersteller', 'open', '[]', '[]', 1, '2026-08-07 09:29:35', 'AE-WS-8826743.saalfeld.epsa.intern', 'CREATE (Neu angelegt)', '{\"phase\":\"Rohstoffe\",\"relevance\":\"Mittel\"}'),
+(82, 66, 'ENV-009', 'proj-7a800ad3cd8f', 'ENV', 'Delta-Updates implementieren', 'Mögliche Umweltauswirkung in dieser Phase minimieren.', 'Bei Updates nur die geänderten Code-Blöcke übertragen (Delta) statt des gesamten Images, um Netzwerklast zu minimieren.', 'open', '[]', '[]', 1, '2026-08-07 09:29:43', 'AE-WS-8826743.saalfeld.epsa.intern', 'CREATE (Neu angelegt)', '{\"phase\":\"Lieferung\",\"relevance\":\"Mittel\"}');
 
 -- --------------------------------------------------------
 
@@ -770,13 +786,13 @@ ALTER TABLE `project_tasks`
 -- AUTO_INCREMENT für Tabelle `requirements`
 --
 ALTER TABLE `requirements`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=58;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=67;
 
 --
 -- AUTO_INCREMENT für Tabelle `requirement_history`
 --
 ALTER TABLE `requirement_history`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=74;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=83;
 
 --
 -- AUTO_INCREMENT für Tabelle `stakeholders`
