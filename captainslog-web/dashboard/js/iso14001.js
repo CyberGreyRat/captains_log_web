@@ -4,40 +4,55 @@ import { currentProjectId } from './state.js';
 let loadedEnvs = [];
 
 export async function loadIsoData() {
+    const tbody = document.getElementById('isoTableBody');
+    if (!tbody) return;
+
     if (!currentProjectId) {
-        const tbody = document.getElementById('isoTableBody');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400 italic">Bitte wähle oben ein Projekt aus.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400 font-bold bg-slate-50">Bitte wähle oben ein Projekt aus.</td></tr>';
         return;
     }
+
+    // Lade-Indikator anzeigen
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="5" class="p-8 text-center text-slate-500 italic">
+                <div class="inline-flex items-center gap-2">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Daten werden geladen...
+                </div>
+            </td>
+        </tr>
+    `;
 
     try {
         const res = await fetch(`../api/get_requirements.php?project_id=${currentProjectId}`);
         const data = await res.json();
-
-        const tbody = document.getElementById('isoTableBody');
-        if (!tbody || !data.success) return;
-
-        loadedEnvs = data.requirements.filter(r => r.type === 'ENV');
-
-        if (loadedEnvs.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400 italic">Noch keine Umweltaspekte in diesem Projekt definiert.</td></tr>';
+        
+        if (!data.success) {
+            tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">Fehler beim Laden der Umweltdaten.</td></tr>`;
             return;
         }
 
-        // 1. Daten nach Phasen gruppieren
+        loadedEnvs = (data.requirements || []).filter(r => r.type === 'ENV');
+
+        if (loadedEnvs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400 italic">Noch keine Umweltaspekte in diesem Projekt definiert.</td></tr>';
+            return;
+        }
+
         const groupedEnvs = {};
         loadedEnvs.forEach(env => {
             let attrs = {};
-            try { attrs = JSON.parse(env.attributes || '{}'); } catch (e) { }
+            try { attrs = JSON.parse(env.attributes || '{}'); } catch(e){}
             const phase = attrs.phase || 'Sonstiges';
             if (!groupedEnvs[phase]) groupedEnvs[phase] = [];
             groupedEnvs[phase].push(env);
         });
 
-        // Die logische chronologische Reihenfolge eines Produktlebenszyklus
         const phaseOrder = ['Entwurf', 'Entwicklung', 'Rohstoffe', 'Produktion', 'Lieferung', 'Installation/Wartung', 'Betrieb', 'EOL', 'Sonstiges'];
-
-        // Füge Phasen hinzu, die ggf. nicht im Standard-Array stehen
         Object.keys(groupedEnvs).forEach(p => {
             if (!phaseOrder.includes(p)) phaseOrder.push(p);
         });
@@ -46,19 +61,15 @@ export async function loadIsoData() {
         const iconTrash = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
 
         let html = '';
-
-        // 2. Rendern mit blauen Zwischenüberschriften
         phaseOrder.forEach(phase => {
             if (!groupedEnvs[phase] || groupedEnvs[phase].length === 0) return;
 
-            // Blaue Zwischen-Zeile (jetzt colspan 5)
             html += `
                 <tr class="bg-blue-900 text-white border-b border-blue-950">
                     <td colspan="5" class="px-4 py-1.5 text-xs font-bold uppercase tracking-widest shadow-inner">${phase}</td>
                 </tr>
             `;
 
-            // Einträge der jeweiligen Phase
             groupedEnvs[phase].forEach(env => {
                 let attrs = {};
                 try { attrs = JSON.parse(env.attributes || '{}'); } catch(e){}
@@ -71,7 +82,6 @@ export async function loadIsoData() {
                 const statusColor = env.review_status === 'Geprüft & Freigegeben' ? 'text-emerald-600 font-extrabold' : 'text-slate-500 font-semibold';
 
                 html += `
-                    <!-- onclick und cursor-pointer wurden hier in der Zeile entfernt! -->
                     <tr class="hover:bg-slate-50 transition border-b border-slate-100">
                         <td class="p-2 align-top font-bold text-emerald-900">
                             <div class="text-[10px] font-mono text-emerald-600 mb-0.5 leading-none">${env.req_key}</div>
@@ -85,7 +95,6 @@ export async function loadIsoData() {
                         <td class="p-2 text-center text-xs ${statusColor} align-top pt-3">${env.review_status || 'Neu'}</td>
                         <td class="p-2 text-right align-top pt-2">
                             <div class="flex justify-end gap-1">
-                                <!-- Der Klick funktioniert jetzt nur noch exakt auf diesen Buttons -->
                                 <button onclick="window.openIsoModal(${env.id})" class="text-slate-400 hover:text-emerald-600 transition p-1.5 hover:bg-emerald-100 rounded" title="Bearbeiten">${iconEdit}</button>
                                 <button onclick="window.deleteIso(${env.id})" class="text-slate-400 hover:text-red-600 transition p-1.5 hover:bg-red-50 rounded" title="Löschen">${iconTrash}</button>
                             </div>
@@ -97,9 +106,9 @@ export async function loadIsoData() {
 
         tbody.innerHTML = html;
 
-
     } catch (e) {
         console.error("Fehler beim Laden der ISO 14001 Daten:", e);
+        tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-red-500">Netzwerkfehler beim Laden.</td></tr>';
     }
 }
 
@@ -265,16 +274,16 @@ window.openIsoImportModal = async function () {
 };
 
 // Global: Umweltaspekt löschen
-window.deleteIso = async function(id) {
+window.deleteIso = async function (id) {
     if (!confirm("Bist du sicher? Dieser Umweltaspekt wird unwiderruflich gelöscht.")) return;
-    
+
     try {
         const res = await fetch('../api/delete_requirement.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: id })
         });
-        
+
         const data = await res.json();
         if (data.success) {
             loadIsoData(); // Tabelle neu laden
