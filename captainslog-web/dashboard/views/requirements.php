@@ -1,26 +1,23 @@
 <!-- dashboard/views/requirements.php -->
 <div class="flex flex-col h-full">
     <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold text-blue-900">System-Elemente (Anforderungen, Risiken, Assets)</h2>
+        <!-- ID hinzugefügt, damit JS den Titel  ndern kann -->
+        <h2 id="reqMainTitle" class="text-2xl font-bold text-blue-900">Anforderungen</h2>
         <button id="new"
-            class=" bg-blue-900 px-4 py-2 font-semibold text-white shadow hover:bg-blue-800 transition">
+            class="bg-blue-900 px-4 py-2 font-semibold text-white shadow hover:bg-blue-800 transition rounded">
             + Neues Element
         </button>
     </div>
     <div class="grid gap-5 lg:grid-cols-[350px_1fr] flex-1 min-h-0">
-        <aside class="-lg border bg-white shadow-sm overflow-hidden flex flex-col h-full">
-            <!-- Filter Tabs -->
-            <div class="p-3 border-b bg-slate-50 flex flex-wrap gap-1">
-                <button onclick="window.applyTreeFilter('ALL')" id="filter-ALL"
-                    class="filter-tab active  bg-slate-200 px-3 py-1 text-xs font-bold text-slate-700 transition">Alle</button>
-                <button onclick="window.applyTreeFilter('REQ')" id="filter-REQ"
-                    class="filter-tab  px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition">Anforderungen</button>
-                <button onclick="window.applyTreeFilter('AST')" id="filter-AST"
-                    class="filter-tab  px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200 transition">Assets</button>
-            </div>
-            <div id="items" class="p-4 text-sm text-slate-500 overflow-y-auto flex-1">Bitte wähle oben ein Projekt aus.
+
+        <aside class="rounded border bg-white shadow-sm overflow-hidden flex flex-col h-full">
+            <!-- Interne Filter Tabs WURDEN ENTFERNT -->
+            <div id="items" class="p-4 text-sm text-slate-500 overflow-y-auto flex-1">
+                Bitte wähle oben ein Projekt aus.
             </div>
         </aside>
+
+        <!-- Der restliche Code (<article id="detail"... und die Modals) bleibt absolut unverändert! -->
         <article id="detail" class="-lg border bg-white p-6 shadow-sm overflow-y-auto h-full relative">
             <div class="flex h-full items-center justify-center text-slate-400 italic">
                 Wähle ein Element aus, um Details zu sehen.
@@ -61,8 +58,7 @@
         </div>
 
         <label class="block text-sm font-semibold text-slate-700">Titel / Name
-            <input id="title" required
-                class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none">
+            <input id="title" required class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none">
         </label>
 
         <label class="block text-sm font-semibold text-slate-700">Beschreibung
@@ -76,8 +72,7 @@
         </label>
 
         <!-- Dynamische Attribute -->
-        <div id="dynamicAttributes"
-            class="hidden -lg bg-indigo-50 p-4 border border-indigo-100 shadow-inner mt-2">
+        <div id="dynamicAttributes" class="hidden -lg bg-indigo-50 p-4 border border-indigo-100 shadow-inner mt-2">
             <h3 class="mb-3 text-xs font-bold uppercase tracking-wider text-indigo-800">Spezifische Attribute</h3>
             <div id="attributeFields" class="grid gap-4 md:grid-cols-2"></div>
         </div>

@@ -65,52 +65,54 @@ export async function loadProjectPlan() {
 function renderTaskRow(task, tbody) {
     const sDate = task.start_date ? new Date(task.start_date).toLocaleDateString('de-DE') : '-';
     const eDate = task.end_date ? new Date(task.end_date).toLocaleDateString('de-DE') : '-';
-
+    
     let tagsHtml = '';
-    let autoIcon = '';
+    
+    // 1. IMMER die verknüpften Anforderungen anzeigen
+    try {
+        const reqs = JSON.parse(task.linked_reqs || '[]');
+        reqs.forEach(r => {
+            tagsHtml += `<span class="inline-block bg-indigo-100 text-indigo-900 text-[10px] px-1.5 py-0.5 rounded border border-indigo-300 mr-1 mt-1 font-mono font-bold shadow-sm">${r}</span>`;
+        });
+    } catch(e) {}
 
-    // WENN CHECKLISTE VORHANDEN IST, REQUIREMENTS IGNORIEREN
+    // 2. Checklisten-Badge ganz HINTEN anfügen
     if (task.has_checklist) {
-        tagsHtml = `<span class="inline-block bg-sky-100 text-sky-900 text-[10px] px-2 py-0.5 rounded border border-sky-300 mr-1 mt-1 font-bold shadow-sm">📋 Checkliste: ${task.checklist_done}/${task.checklist_total} erledigt</span>`;
+        tagsHtml += `<span class="inline-block bg-sky-100 text-sky-900 text-[10px] px-2 py-0.5 rounded border border-sky-300 mr-1 mt-1 font-bold shadow-sm">📋 Checkliste: ${task.checklist_done}/${task.checklist_total}</span>`;
+    }
+
+    // Auto/List Icon für den Fortschrittsbalken
+    let autoIcon = '';
+    if (task.is_auto_progress && !task.has_checklist) {
+        autoIcon = `<span class="text-[9px] bg-indigo-50 border border-indigo-300 text-indigo-700 px-1 rounded font-bold mr-1">AUTO</span>`;
+    } else if (task.has_checklist) {
         autoIcon = `<span class="text-[9px] bg-sky-50 border border-sky-300 text-sky-700 px-1 rounded font-bold mr-1">LIST</span>`;
-    } else {
-        // Sonst Requirements zeigen
-        try {
-            const reqs = JSON.parse(task.linked_reqs || '[]');
-            reqs.forEach(r => {
-                tagsHtml += `<span class="inline-block bg-indigo-100 text-indigo-900 text-[10px] px-1.5 py-0.5 rounded border border-indigo-300 mr-1 mt-1 font-mono font-bold">${r}</span>`;
-            });
-        } catch (e) { }
-        if (task.is_auto_progress) {
-            autoIcon = `<span class="text-[9px] bg-indigo-50 border border-indigo-300 text-indigo-700 px-1 rounded font-bold mr-1">AUTO</span>`;
-        }
     }
 
     const progress = task.progress_pct || 0;
     const barColor = progress === 100 ? 'bg-emerald-500' : 'bg-blue-500';
     const effortVal = task.effort_mt ? task.effort_mt + ' h' : '-';
-
-    // Keine Einrückung mehr nötig, da Unterpunkte komplett versteckt sind!
+    
     const indentClass = 'font-bold bg-white hover:bg-blue-50/50 border-t border-slate-200 transition-colors';
-
+    
     const iconEye = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>`;
     const iconEdit = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>`;
     const iconTrash = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
 
+    // P-Padding verkleinert (p-3 statt p-4), Kategorie-Titel entfernt für flachere Zeilen
     tbody.innerHTML += `
         <tr class="${indentClass}">
-            <td class="p-4 font-mono text-sm font-extrabold text-slate-800 border-r border-slate-100">
+            <td class="p-3 font-mono text-sm font-extrabold text-slate-800 border-r border-slate-100">
                 ${task.wbs_code || ''}
             </td>
-            <td class="p-4 border-r border-slate-100">
-                <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-0.5">${task.category || 'Allgemein'}</div>
+            <td class="p-3 border-r border-slate-100">
                 <div class="text-blue-950 text-base font-extrabold">${task.title}</div>
                 <div>${tagsHtml}</div>
             </td>
-            <td class="p-4 text-xs font-semibold text-slate-700 border-r border-slate-100">${task.assignee || '-'}</td>
-            <td class="p-4 text-center text-sm font-mono font-semibold text-slate-800 border-r border-slate-100">${effortVal}</td>
-            <td class="p-4 text-center text-xs whitespace-nowrap font-medium text-slate-600 border-r border-slate-100">${sDate} <br> ${eDate}</td>
-            <td class="p-4 border-r border-slate-100">
+            <td class="p-3 text-xs font-semibold text-slate-700 border-r border-slate-100">${task.assignee || '-'}</td>
+            <td class="p-3 text-center text-sm font-mono font-semibold text-slate-800 border-r border-slate-100">${effortVal}</td>
+            <td class="p-3 text-center text-[11px] whitespace-nowrap font-medium text-slate-600 border-r border-slate-100">${sDate} <br> ${eDate}</td>
+            <td class="p-3 border-r border-slate-100">
                 <div class="flex justify-between items-end mb-1 text-xs">
                     <div>${autoIcon}</div>
                     <span class="font-extrabold text-slate-800">${progress}%</span>
@@ -119,11 +121,11 @@ function renderTaskRow(task, tbody) {
                     <div class="${barColor} h-2.5 rounded-full transition-all duration-500" style="width: ${progress}%"></div>
                 </div>
             </td>
-            <td class="p-4 text-right">
-                <div class="flex justify-end gap-2">
-                    <button onclick="window.viewTaskAnalytics(${task.id})" class="text-blue-600 hover:text-white hover:bg-blue-600 transition p-2 bg-blue-50 border border-blue-200 rounded shadow-sm" title="Analyse & Checkliste">${iconEye}</button>
-                    <button onclick="window.editTask(${task.id})" class="text-slate-500 hover:text-blue-600 transition p-2 bg-slate-50 border border-slate-200 rounded shadow-sm" title="Bearbeiten">${iconEdit}</button>
-                    <button onclick="window.deleteTask(${task.id})" class="text-slate-500 hover:text-red-600 transition p-2 bg-slate-50 border border-slate-200 rounded shadow-sm" title="Löschen">${iconTrash}</button>
+            <td class="p-3 text-right">
+                <div class="flex justify-end gap-1.5">
+                    <button onclick="window.viewTaskAnalytics(${task.id})" class="text-blue-600 hover:text-white hover:bg-blue-600 transition p-1.5 bg-blue-50 border border-blue-200 rounded shadow-sm" title="Analyse & Checkliste">${iconEye}</button>
+                    <button onclick="window.editTask(${task.id})" class="text-slate-500 hover:text-blue-600 transition p-1.5 bg-slate-50 border border-slate-200 rounded shadow-sm" title="Bearbeiten">${iconEdit}</button>
+                    <button onclick="window.deleteTask(${task.id})" class="text-slate-500 hover:text-red-600 transition p-1.5 bg-slate-50 border border-slate-200 rounded shadow-sm" title="Löschen">${iconTrash}</button>
                 </div>
             </td>
         </tr>
@@ -291,9 +293,14 @@ export function initProjectPlanEvents() {
         });
     }
 
-    if (tplCat && tplItem) {
+   if (tplCat && tplItem) {
         tplCat.addEventListener('change', (e) => {
             const cat = e.target.value;
+            
+            // NEU: Befüllt das Feld "Kategorie / Bereich" sofort!
+            const catInput = document.getElementById('task_category');
+            if (catInput) catInput.value = cat;
+
             if (!cat) {
                 tplItem.innerHTML = '<option value="">-- Zuerst Hauptgruppe wählen --</option>';
                 tplItem.disabled = true;
@@ -301,12 +308,12 @@ export function initProjectPlanEvents() {
                 tplItem.classList.remove('bg-white');
                 return;
             }
-
+            
             tplItem.disabled = false;
             tplItem.classList.remove('bg-slate-100', 'cursor-not-allowed');
             tplItem.classList.add('bg-white');
             tplItem.innerHTML = '<option value="">-- Aufgabe wählen --</option>';
-
+            
             const items = loadedTemplates.filter(t => t.category === cat);
             items.forEach(t => {
                 tplItem.innerHTML += `<option value="${t.id}">${t.title} (${t.default_effort} h)</option>`;
@@ -541,47 +548,73 @@ window.deleteTask = async function (id) {
     }
 };
 
-// Dummy-Funktion für das Auge
-window.viewTaskAnalytics = function (id) {
-    alert("Das Analytics-Modul wird bald hinzugefügt! (ID: " + id + ")");
-};
 
 
 // ANALYTICS PANEL ÖFFNEN
-window.viewTaskAnalytics = async function (id) {
-    // Panel rein sliden
+window.viewTaskAnalytics = async function(id) {
     document.getElementById('analyticsPanelOverlay').classList.remove('hidden');
-    setTimeout(() => {
-        document.getElementById('analyticsPanel').classList.remove('translate-x-full');
-    }, 10);
+    setTimeout(() => { document.getElementById('analyticsPanel').classList.remove('translate-x-full'); }, 10);
 
     document.getElementById('analyticsTitle').textContent = "Lade Analyse...";
     document.getElementById('analyticsContributors').innerHTML = '<div class="text-xs text-slate-500 animate-pulse">Lade Beiträge...</div>';
     document.getElementById('analyticsReqList').innerHTML = '';
+    document.getElementById('analyticsChecklistContainer').classList.add('hidden');
     document.getElementById('analyticsProgressBar').style.width = '0%';
 
     try {
         const res = await fetch(`../api/get_task_analytics.php?task_id=${id}&project_id=${currentProjectId}`);
         const data = await res.json();
-
+        
         if (!data.success) {
-            document.getElementById('analyticsTitle').textContent = "Fehler beim Laden";
+            document.getElementById('analyticsTitle').textContent = "Fehler: " + data.error;
             return;
         }
 
         const a = data.analytics;
         document.getElementById('analyticsTitle').textContent = (a.wbs_code ? a.wbs_code + ' - ' : '') + a.task_title;
+        
+        // KOMBINIERTER FORTSCHRITT FÜR DIE UI
+        let combinedProgress = 0;
+        let progressText = "";
 
-        // Gesamtfortschritt rendern
-        const pct = a.total_reqs > 0 ? Math.round((a.approved_reqs / a.total_reqs) * 100) : 0;
-        document.getElementById('analyticsReqCount').textContent = `${a.approved_reqs} von ${a.total_reqs} Anforderungen geprüft`;
-        document.getElementById('analyticsTotalProgress').textContent = `${pct}%`;
-        document.getElementById('analyticsProgressBar').style.width = `${pct}%`;
+        if (a.has_checklist && a.total_reqs > 0) {
+            const reqPct = Math.round((a.approved_reqs / a.total_reqs) * 100);
+            combinedProgress = Math.round((a.checklist_progress + reqPct) / 2);
+            progressText = `${a.subtasks.filter(s => s.progress_pct == 100).length}/${a.subtasks.length} Check-Punkte & ${a.approved_reqs}/${a.total_reqs} Reqs`;
+        } else if (a.has_checklist) {
+            combinedProgress = a.checklist_progress;
+            progressText = `${a.subtasks.filter(s => s.progress_pct == 100).length} von ${a.subtasks.length} Unterpunkten erledigt`;
+        } else if (a.total_reqs > 0) {
+            combinedProgress = Math.round((a.approved_reqs / a.total_reqs) * 100);
+            progressText = `${a.approved_reqs} von ${a.total_reqs} Anforderungen geprüft`;
+        } else {
+            progressText = `0 Anforderungen / Unterpunkte`;
+        }
 
-        // Contributors (Wer hat wie viel erledigt?)
+        document.getElementById('analyticsReqCount').textContent = progressText;
+        document.getElementById('analyticsTotalProgress').textContent = `${combinedProgress}%`;
+        document.getElementById('analyticsProgressBar').style.width = `${combinedProgress}%`;
+
+        // CHECKLISTE RENDERN
+        if (a.has_checklist) {
+            document.getElementById('analyticsChecklistContainer').classList.remove('hidden');
+            let checkHtml = '';
+            a.subtasks.forEach(st => {
+                const checked = st.progress_pct == 100 ? 'checked' : '';
+                checkHtml += `
+                    <label class="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded hover:bg-sky-50 cursor-pointer shadow-sm transition">
+                        <input type="checkbox" ${checked} onchange="window.toggleSubtask(${st.id}, this.checked, ${id})" class="mt-0.5 w-5 h-5 text-sky-600 rounded">
+                        <span class="text-sm font-semibold text-slate-800 ${checked ? 'line-through text-slate-400' : ''}">${st.title}</span>
+                    </label>
+                `;
+            });
+            document.getElementById('analyticsChecklist').innerHTML = checkHtml;
+        }
+
+        // CONTRIBUTORS RENDERN
         const contDiv = document.getElementById('analyticsContributors');
         if (Object.keys(a.contributors).length === 0) {
-            contDiv.innerHTML = '<div class="text-xs font-semibold text-slate-400 italic bg-slate-100 p-3 rounded">Noch keine Anforderungen freigegeben.</div>';
+            contDiv.innerHTML = '<div class="text-xs font-semibold text-slate-400 italic bg-slate-100 p-3 rounded">Noch keine Anforderungen durch Mitarbeiter freigegeben.</div>';
         } else {
             let html = '';
             for (const [user, count] of Object.entries(a.contributors)) {
@@ -590,38 +623,36 @@ window.viewTaskAnalytics = async function (id) {
                     <div>
                         <div class="flex justify-between items-center mb-1">
                             <span class="text-xs font-bold text-slate-800 font-mono"><span class="text-blue-600">@</span>${user}</span>
-                            <span class="text-xs font-extrabold text-blue-900">${userPct}% (${count} erledigt)</span>
+                            <span class="text-xs font-extrabold text-blue-900">${userPct}% (${count} freigegeben)</span>
                         </div>
-                        <div class="w-full bg-slate-100 rounded-full h-1.5">
-                            <div class="bg-blue-600 h-1.5 rounded-full" style="width: ${userPct}%"></div>
-                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-1.5"><div class="bg-blue-600 h-1.5 rounded-full" style="width: ${userPct}%"></div></div>
                     </div>
                 `;
             }
             contDiv.innerHTML = html;
         }
 
-        // Detailliste der Requirements
+        // DETAIL-LOG FÜR ANFORDERUNGEN (RISK-003 etc.) RENDERN
         const reqDiv = document.getElementById('analyticsReqList');
         if (a.req_details.length === 0) {
-            reqDiv.innerHTML = '<div class="text-xs text-slate-500 italic">Keine Anforderungen verknüpft.</div>';
+            reqDiv.innerHTML = '<div class="text-xs text-slate-500 italic">Keine Anforderungen (z.B. SYS, RISK) verknüpft.</div>';
         } else {
             let reqHtml = '';
             a.req_details.forEach(r => {
                 const isAppr = r.status === 'Geprüft & Freigegeben';
-                const statusColor = isAppr ? 'text-emerald-600 bg-emerald-50 border-emerald-200' : 'text-slate-500 bg-slate-50 border-slate-200';
-                const icon = isAppr
-                    ? '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>'
-                    : '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
-
+                const statusColor = isAppr ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-slate-600 bg-white border-slate-200';
+                const icon = isAppr 
+                    ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>'
+                    : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+                
                 reqHtml += `
-                    <div class="border ${statusColor} rounded p-3 text-xs mb-2">
+                    <div class="border ${statusColor} rounded-md p-3 text-sm mb-2 shadow-sm">
                         <div class="flex justify-between font-bold mb-1">
-                            <span class="font-mono">${r.req_key}</span>
-                            <span class="flex items-center gap-1">${icon} ${r.status}</span>
+                            <span class="font-mono text-blue-900">${r.req_key}</span>
+                            <span class="flex items-center gap-1 text-xs uppercase tracking-wider">${icon} ${r.status}</span>
                         </div>
-                        <div class="font-medium text-slate-700 truncate mb-2">${r.title}</div>
-                        ${isAppr ? `<div class="text-[10px] text-slate-500 border-t border-emerald-200/50 pt-1 mt-1 font-mono">Freigegeben von: ${r.approved_by} @ ${r.hostname}</div>` : ''}
+                        <div class="font-semibold text-slate-700 leading-tight mb-2">${r.title}</div>
+                        ${isAppr ? `<div class="text-[10px] text-emerald-800 border-t border-emerald-200/50 pt-2 mt-1 font-mono uppercase tracking-wide">Freigegeben von: <b>${r.approved_by}</b> <span class="opacity-70">am ${r.date}</span></div>` : ''}
                     </div>
                 `;
             });
@@ -630,7 +661,7 @@ window.viewTaskAnalytics = async function (id) {
 
     } catch (e) {
         console.error(e);
-        document.getElementById('analyticsTitle').textContent = "Netzwerkfehler";
+        document.getElementById('analyticsTitle').textContent = "Netzwerk- oder Scriptfehler";
     }
 };
 

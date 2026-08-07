@@ -11,15 +11,15 @@
     <!-- Task Tabelle -->
     <div class="overflow-x-auto border border-slate-200 pb-32 rounded">
         <table class="w-full text-left text-sm text-slate-600">
-            <thead class="bg-slate-100 text-slate-800 uppercase font-bold border-b">
+          <thead class="bg-slate-100 text-slate-800 uppercase font-bold border-b">
                 <tr>
-                    <th class="p-4 w-20">ID</th>
-                    <th class="p-4">Aufgabe / Kommentare</th>
-                    <th class="p-4 w-32">Zuweisung</th>
-                    <th class="p-4 text-center w-24">Aufwand</th>
-                    <th class="p-4 text-center w-40">Zeitraum</th>
-                    <th class="p-4 w-48">Fortschritt</th>
-                    <th class="p-4 text-right w-32">Aktionen</th>
+                    <th class="p-3 w-16">ID</th>
+                    <th class="p-3">Aufgabe / Kommentare</th>
+                    <th class="p-3 w-28">Zuweisung</th>
+                    <th class="p-3 text-center w-24">Aufwand</th>
+                    <th class="p-3 text-center w-28">Zeitraum</th>
+                    <th class="p-3 w-36">Fortschritt</th>
+                    <th class="p-3 text-right w-28">Aktionen</th>
                 </tr>
             </thead>
             <tbody id="taskTableBody" class="divide-y divide-slate-200">
@@ -167,35 +167,31 @@
 
 
 <!-- Slide-over Panel für Analytics -->
-<div id="analyticsPanelOverlay"
-    class="hidden fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[200] transition-opacity cursor-pointer"
-    onclick="window.closeAnalyticsPanel()"></div>
-<div id="analyticsPanel"
-    class="fixed top-0 right-0 h-full w-full max-w-md bg-slate-50 shadow-2xl z-[210] transform translate-x-full transition-transform duration-300 flex flex-col border-l border-slate-300">
-
-    <!-- Header -->
-    <div class="bg-blue-950 p-6 text-white flex justify-between items-start shadow-md">
+<div id="analyticsPanelOverlay" class="hidden fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[200] transition-opacity cursor-pointer" onclick="window.closeAnalyticsPanel()"></div>
+<div id="analyticsPanel" class="fixed top-0 right-0 h-full w-full max-w-md bg-slate-50 shadow-2xl z-[210] transform translate-x-full transition-transform duration-300 flex flex-col border-l border-slate-300">
+    
+    <!-- Header (JETZT MIT GELBEM HIGHLIGHTER) -->
+    <div class="bg-blue-950 p-6 text-white flex justify-between items-start shadow-md border-t-4 border-amber-400">
         <div>
-            <div class="text-blue-300 text-xs font-bold tracking-widest uppercase mb-1">Performance Analyse</div>
+            <!-- Textfarbe ebenfalls auf Amber angepasst -->
+            <div class="text-amber-400 text-xs font-bold tracking-widest uppercase mb-1">Performance Analyse</div>
             <h2 id="analyticsTitle" class="text-xl font-extrabold leading-tight">Lade Daten...</h2>
         </div>
-        <button onclick="window.closeAnalyticsPanel()"
-            class="text-slate-300 hover:text-white transition bg-white/10 p-2 rounded-full">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
+        <button onclick="window.closeAnalyticsPanel()" class="text-slate-300 hover:text-white transition bg-white/10 p-2 rounded-full">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
     </div>
-    <!-- NEU: Checkliste (Unterpunkte aus --) -->
-    <div id="analyticsChecklistContainer" class="hidden">
-        <h3 class="text-sm font-bold text-slate-900 mb-3 border-b border-slate-200 pb-2">Checkliste (Unteraufgaben)</h3>
-        <div id="analyticsChecklist" class="space-y-2">
-            <!-- Wird per JS gefüllt -->
-        </div>
-    </div>
 
-    <!-- Content -->
+    <!-- Content (Hier sitzt das Padding: p-6 space-y-8) -->
     <div class="flex-1 overflow-y-auto p-6 space-y-8">
+        
+        <!-- CHECKLISTE (Jetzt korrekt nach innen gezogen) -->
+        <div id="analyticsChecklistContainer" class="hidden">
+            <h3 class="text-sm font-bold text-slate-900 mb-3 border-b border-slate-200 pb-2">Checkliste (Unteraufgaben)</h3>
+            <div id="analyticsChecklist" class="space-y-2">
+                <!-- Wird per JS gefüllt -->
+            </div>
+        </div>
 
         <!-- Gesamtfortschritt -->
         <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200">
@@ -205,8 +201,7 @@
                 <span id="analyticsTotalProgress" class="text-2xl font-extrabold text-blue-900">0%</span>
             </div>
             <div class="w-full bg-slate-100 rounded-full h-3 border border-slate-200">
-                <div id="analyticsProgressBar" class="bg-emerald-500 h-3 rounded-full transition-all duration-1000 w-0">
-                </div>
+                <div id="analyticsProgressBar" class="bg-emerald-500 h-3 rounded-full transition-all duration-1000 w-0"></div>
             </div>
         </div>
 

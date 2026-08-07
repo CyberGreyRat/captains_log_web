@@ -6,19 +6,20 @@ let loadedRequirements = [];
 let globalStakeholders = [];
 
 window.currentTreeFilter = 'ALL'; // Speichert den aktiven Tab
+window.currentTreeFilter = 'REQ'; // Standardansicht
 
 // Filter für Tabs wechseln
 window.applyTreeFilter = function (filter) {
-    document.querySelectorAll('.filter-tab').forEach(btn => {
-        btn.classList.remove('active', 'bg-slate-200', 'font-bold', 'text-slate-700');
-        btn.classList.add('font-semibold', 'text-slate-600', 'hover:bg-slate-200');
-    });
-    const activeBtn = document.getElementById(`filter-${filter}`);
-    if (activeBtn) {
-        activeBtn.classList.remove('font-semibold', 'text-slate-600', 'hover:bg-slate-200');
-        activeBtn.classList.add('active', 'bg-slate-200', 'font-bold', 'text-slate-700');
-    }
     window.currentTreeFilter = filter;
+    
+    // Überschrift dynamisch anpassen
+    const titleEl = document.getElementById('reqMainTitle');
+    if (titleEl) {
+        if (filter === 'GOAL') titleEl.textContent = 'Projekt-Ziele (Goals)';
+        else if (filter === 'AST') titleEl.textContent = 'Assets (Werte & Güter)';
+        else titleEl.textContent = 'Anforderungen';
+    }
+    
     window.renderTreeList();
 };
 
@@ -246,80 +247,75 @@ export async function loadRequirements() {
     }
 }
 
+
+
+
 window.renderTreeList = function () {
     const listContainer = document.getElementById('items');
     if (!listContainer) return;
+
     if (loadedRequirements.length === 0) {
         listContainer.innerHTML = '<div class="p-4 text-sm text-slate-500 italic">Keine Elemente vorhanden.</div>';
         return;
     }
+    
     listContainer.innerHTML = '';
-    const filter = window.currentTreeFilter || 'ALL';
-    let isFlat = false;
-    let visibleReqs = loadedRequirements;
-
-    // Filter anwenden
+    const filter = window.currentTreeFilter || 'REQ';
+    let visibleReqs = [];
+    
+    // Harte, saubere Trennung der Kategorien!
     if (filter === 'REQ') {
-        visibleReqs = loadedRequirements.filter(r => !['RISK', 'SEC', 'AST'].includes(r.type));
-        isFlat = true;
-    } else if (filter === 'SEC') {
-        visibleReqs = loadedRequirements.filter(r => ['RISK', 'SEC'].includes(r.type));
-        isFlat = true;
+        visibleReqs = loadedRequirements.filter(r => !['GOAL', 'AST', 'RISK'].includes(r.type));
+    } else if (filter === 'GOAL') {
+        visibleReqs = loadedRequirements.filter(r => r.type === 'GOAL');
     } else if (filter === 'AST') {
-        visibleReqs = loadedRequirements.filter(r => ['AST'].includes(r.type));
-        isFlat = true;
+        visibleReqs = loadedRequirements.filter(r => r.type === 'AST');
     }
 
-    if (isFlat) {
-        if (visibleReqs.length === 0) {
-            listContainer.innerHTML = '<div class="p-4 text-sm text-slate-500 italic">Keine Einträge in diesem Tab.</div>';
-            return;
-        }
-        visibleReqs.forEach(req => {
-            const btn = document.createElement('button');
-            btn.className = `w-full text-left p-2.5 border-b border-slate-100 hover:bg-blue-50 transition focus:bg-blue-100 flex items-center justify-between text-xs bg-white`;
-            btn.innerHTML = `
-                <div class="flex items-center truncate">
-                    <span class="font-mono font-bold text-blue-950 mr-2">${req.req_key}</span>
-                    <span class="text-slate-700 truncate">${req.title}</span>
-                </div>
-                <span class="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5 font-mono shrink-0">${req.review_status || req.status}</span>
-            `;
-            btn.onclick = () => showRequirementDetail(req);
-            listContainer.appendChild(btn);
-        });
-    } else {
-        // ORIGINAL TREE RENDER (Nur wenn "ALL" aktiv ist)
-        const rendered = new Set();
-        function renderNode(req, level) {
-            if (rendered.has(req.req_key)) return;
-            rendered.add(req.req_key);
-            const btn = document.createElement('button');
-            const indentRem = level * 1.2;
-            const bgClass = level > 0 ? 'bg-slate-50/60' : 'bg-white';
-            btn.className = `w-full text-left p-2.5 border-b border-slate-100 hover:bg-blue-50 transition focus:bg-blue-100 flex items-center justify-between text-xs ${bgClass}`;
-            btn.style.paddingLeft = `calc(0.75rem + ${indentRem}rem)`;
-            const children = loadedRequirements.filter(r => r.parsedParents.includes(req.req_key));
-            const icon = children.length > 0 ? `<span class="text-slate-400 mr-1"> </span>` : `<span class="mr-3"></span>`;
-            btn.innerHTML = `
-                <div class="flex items-center truncate">
-                    ${icon}
-                    <span class="font-mono font-bold text-blue-950 mr-1">${req.req_key}</span>
-                    <span class="text-slate-700 truncate">${req.title}</span>
-                </div>
-                <span class="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5 font-mono shrink-0">${req.review_status || req.status}</span>
-            `;
-            btn.onclick = () => showRequirementDetail(req);
-            listContainer.appendChild(btn);
-            children.forEach(child => renderNode(child, level + 1));
-        }
-        const roots = loadedRequirements.filter(req =>
-            req.parsedParents.length === 0 ||
-            !req.parsedParents.some(pk => loadedRequirements.find(r => r.req_key === pk))
-        );
-        roots.forEach(root => renderNode(root, 0));
-        loadedRequirements.forEach(req => { if (!rendered.has(req.req_key)) renderNode(req, 0); });
+    if (visibleReqs.length === 0) {
+        listContainer.innerHTML = '<div class="p-4 text-sm text-slate-500 italic">Keine Einträge in diesem Bereich.</div>';
+        return;
     }
+
+    // Baum-Struktur Rendern (Wird nun sauber auf die gefilterte Liste angewendet)
+    const rendered = new Set();
+    
+    function renderNode(req, level) {
+        if (rendered.has(req.req_key)) return;
+        rendered.add(req.req_key);
+        
+        const btn = document.createElement('button');
+        const indentRem = level * 1.2;
+        const bgClass = level > 0 ? 'bg-slate-50/60' : 'bg-white';
+        
+        btn.className = `w-full text-left p-2.5 border-b border-slate-100 hover:bg-blue-50 transition focus:bg-blue-100 flex items-center justify-between text-xs ${bgClass}`;
+        btn.style.paddingLeft = `calc(0.75rem + ${indentRem}rem)`;
+        
+        const children = visibleReqs.filter(r => r.parsedParents.includes(req.req_key));
+        const icon = children.length > 0 ? `<span class="text-slate-400 mr-1">▶</span>` : `<span class="mr-3"></span>`;
+        
+        btn.innerHTML = `
+            <div class="flex items-center truncate">
+                ${icon}
+                <span class="font-mono font-bold text-blue-950 mr-1">${req.req_key}</span>
+                <span class="text-slate-700 truncate">${req.title}</span>
+            </div>
+            <span class="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5 font-mono shrink-0 rounded">${req.review_status || req.status}</span>
+        `;
+        btn.onclick = () => showRequirementDetail(req);
+        listContainer.appendChild(btn);
+        
+        children.forEach(child => renderNode(child, level + 1));
+    }
+    
+    // Wurzelelemente finden (Die keine Parents innerhalb der sichtbaren Liste haben)
+    const roots = visibleReqs.filter(req => 
+        req.parsedParents.length === 0 || 
+        !req.parsedParents.some(pk => visibleReqs.find(r => r.req_key === pk))
+    );
+    
+    roots.forEach(root => renderNode(root, 0));
+    visibleReqs.forEach(req => { if (!rendered.has(req.req_key)) renderNode(req, 0); });
 };
 
 window.showRequirementDetailById = function (id) {

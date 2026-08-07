@@ -10,6 +10,7 @@ import { loadDashboard } from './dashboard.js';
 import { loadSBOM } from './sbom.js';
 import { loadRisks, initRiskEvents } from './risks.js';
 import { loadProjectPlan, initProjectPlanEvents } from './project_plan.js';
+import { loadIsoData, initIsoEvents } from './iso14001.js';
 
 document.addEventListener("DOMContentLoaded", async () => {
     try {
@@ -29,6 +30,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             loadSBOM();
             loadRisks();
             loadProjectPlan();
+            loadIsoData();
         }
 
         initRequirementEvents();
@@ -37,6 +39,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         initUserStoryEvents();
         initRiskEvents();
         initProjectPlanEvents();
+        initIsoEvents();
 
         const projectSelect = document.getElementById('projectSelect');
         const modal = document.getElementById('projectSwitchModal');
@@ -88,6 +91,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                         await loadSBOM();
                         await loadRisks();
                         await loadProjectPlan();
+                        await loadIsoData();
                     };
 
                     // Wartet, bis SOWOHL die 500ms um sind, ALS AUCH die Daten geladen wurden
@@ -122,6 +126,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
                 if (e.target.dataset.panel === 'projectplan') {
                     loadProjectPlan();
+                }
+                if (e.target.dataset.panel === 'isodata') {
+                    loadIsoData();
                 }
             });
         });

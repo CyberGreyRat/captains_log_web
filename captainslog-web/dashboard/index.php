@@ -37,41 +37,60 @@ require_once 'header.php';
 
 
 <!-- NAVIGATION (Die neuen sauberen Reiter) -->
+<!-- NAVIGATION (Jetzt mit Ziele & Assets auf oberster Ebene) -->
 <nav class="border-b bg-white shadow-sm shrink-0">
     <div class="mx-auto flex max-w-screen-2xl px-6">
-        <button class="tab active border-b-2 px-4 py-3 font-medium transition-colors"
-            data-panel="requirements">Anforderungen</button>
+        <!-- Das 'requirements' Panel wird nun für 3 Tabs genutzt, gesteuert über data-filter -->
         <button
-            class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 hover:text-blue-900 transition-colors"
+            data-panel="dashboard">Dashboard</button>
+
+        <button class="tab active border-b-2 border-blue-900 text-blue-900 px-4 py-3 font-bold transition-colors"
+            data-panel="requirements" data-filter="REQ">Anforderungen</button>
+        <button
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 hover:text-blue-900 transition-colors"
+            data-panel="requirements" data-filter="AST">Assets</button>
+        <button
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 hover:text-blue-900 transition-colors"
+            data-panel="requirements" data-filter="GOAL">Ziele</button>
+
+        <button
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 hover:text-blue-900 transition-colors"
             data-panel="projectplan">Projektplan</button>
         <button
-            class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 hover:text-blue-900 transition-colors"
             data-panel="risks">Risiko</button>
         <button
-            class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 hover:text-blue-900 transition-colors"
             data-panel="stakeholders">Stakeholder</button>
         <button
-            class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 hover:text-blue-900 transition-colors"
             data-panel="usecases">Use Cases</button>
         <button
-            class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 hover:text-blue-900 transition-colors"
             data-panel="userstories">User Stories</button>
         <button
-            class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 hover:text-blue-900 transition-colors"
             data-panel="history">Historie</button>
+
         <button
-            class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
-            data-panel="dashboard">Dashboard</button>
-        <button
-            class="tab border-b-2 border-transparent px-4 py-3 font-medium text-slate-600 hover:text-blue-900 transition-colors"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 hover:text-blue-900 transition-colors"
             data-panel="sbom">SBOM</button>
+        <button
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 hover:text-blue-900 transition-colors"
+            data-panel="iso14001">ISO 14001</button>
     </div>
 </nav>
+
+
 
 <!-- MAIN CONTENT (Lädt nur noch die Bausteine!) -->
 <main class="mx-auto max-w-screen-2xl w-full p-6 flex-1 overflow-hidden">
 
-    <section id="requirements" class="panel show h-full">
+    <section id="dashboard" class="panel show h-full">
+        <?php include 'views/dashboard.php'; ?>
+    </section>
+    <section id="requirements" class="panel h-full">
         <?php include 'views/requirements.php'; ?>
     </section>
     <section id="projectplan" class="panel h-full">
@@ -96,11 +115,13 @@ require_once 'header.php';
     <section id="history" class="panel h-full">
         <?php include 'views/history.php'; ?>
     </section>
-    <section id="dashboard" class="panel h-full">
-        <?php include 'views/dashboard.php'; ?>
-    </section>
+
     <section id="sbom" class="panel h-full">
         <?php include 'views/sbom.php'; ?>
+    </section>
+
+    <section id="iso14001" class="panel h-full">
+        <?php include 'views/iso14001.php'; ?>
     </section>
 
 </main>
@@ -168,15 +189,23 @@ require_once 'header.php';
 <script>
     document.querySelectorAll('.tab').forEach(btn => {
         btn.addEventListener('click', (e) => {
+            // Aktiven Tab visuell hervorheben
             document.querySelectorAll('.tab').forEach(t => {
-                t.classList.remove('active', 'text-blue-900');
-                t.classList.add('border-transparent', 'text-slate-600');
+                t.classList.remove('active', 'border-blue-900', 'text-blue-900', 'font-bold');
+                t.classList.add('border-transparent', 'text-slate-600', 'font-semibold');
             });
-            e.target.classList.add('active', 'text-blue-900');
-            e.target.classList.remove('border-transparent', 'text-slate-600');
+            e.target.classList.add('active', 'border-blue-900', 'text-blue-900', 'font-bold');
+            e.target.classList.remove('border-transparent', 'text-slate-600', 'font-semibold');
 
+            // Passendes Panel einblenden
+            const targetPanel = e.target.dataset.panel;
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('show'));
-            document.getElementById(e.target.dataset.panel).classList.add('show');
+            document.getElementById(targetPanel).classList.add('show');
+
+            // Wenn es ein Reiter ist, der das "requirements" Panel nutzt -> Filter anwenden!
+            if (e.target.dataset.filter && window.applyTreeFilter) {
+                window.applyTreeFilter(e.target.dataset.filter);
+            }
         });
     });
 </script>

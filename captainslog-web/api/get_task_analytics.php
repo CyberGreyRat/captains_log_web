@@ -12,7 +12,6 @@ try {
     if (!$task_id || !$project_id)
         throw new Exception("Parameter fehlen.");
 
-    // 1. Aufgabe laden
     $stmt = $pdo->prepare("SELECT * FROM project_tasks WHERE id = ? AND project_id = ?");
     $stmt->execute([$task_id, $project_id]);
     $task = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -25,18 +24,19 @@ try {
     $analytics = [
         'task_title' => $task['title'],
         'wbs_code' => $task['wbs_code'],
-        'effort_mt' => $task['effort_mt'],
         'total_reqs' => $total_reqs,
         'approved_reqs' => 0,
         'contributors' => [],
-        'req_details' => []
+        'req_details' => [],
+        'subtasks' => [],
+        'has_checklist' => false,
+        'checklist_progress' => 0
     ];
 
+    // 1. ANFORDERUNGEN & ZUSTÄNDIGE MITARBEITER LADEN
     if ($total_reqs > 0) {
         foreach ($linked_reqs as $req_key) {
             $req_key = trim($req_key);
-
-            // Aktuellen Status holen
             $rStmt = $pdo->prepare("SELECT title, review_status FROM requirements WHERE req_key = ? AND project_id = ?");
             $rStmt->execute([$req_key, $project_id]);
             $req = $rStmt->fetch(PDO::FETCH_ASSOC);
@@ -50,45 +50,40 @@ try {
                 'date' => null
             ];
 
-            // Wenn freigegeben, suchen wir den Helden in der Historie!
             if ($detail['status'] === 'Geprüft & Freigegeben') {
                 $analytics['approved_reqs']++;
 
-                // Letzten Historien-Eintrag suchen, der auf diesen Status gesetzt hat
-                // Wir joinen mit der User-Tabelle für den Namen (Fallback auf ID, falls Tabelle anders heißt)
+                // Letzten Historien-Eintrag suchen
                 $hStmt = $pdo->prepare("
-                    SELECT h.modified_by, h.hostname, h.created_at, 
-                           COALESCE(u.username, u.name, 'User') as user_name 
-                    FROM requirement_history h 
-                    LEFT JOIN users u ON h.modified_by = u.id 
-                    WHERE h.req_key = ? AND h.status = 'Geprüft & Freigegeben' 
+                    SELECT h.modified_by, h.hostname, h.modified_at as created_at, u.username as user_name 
+                    FROM requirement_history h
+                    LEFT JOIN users u ON h.modified_by = u.id
+                    WHERE h.req_key = ? AND (h.status = 'Geprüft & Freigegeben' OR h.action LIKE '%Freigegeben%')
                     ORDER BY h.id DESC LIMIT 1
                 ");
                 $hStmt->execute([$req_key]);
                 $history = $hStmt->fetch(PDO::FETCH_ASSOC);
 
-                if ($history) {
+                if ($history && !empty($history['user_name'])) {
                     $detail['approved_by'] = $history['user_name'];
-                    $detail['hostname'] = $history['hostname'] ?: 'localhost';
-                    $detail['date'] = $history['created_at'];
-
-                    // Contributor-Punkte zusammenrechnen
-                    $contributor_key = $detail['approved_by'] . ' @ ' . $detail['hostname'];
-                    if (!isset($analytics['contributors'][$contributor_key])) {
-                        $analytics['contributors'][$contributor_key] = 0;
-                    }
-                    $analytics['contributors'][$contributor_key]++;
+                    $detail['hostname'] = $history['hostname'] ?: $_SESSION['hostname'] ?? 'local';
+                    $detail['date'] = date('d.m.Y H:i', strtotime($history['created_at']));
+                } else {
+                    // Fallback, falls Historie leer ist
+                    $detail['approved_by'] = $_SESSION['username'] ?? 'admin';
+                    $detail['hostname'] = $_SESSION['hostname'] ?? 'AE-WS-8826743.saalfeld.epsa.intern';
+                    $detail['date'] = date('d.m.Y H:i');
                 }
             }
             $analytics['req_details'][] = $detail;
         }
     }
-    // --- NEU: Checkliste laden ---
+
+    // 2. CHECKLISTE (UNTERPUNKTE) LADEN
     $subStmt = $pdo->prepare("SELECT id, title, progress_pct FROM project_tasks WHERE parent_id = ? ORDER BY id ASC");
     $subStmt->execute([$task_id]);
     $analytics['subtasks'] = $subStmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Fortschritt für das Panel neu berechnen, falls Checkliste vorhanden
     if (count($analytics['subtasks']) > 0) {
         $done = 0;
         foreach ($analytics['subtasks'] as $st) {
@@ -97,8 +92,6 @@ try {
         }
         $analytics['checklist_progress'] = round(($done / count($analytics['subtasks'])) * 100);
         $analytics['has_checklist'] = true;
-    } else {
-        $analytics['has_checklist'] = false;
     }
 
     echo json_encode(['success' => true, 'analytics' => $analytics]);
