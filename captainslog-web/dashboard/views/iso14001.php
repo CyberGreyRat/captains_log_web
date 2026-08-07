@@ -20,18 +20,24 @@
     <!-- Tabelle der Umweltaspekte -->
     <div class="flex-1 overflow-auto bg-white border border-slate-200 shadow-sm rounded">
         <table class="w-full text-left text-sm text-slate-600">
-            <thead class="bg-emerald-50 text-emerald-900 uppercase font-bold border-b border-emerald-200">
+            <thead class="bg-emerald-50 text-emerald-900 uppercase font-bold border-b border-emerald-200 text-xs">
                 <tr>
-                    <th class="p-3 w-32">Phase</th>
-                    <th class="p-3 w-48">Umweltaspekt</th>
-                    <th class="p-3">Auswirkung & Maßnahme</th>
-                    <th class="p-3 w-32 text-center">Relevanz</th>
+                    <th class="p-3 w-1/3">Umweltaspekt</th>
+                    <th class="p-3 w-1/2">Auswirkung & Maßnahme</th>
+                    <th class="p-3 w-28 text-center">Relevanz</th>
                     <th class="p-3 w-32 text-center">Status</th>
+                    <th class="p-3 w-24 text-right">Aktionen</th>
                 </tr>
             </thead>
             <tbody id="isoTableBody" class="divide-y divide-slate-100">
+                <!-- colspan auf 5 geändert -->
                 <tr>
                     <td colspan="5" class="p-4 text-center text-slate-400 italic">Lade Daten...</td>
+                </tr>
+            </tbody>
+            <tbody id="isoTableBody" class="divide-y divide-slate-100">
+                <tr>
+                    <td colspan="4" class="p-4 text-center text-slate-400 italic">Lade Daten...</td>
                 </tr>
             </tbody>
         </table>
@@ -44,6 +50,15 @@
     <form id="formIsoEdit" class="w-full max-w-2xl bg-white p-8 rounded shadow-2xl space-y-5">
         <h2 class="text-xl font-bold text-emerald-900 border-b border-emerald-100 pb-2">Umweltaspekt definieren</h2>
         <input type="hidden" id="iso_id">
+        <!-- NEU: Excel-Vorlagen Lader -->
+        <div class="bg-emerald-50 border border-emerald-200 p-4 -mx-8 -mt-2 mb-6">
+            <label class="block text-sm font-bold text-emerald-900 mb-1">Aus Norm-Katalog laden (Standard Excel)</label>
+            <select id="iso_template_selector"
+                class="w-full border border-emerald-300 p-2 font-bold text-emerald-800 bg-white outline-none focus:border-emerald-500 shadow-sm cursor-pointer">
+                <option value="">-- Frei ausfüllen oder Excel-Vorlage wählen --</option>
+            </select>
+        </div>
+
 
         <div class="grid grid-cols-2 gap-4">
             <div>
