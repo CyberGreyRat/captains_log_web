@@ -9,16 +9,17 @@ import { loadHistory } from './history.js';
 import { loadDashboard } from './dashboard.js';
 import { loadSBOM } from './sbom.js';
 import { loadRisks, initRiskEvents } from './risks.js';
+import { loadProjectPlan, initProjectPlanEvents } from './project_plan.js';
 
 document.addEventListener("DOMContentLoaded", async () => {
     try {
 
         await initProjectsDropdown();
 
-            if (currentProjectId) {
+        if (currentProjectId) {
             const projectSelect = document.getElementById('projectSelect');
             if (projectSelect) projectSelect.value = currentProjectId;
-            
+
             // Lade direkt alle Daten des gemerkten Projekts
             loadRequirements();
             loadStakeholders();
@@ -27,6 +28,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             loadDashboard();
             loadSBOM();
             loadRisks();
+            loadProjectPlan();
         }
 
         initRequirementEvents();
@@ -34,6 +36,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         initUseCaseEvents();
         initUserStoryEvents();
         initRiskEvents();
+        initProjectPlanEvents();
 
         const projectSelect = document.getElementById('projectSelect');
         const modal = document.getElementById('projectSwitchModal');
@@ -60,7 +63,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 modal.classList.remove('hidden');
             });
 
-           // Klick auf "Ja, Projekt öffnen" im Modal
+
             confirmBtn.onclick = async () => {
                 modal.classList.add('hidden');
 
@@ -75,7 +78,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 if (currentProjectId) {
                     // 2. Mindestens 500ms warten + Daten laden
                     const minWait = new Promise(resolve => setTimeout(resolve, 500));
-                    
+
                     const loadData = async () => {
                         await loadRequirements();
                         await loadStakeholders();
@@ -84,6 +87,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                         await loadDashboard();
                         await loadSBOM();
                         await loadRisks();
+                        await loadProjectPlan();
                     };
 
                     // Wartet, bis SOWOHL die 500ms um sind, ALS AUCH die Daten geladen wurden
@@ -94,10 +98,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                     const detail = document.getElementById('detail');
                     if (detail) detail.innerHTML = '<div class="flex h-full items-center justify-center text-slate-400 italic">Anforderung auswählen</div>';
                 }
-                
+
                 // 3. TRIGGER: Ladebalken wieder ausblenden
                 document.getElementById('loadingOverlay').classList.add('hidden');
-                
+
                 pendingProjectId = null;
             };
         }
@@ -115,6 +119,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
                 if (e.target.dataset.panel === 'risks') {
                     loadRisks();
+                }
+                if (e.target.dataset.panel === 'projectplan') {
+                    loadProjectPlan();
                 }
             });
         });
