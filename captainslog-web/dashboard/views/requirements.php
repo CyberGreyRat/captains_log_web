@@ -1,4 +1,28 @@
 <!-- dashboard/views/requirements.php -->
+<!-- Filter-Bereich mit Checkboxen -->
+<div class="p-3 bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+    <div class="flex justify-between items-center mb-2">
+        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Typen filtern</label>
+        <div class="space-x-2">
+            <button id="selectAllFilters" class="text-[10px] font-bold text-blue-600 hover:underline">Alle</button>
+            <button id="clearAllFilters" class="text-[10px] font-bold text-slate-400 hover:underline">Keine</button>
+        </div>
+    </div>
+    
+    <div class="flex flex-wrap gap-1.5" id="reqFilterCheckboxes">
+        <!-- Generiere Checkboxen für die wichtigsten Typen -->
+        <?php 
+        $filterTypes = ['USR', 'SYS', 'SEC', 'SRS', 'HRS', 'SWC', 'TC', 'TR'];
+        foreach($filterTypes as $type): 
+        ?>
+        <label class="inline-flex items-center bg-white border border-slate-300 px-1.5 py-0.5 rounded shadow-sm cursor-pointer hover:bg-slate-100 transition">
+            <input type="checkbox" value="<?= $type ?>" checked class="form-checkbox h-3 w-3 text-blue-600 rounded-sm cursor-pointer">
+            <span class="ml-1 text-[10px] font-bold text-slate-700"><?= $type ?></span>
+        </label>
+        <?php endforeach; ?>
+    </div>
+</div>
+
 <div class="flex flex-col h-full">
     <div class="flex justify-between items-center mb-4">
         <!-- ID hinzugefügt, damit JS den Titel  ndern kann -->
@@ -37,17 +61,12 @@
             <label class="text-sm font-semibold block mb-1 text-slate-700">Typ</label>
             <select id="type"
                 class="w-full  border p-2 text-sm bg-slate-50 font-medium focus:border-blue-500 outline-none">
-                <optgroup label="Ziele & Strategie">
-                    <option value="GOAL">Ziel (Stakeholder Goal)</option>
-                </optgroup>
-                <optgroup label="Systemkontext & Architektur">
-                    <option value="AST">Asset (Schützenswertes Gut)</option>
-                </optgroup>
                 <optgroup label="System & Architektur">
                     <option value="USR">User Requirement (USR)</option>
                     <option value="SYS">System Requirement (SYS)</option>
                     <option value="SEC">Security & Cyber Resilience (SEC)</option>
-                    <option value="SRS">Software/Hardware Requirement (SRS)</option>
+                    <option value="SRS">Software Requirement (SRS)</option>
+                    <option value="HRS">Hardware Requirement (HRS)</option>
                     <option value="SWC">Komponente / Modul (SWC)</option>
                 </optgroup>
                 <optgroup label="Verifikation & Test">

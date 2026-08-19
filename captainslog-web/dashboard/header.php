@@ -21,6 +21,7 @@ $username = $_SESSION['username'] ?? 'Gast';
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Captain's Log - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="captains-theme.css">
     <link rel="shortcut icon" href="css/favicon.ico" />
     <style>
         .panel {
@@ -59,7 +60,7 @@ $username = $_SESSION['username'] ?? 'Gast';
                 <!-- Navigation Links (Profil & Admin) -->
                 <nav class="flex items-center gap-3 mr-2 text-sm border-r border-blue-400/40 pr-4">
                     <a href="profile.php" class="hover:text-amber-300 transition">Profil</a>
-                    <?php if ($role === 'admin'): ?>
+                    <?php if ($role === 'admin' || $role === 'editor'): ?>
                         <a href="admin_users.php" class="text-amber-300 font-semibold hover:underline">Nutzerverwaltung</a>
                     <?php endif; ?>
                     <a href="index.php" class="hover:text-amber-300 transition">Home</a>

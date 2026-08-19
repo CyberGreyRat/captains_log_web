@@ -43,20 +43,34 @@ require_once 'header.php';
         <!-- Das 'requirements' Panel wird nun für 3 Tabs genutzt, gesteuert über data-filter -->
         <button
             class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 hover:text-blue-900 transition-colors"
+            data-panel="projectteam">Projektteam</button>
+        <button
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 hover:text-blue-900 transition-colors"
             data-panel="dashboard">Dashboard</button>
 
-        <button class="tab active border-b-2 border-blue-900 text-blue-900 px-4 py-3 font-bold transition-colors"
-            data-panel="requirements" data-filter="REQ">Anforderungen</button>
+        <button class="tab active border-b-2 border-blue-900 px-4 py-3 font-bold text-blue-900 transition-colors"
+            data-panel="requirements">
+            Anforderungen
+        </button>
+
         <button
             class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 hover:text-blue-900 transition-colors"
-            data-panel="requirements" data-filter="AST">Assets</button>
+            data-panel="assets">
+            Assets
+        </button>
+
         <button
             class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 hover:text-blue-900 transition-colors"
-            data-panel="requirements" data-filter="GOAL">Ziele</button>
+            data-panel="goals">
+            Ziele
+        </button>
 
         <button
             class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 hover:text-blue-900 transition-colors"
             data-panel="projectplan">Projektplan</button>
+        <button
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 hover:text-blue-900 transition-colors"
+            data-panel="issues">Issues</button>
         <button
             class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 hover:text-blue-900 transition-colors"
             data-panel="risks">Risiko</button>
@@ -87,14 +101,28 @@ require_once 'header.php';
 <!-- MAIN CONTENT (Lädt nur noch die Bausteine!) -->
 <main class="mx-auto max-w-screen-2xl w-full p-6 flex-1 overflow-hidden">
 
+    <section id="projectteam" class="panel h-full">
+        <?php include 'views/project_team.php'; ?>
+    </section>
     <section id="dashboard" class="panel show h-full">
         <?php include 'views/dashboard.php'; ?>
     </section>
     <section id="requirements" class="panel h-full">
         <?php include 'views/requirements.php'; ?>
     </section>
+
+    <section id="assets" class="panel h-full">
+        <?php include 'views/assets.php'; ?>
+    </section>
+
+    <section id="goals" class="panel h-full">
+        <?php include 'views/goals.php'; ?>
+    </section>
     <section id="projectplan" class="panel h-full">
         <?php include 'views/project_plan.php'; ?>
+    </section>
+    <section id="issues" class="panel h-full">
+        <?php include 'views/issues.php'; ?>
     </section>
     <section id="risks" class="panel h-full">
         <?php include 'views/risks.php'; ?>
@@ -187,25 +215,47 @@ require_once 'header.php';
 <!-- Scripts -->
 <script type="module" src="js/app.js"></script>
 <script>
-    document.querySelectorAll('.tab').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            // Aktiven Tab visuell hervorheben
-            document.querySelectorAll('.tab').forEach(t => {
-                t.classList.remove('active', 'border-blue-900', 'text-blue-900', 'font-bold');
-                t.classList.add('border-transparent', 'text-slate-600', 'font-semibold');
+    document.querySelectorAll('.tab').forEach(button => {
+        button.addEventListener('click', event => {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove(
+                    'active',
+                    'border-blue-900',
+                    'text-blue-900',
+                    'font-bold'
+                );
+
+                tab.classList.add(
+                    'border-transparent',
+                    'text-slate-600',
+                    'font-semibold'
+                );
             });
-            e.target.classList.add('active', 'border-blue-900', 'text-blue-900', 'font-bold');
-            e.target.classList.remove('border-transparent', 'text-slate-600', 'font-semibold');
 
-            // Passendes Panel einblenden
-            const targetPanel = e.target.dataset.panel;
-            document.querySelectorAll('.panel').forEach(p => p.classList.remove('show'));
-            document.getElementById(targetPanel).classList.add('show');
+            const clickedTab = event.currentTarget;
 
-            // Wenn es ein Reiter ist, der das "requirements" Panel nutzt -> Filter anwenden!
-            if (e.target.dataset.filter && window.applyTreeFilter) {
-                window.applyTreeFilter(e.target.dataset.filter);
-            }
+            clickedTab.classList.add(
+                'active',
+                'border-blue-900',
+                'text-blue-900',
+                'font-bold'
+            );
+
+            clickedTab.classList.remove(
+                'border-transparent',
+                'text-slate-600',
+                'font-semibold'
+            );
+
+            const targetPanel = clickedTab.dataset.panel;
+
+            document.querySelectorAll('.panel').forEach(panel => {
+                panel.classList.remove('show');
+            });
+
+            document
+                .getElementById(targetPanel)
+                ?.classList.add('show');
         });
     });
 </script>

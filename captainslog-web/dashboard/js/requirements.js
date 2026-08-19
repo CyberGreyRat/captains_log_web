@@ -5,23 +5,31 @@ import { renderHistory } from './history.js';
 let loadedRequirements = [];
 let globalStakeholders = [];
 
-window.currentTreeFilter = 'ALL'; // Speichert den aktiven Tab
-window.currentTreeFilter = 'REQ'; // Standardansicht
+// NEU: Globale Variable für die aktiven Checkbox-Filter
+window.activeTypeFilters = []; 
 
-// Filter für Tabs wechseln
-window.applyTreeFilter = function (filter) {
-    window.currentTreeFilter = filter;
+// Wird vom HTML-Filter-Bereich aus aufgerufen
+window.updateTypeFilters = function() {
+    const container = document.getElementById('reqFilterCheckboxes');
+    if (!container) return;
+
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
     
-    // Überschrift dynamisch anpassen
-    const titleEl = document.getElementById('reqMainTitle');
-    if (titleEl) {
-        if (filter === 'GOAL') titleEl.textContent = 'Projekt-Ziele (Goals)';
-        else if (filter === 'AST') titleEl.textContent = 'Assets (Werte & Güter)';
-        else titleEl.textContent = 'Anforderungen';
-    }
+    // Holt sich alle angehakten Values in ein Array (z.B. ['SRS', 'TC', 'GOAL'])
+    window.activeTypeFilters = Array.from(checkboxes)
+                                    .filter(cb => cb.checked)
+                                    .map(cb => cb.value);
     
     window.renderTreeList();
 };
+
+window.selectAllFilters = function(state) {
+    const container = document.getElementById('reqFilterCheckboxes');
+    if (!container) return;
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(cb => cb.checked = state);
+    window.updateTypeFilters();
+}
 
 window.filterCheckboxes = function (inputId, listId) {
     const input = document.getElementById(inputId);
@@ -88,13 +96,12 @@ window.handleTypeChange = function (loadedAttrs = {}) {
     const type = typeDropdown.value;
 
     const criteriaContainer = document.getElementById('criteria_container');
-    const needsCriteria = ['USR', 'SYS', 'SEC', 'SRS', 'SWC'];
+    const needsCriteria = ['USR', 'SYS', 'SEC', 'SRS', 'HRS' ,'SWC'];
     if (criteriaContainer) {
         if (needsCriteria.includes(type)) {
             criteriaContainer.classList.remove('hidden');
         } else {
             criteriaContainer.classList.add('hidden');
-            // Leeren, falls noch Text drin war und der Typ gewechselt wird
             if (document.getElementById('acceptance_criteria')) {
                 document.getElementById('acceptance_criteria').value = '';
             }
@@ -239,16 +246,16 @@ export async function loadRequirements() {
             if (typeof p === 'string') { try { p = JSON.parse(p); } catch (e) { p = []; } }
             req.parsedParents = Array.isArray(p) ? p : [];
         });
-        window.renderTreeList(); // Startet das Rendering inkl. aktuellem Filter
+        
+        // Neu: Initial die Checkboxen auslesen, bevor das erste Mal gerendert wird
+        window.updateTypeFilters(); 
+        
     } catch (e) {
         console.error("Fehler beim Laden:", e);
     } finally {
-        window.hideLoader(); // Ladebalken aus (egal ob Erfolg oder Fehler)
+        if(typeof window.hideLoader === 'function') window.hideLoader();
     }
 }
-
-
-
 
 window.renderTreeList = function () {
     const listContainer = document.getElementById('items');
@@ -260,26 +267,46 @@ window.renderTreeList = function () {
     }
     
     listContainer.innerHTML = '';
-    const filter = window.currentTreeFilter || 'REQ';
-    let visibleReqs = [];
     
-    // Harte, saubere Trennung der Kategorien!
-    if (filter === 'REQ') {
-        visibleReqs = loadedRequirements.filter(r => !['GOAL', 'AST', 'RISK'].includes(r.type));
-    } else if (filter === 'GOAL') {
-        visibleReqs = loadedRequirements.filter(r => r.type === 'GOAL');
-    } else if (filter === 'AST') {
-        visibleReqs = loadedRequirements.filter(r => r.type === 'AST');
+    // Wir holen uns nun alle Elemente, deren Typ in den Checkboxen aktiviert ist
+    let targetReqs = [];
+    if (window.activeTypeFilters.length === 0) {
+        // Nichts angehakt = Nichts anzeigen
+        listContainer.innerHTML = '<div class="p-4 text-sm text-slate-500 italic text-center">Bitte Filter oben auswählen.</div>';
+        return;
+    } else {
+        // Nur die Typen in der Checkbox-Liste zulassen
+        targetReqs = loadedRequirements.filter(r => window.activeTypeFilters.includes(r.type));
     }
 
-    if (visibleReqs.length === 0) {
-        listContainer.innerHTML = '<div class="p-4 text-sm text-slate-500 italic">Keine Einträge in diesem Bereich.</div>';
+    if (targetReqs.length === 0) {
+        listContainer.innerHTML = '<div class="p-4 text-sm text-slate-500 italic">Keine Einträge für diese Filter vorhanden.</div>';
         return;
     }
 
-    // Baum-Struktur Rendern (Wird nun sauber auf die gefilterte Liste angewendet)
+    // Baum-Struktur Rendern (mit Parent-Rettung)
     const rendered = new Set();
     
+    // Parent-Rettung: Wenn ein Kind sichtbar sein soll, müssen wir seine Parents zwingend in unsere targetReqs aufnehmen (damit der Baum nicht reißt)
+    let needsParentCheck = true;
+    while(needsParentCheck) {
+        needsParentCheck = false;
+        const currentTargetKeys = targetReqs.map(r => r.req_key);
+        
+        targetReqs.forEach(req => {
+            req.parsedParents.forEach(parentId => {
+                if(!currentTargetKeys.includes(parentId)) {
+                    const missingParent = loadedRequirements.find(r => r.req_key === parentId);
+                    if (missingParent) {
+                        targetReqs.push(missingParent);
+                        needsParentCheck = true; // Nochmal durchlaufen, falls dieser Parent wieder Parents hat
+                    }
+                }
+            });
+        });
+    }
+
+    // Ab hier rendern wir den sauberen, geretteten Baum
     function renderNode(req, level) {
         if (rendered.has(req.req_key)) return;
         rendered.add(req.req_key);
@@ -291,7 +318,7 @@ window.renderTreeList = function () {
         btn.className = `w-full text-left p-2.5 border-b border-slate-100 hover:bg-blue-50 transition focus:bg-blue-100 flex items-center justify-between text-xs ${bgClass}`;
         btn.style.paddingLeft = `calc(0.75rem + ${indentRem}rem)`;
         
-        const children = visibleReqs.filter(r => r.parsedParents.includes(req.req_key));
+        const children = targetReqs.filter(r => r.parsedParents.includes(req.req_key));
         const icon = children.length > 0 ? `<span class="text-slate-400 mr-1">▶</span>` : `<span class="mr-3"></span>`;
         
         btn.innerHTML = `
@@ -300,7 +327,7 @@ window.renderTreeList = function () {
                 <span class="font-mono font-bold text-blue-950 mr-1">${req.req_key}</span>
                 <span class="text-slate-700 truncate">${req.title}</span>
             </div>
-            <span class="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5 font-mono shrink-0 rounded">${req.review_status || req.status}</span>
+            <span class="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5 font-mono shrink-0 rounded">${req.review_status || req.status || 'Neu'}</span>
         `;
         btn.onclick = () => showRequirementDetail(req);
         listContainer.appendChild(btn);
@@ -309,13 +336,15 @@ window.renderTreeList = function () {
     }
     
     // Wurzelelemente finden (Die keine Parents innerhalb der sichtbaren Liste haben)
-    const roots = visibleReqs.filter(req => 
+    const roots = targetReqs.filter(req => 
         req.parsedParents.length === 0 || 
-        !req.parsedParents.some(pk => visibleReqs.find(r => r.req_key === pk))
+        !req.parsedParents.some(pk => targetReqs.find(r => r.req_key === pk))
     );
     
     roots.forEach(root => renderNode(root, 0));
-    visibleReqs.forEach(req => { if (!rendered.has(req.req_key)) renderNode(req, 0); });
+    
+    // Sicherheitsnetz für verwaiste Elemente
+    targetReqs.forEach(req => { if (!rendered.has(req.req_key)) renderNode(req, 0); });
 };
 
 window.showRequirementDetailById = function (id) {
@@ -431,11 +460,19 @@ function showRequirementDetail(req) {
         <div class="bg-slate-50 border p-4 ">${criteriaHtml}</div>
     `;
 
-    // HIER: Rendert die Historie direkt unten dran!
     renderHistory(req.req_key);
 }
 
 export function initRequirementEvents() {
+    
+    // NEU: Event Listener für die Checkboxen aktivieren
+    const filterContainer = document.getElementById('reqFilterCheckboxes');
+    if (filterContainer) {
+        filterContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', () => window.updateTypeFilters());
+        });
+    }
+
     const typeDropdown = document.getElementById('type');
     if (typeDropdown) {
         typeDropdown.addEventListener('change', () => window.handleTypeChange());
@@ -468,8 +505,7 @@ export function initRequirementEvents() {
 
             const typeValue = document.getElementById('type') ? document.getElementById('type').value : '';
 
-            // Intelligenter Kriterien-Zwang
-            const needsCriteria = ['USR', 'SYS', 'SEC', 'SRS', 'SWC'];
+            const needsCriteria = ['USR', 'SYS', 'SEC', 'SRS', 'HRS', 'SWC'];
             if (needsCriteria.includes(typeValue)) {
                 const criteriaText = document.getElementById('acceptance_criteria') ? document.getElementById('acceptance_criteria').value.trim() : '';
                 if (!criteriaText) {
@@ -521,12 +557,8 @@ export function initRequirementEvents() {
                 const data = await res.json();
                 if (data.success) {
                     document.getElementById('reqModal').classList.add('hidden');
-
-                    // 1. Liste im Hintergrund neu laden
                     await loadRequirements();
-
-                    // 2. Detailansicht sofort aktualisieren (ohne F5!)
-                    const updatedId = payload.id || data.id; // Nimmt die ID der bearbeiteten oder neuen Anforderung
+                    const updatedId = payload.id || data.id;
                     if (updatedId) {
                         window.showRequirementDetailById(updatedId);
                     }
