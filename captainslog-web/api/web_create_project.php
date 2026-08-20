@@ -4,6 +4,7 @@ session_start();
 
 // Pfad anpassen: Da wir im /api/ Ordner sind, müssen wir mit '../' eins hoch!
 require '../config/db.php';
+require_once __DIR__ . '/../config/audit_context.php';
 
 // Ist der Nutzer überhaupt im Browser eingeloggt?
 if (!isset($_SESSION['user_id'])) {
@@ -22,6 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $project_id = 'proj-' . bin2hex(random_bytes(6));
 
         try {
+    set_audit_context($pdo, 'web', basename($_SERVER['SCRIPT_NAME']));
+
             // Transaktion starten (entweder es klappt alles, oder nichts)
             $pdo->beginTransaction();
 

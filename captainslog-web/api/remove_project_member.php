@@ -3,9 +3,12 @@ ini_set('display_errors', 0);
 error_reporting(E_ALL);
 session_start();
 require '../config/db.php';
+require_once __DIR__ . '/../config/audit_context.php';
 header('Content-Type: application/json; charset=utf-8');
 
 try {
+    set_audit_context($pdo, 'web', basename($_SERVER['SCRIPT_NAME']));
+
     require_edit_permission();
     $data = json_decode(file_get_contents('php://input'), true) ?: [];
     $projectId = $data['project_id'] ?? '';

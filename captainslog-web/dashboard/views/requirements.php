@@ -1,175 +1,754 @@
 <!-- dashboard/views/requirements.php -->
-<!-- Filter-Bereich mit Checkboxen -->
-<div class="p-3 bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
-    <div class="flex justify-between items-center mb-2">
-        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Typen filtern</label>
-        <div class="space-x-2">
-            <button id="selectAllFilters" class="text-[10px] font-bold text-blue-600 hover:underline">Alle</button>
-            <button id="clearAllFilters" class="text-[10px] font-bold text-slate-400 hover:underline">Keine</button>
-        </div>
-    </div>
-    
-    <div class="flex flex-wrap gap-1.5" id="reqFilterCheckboxes">
-        <!-- Generiere Checkboxen für die wichtigsten Typen -->
-        <?php 
-        $filterTypes = ['USR', 'SYS', 'SEC', 'SRS', 'HRS', 'SWC', 'TC', 'TR'];
-        foreach($filterTypes as $type): 
-        ?>
-        <label class="inline-flex items-center bg-white border border-slate-300 px-1.5 py-0.5 rounded shadow-sm cursor-pointer hover:bg-slate-100 transition">
-            <input type="checkbox" value="<?= $type ?>" checked class="form-checkbox h-3 w-3 text-blue-600 rounded-sm cursor-pointer">
-            <span class="ml-1 text-[10px] font-bold text-slate-700"><?= $type ?></span>
-        </label>
-        <?php endforeach; ?>
-    </div>
-</div>
 
-<div class="flex flex-col h-full">
-    <div class="flex justify-between items-center mb-4">
-        <!-- ID hinzugefügt, damit JS den Titel  ndern kann -->
-        <h2 id="reqMainTitle" class="text-2xl font-bold text-blue-900">Anforderungen</h2>
-        <button id="new"
-            class="bg-blue-900 px-4 py-2 font-semibold text-white shadow hover:bg-blue-800 transition rounded">
-            + Neues Element
+<div class="cl-panel">
+
+    <!-- =====================================================
+         KOPFBEREICH
+    ====================================================== -->
+    <div class="cl-panel-header">
+
+        <div>
+            <p class="cl-panel-eyebrow">
+                Requirements · Traceability · Verification
+            </p>
+
+            <h2
+                id="reqMainTitle"
+                class="cl-panel-title">
+                Anforderungen
+            </h2>
+        </div>
+
+        <button
+            id="new"
+            type="button"
+            class="cl-button cl-button-primary">
+
+            <svg
+                class="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true">
+
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 4v16m8-8H4">
+                </path>
+            </svg>
+
+            Neues Element
         </button>
     </div>
-    <div class="grid gap-5 lg:grid-cols-[350px_1fr] flex-1 min-h-0">
 
-        <aside class="rounded border bg-white shadow-sm overflow-hidden flex flex-col h-full">
-            <!-- Interne Filter Tabs WURDEN ENTFERNT -->
-            <div id="items" class="p-4 text-sm text-slate-500 overflow-y-auto flex-1">
-                Bitte wähle oben ein Projekt aus.
+
+    <!-- =====================================================
+         FILTERLEISTE
+    ====================================================== -->
+    <div class="shrink-0 border-b border-slate-200 bg-slate-50 px-5 py-3">
+
+        <div class="mb-2 flex items-center justify-between gap-4">
+
+            <div>
+                <div class="text-xs font-extrabold uppercase tracking-wide text-blue-950">
+                    Anforderungstypen
+                </div>
+
+                <div class="mt-0.5 text-[11px] text-slate-500">
+                    Wähle aus, welche Elemente in der Baumstruktur angezeigt werden.
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+
+                <button
+                    id="selectAllFilters"
+                    type="button"
+                    class="cl-button cl-button-secondary min-h-0 px-3 py-1.5 text-[10px]">
+                    Alle auswählen
+                </button>
+
+                <button
+                    id="clearAllFilters"
+                    type="button"
+                    class="cl-button cl-button-secondary min-h-0 px-3 py-1.5 text-[10px]">
+                    Auswahl löschen
+                </button>
+            </div>
+        </div>
+
+        <div
+            id="reqFilterCheckboxes"
+            class="flex flex-wrap gap-2">
+
+            <?php
+            $filterTypes = [
+                'USR',
+                'SYS',
+                'SEC',
+                'SRS',
+                'HRS',
+                'SWC',
+                'TC',
+                'TR'
+            ];
+
+            foreach ($filterTypes as $type):
+            ?>
+                <label
+                    class="inline-flex cursor-pointer items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 shadow-sm transition hover:border-blue-300 hover:bg-blue-50">
+
+                    <input
+                        type="checkbox"
+                        value="<?= htmlspecialchars($type) ?>"
+                        checked
+                        class="h-3.5 w-3.5 cursor-pointer rounded border-slate-300 text-blue-950 focus:ring-blue-900">
+
+                    <span class="font-mono text-[11px] font-extrabold text-slate-700">
+                        <?= htmlspecialchars($type) ?>
+                    </span>
+                </label>
+            <?php endforeach; ?>
+        </div>
+    </div>
+
+
+    <!-- =====================================================
+         HAUPTBEREICH
+    ====================================================== -->
+    <div class="grid min-h-0 flex-1 gap-4 overflow-hidden p-4 lg:grid-cols-[360px_minmax(0,1fr)]">
+
+        <!-- Baumstruktur -->
+        <aside class="cl-card flex h-full min-h-0 flex-col overflow-hidden">
+
+            <div class="flex shrink-0 items-center justify-between border-b border-slate-200 bg-[#eef2f6] px-4 py-3">
+
+                <div>
+                    <h3 class="text-xs font-extrabold uppercase tracking-wide text-blue-950">
+                        Struktur
+                    </h3>
+
+                    <p class="mt-0.5 text-[10px] text-slate-500">
+                        Anforderungen und Beziehungen
+                    </p>
+                </div>
+
+                <svg
+                    class="h-5 w-5 text-slate-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true">
+
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M4 6h16M4 12h16M4 18h16">
+                    </path>
+                </svg>
+            </div>
+
+            <div
+                id="items"
+                class="min-h-0 flex-1 overflow-y-auto p-3 text-sm text-slate-500">
+
+                <div class="cl-empty-state">
+                    Bitte zuerst ein Projekt auswählen.
+                </div>
             </div>
         </aside>
 
-        <!-- Der restliche Code (<article id="detail"... und die Modals) bleibt absolut unverändert! -->
-        <article id="detail" class="-lg border bg-white p-6 shadow-sm overflow-y-auto h-full relative">
-            <div class="flex h-full items-center justify-center text-slate-400 italic">
-                Wähle ein Element aus, um Details zu sehen.
+
+        <!-- Detailansicht -->
+        <article
+            id="detail"
+            class="cl-card relative h-full min-h-0 overflow-y-auto p-6">
+
+            <div class="flex h-full min-h-[300px] flex-col items-center justify-center text-center text-slate-400">
+
+                <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-lg border border-slate-200 bg-slate-50">
+
+                    <svg
+                        class="h-7 w-7 text-slate-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true">
+
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.7"
+                            d="M9 12h6m-6 4h6M9 8h6M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z">
+                        </path>
+                    </svg>
+                </div>
+
+                <p class="font-semibold text-slate-500">
+                    Kein Element ausgewählt
+                </p>
+
+                <p class="mt-1 max-w-sm text-sm">
+                    Wähle links eine Anforderung aus, um Details,
+                    Beziehungen, Akzeptanzkriterien und Historie anzuzeigen.
+                </p>
             </div>
         </article>
     </div>
+
+
+    <!-- =====================================================
+         FUSSLEISTE
+    ====================================================== -->
+    <div class="cl-panel-footer">
+
+        <span>
+            Requirements Management
+        </span>
+
+        <span>
+            Anforderungen · Testfälle · Traceability
+        </span>
+    </div>
 </div>
 
-<!-- Modal für Neues Element -->
-<div id="reqModal"
-    class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/70 p-4 sm:p-6 backdrop-blur-sm">
-    <form id="reqForm"
-        class="w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col space-y-4  bg-white p-6 sm:p-8 shadow-2xl">
-        <h2 id="reqHeading" class="text-xl font-bold text-blue-900 border-b pb-3">Neues Element anlegen</h2>
 
-        <div>
-            <label class="text-sm font-semibold block mb-1 text-slate-700">Typ</label>
-            <select id="type"
-                class="w-full  border p-2 text-sm bg-slate-50 font-medium focus:border-blue-500 outline-none">
-                <optgroup label="System & Architektur">
-                    <option value="USR">User Requirement (USR)</option>
-                    <option value="SYS">System Requirement (SYS)</option>
-                    <option value="SEC">Security & Cyber Resilience (SEC)</option>
-                    <option value="SRS">Software Requirement (SRS)</option>
-                    <option value="HRS">Hardware Requirement (HRS)</option>
-                    <option value="SWC">Komponente / Modul (SWC)</option>
-                </optgroup>
-                <optgroup label="Verifikation & Test">
-                    <option value="TC">Test Case / Specification (TC)</option>
-                    <option value="TR">Test Result / Protocol (TR)</option>
-                </optgroup>
-            </select>
-        </div>
+<!-- =========================================================
+     MODAL: ANFORDERUNG ERSTELLEN ODER BEARBEITEN
+========================================================== -->
+<div
+    id="reqModal"
+    class="cl-modal-overlay hidden">
 
-        <label class="block text-sm font-semibold text-slate-700">Titel / Name
-            <input id="title" required class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none">
-        </label>
+    <form
+        id="reqForm"
+        class="cl-modal max-w-3xl">
 
-        <label class="block text-sm font-semibold text-slate-700">Beschreibung
-            <textarea id="text" required rows="3"
-                class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
-        </label>
+        <!-- Modal-Kopf -->
+        <div class="cl-modal-header">
 
-        <label class="block text-sm font-semibold text-slate-700">Begründung (Rationale)
-            <textarea id="rationale" rows="2"
-                class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
-        </label>
-
-        <!-- Dynamische Attribute -->
-        <div id="dynamicAttributes" class="hidden -lg bg-indigo-50 p-4 border border-indigo-100 shadow-inner mt-2">
-            <h3 class="mb-3 text-xs font-bold uppercase tracking-wider text-indigo-800">Spezifische Attribute</h3>
-            <div id="attributeFields" class="grid gap-4 md:grid-cols-2"></div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-            <label class="block text-sm font-semibold text-slate-700">Zuständigkeit (Stakeholder)
-                <select id="source_contact" class="mt-1 w-full  border p-2 font-normal outline-none bg-slate-50">
-                    <option value="">-- Niemand zugewiesen --</option>
-                </select>
-            </label>
-            <label class="block text-sm font-semibold text-slate-700">Aufwandschätzung
-                <input id="effort" type="text" placeholder="z.B. 3 Tage / 5 Story Points"
-                    class="mt-1 w-full  border p-2 font-normal outline-none">
-            </label>
-        </div>
-
-        <div id="criteria_container" class="mt-2 transition-all">
-            <label class="block text-sm font-semibold text-slate-700">Akzeptanzkriterien (Ein Kriterium pro Zeile)
-                <textarea id="acceptance_criteria" rows="3" placeholder="- Kriterium 1&#10;- Kriterium 2"
-                    class="mt-1 w-full  border p-2 font-normal outline-none"></textarea>
-            </label>
-        </div>
-
-        <label class="block text-sm font-semibold text-slate-700 mt-2">Prüf-Status & Workflow
-            <select id="review_status" class="mt-1 w-full  border p-2 font-normal bg-slate-50 outline-none">
-                <option value="Neu">Neu</option>
-                <option value="Wartet auf Überprüfung">Wartet auf Überprüfung</option>
-                <option value="Geprüft & Freigegeben">Geprüft & Freigegeben</option>
-                <option value="Abgelehnt">Abgelehnt</option>
-            </select>
-        </label>
-
-        <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-200 pt-5 mt-2">
             <div>
-                <label class="text-sm font-semibold block mb-1 text-slate-700">Parents (Erfüllt)</label>
-                <input type="text" id="parentSearch" placeholder="Suchen..."
-                    class="w-full text-xs  border p-1.5 mb-2 bg-slate-50 outline-none"
-                    oninput="window.filterCheckboxes('parentSearch', 'parentsCheckboxList')">
-                <div id="parentsCheckboxList"
-                    class="h-40 overflow-y-auto  border bg-white p-2 space-y-1 text-xs shadow-inner"></div>
+                <p class="cl-panel-eyebrow">
+                    Requirements Engineering
+                </p>
+
+                <h2
+                    id="reqHeading"
+                    class="cl-modal-title">
+                    Neues Element anlegen
+                </h2>
             </div>
-            <div>
-                <label class="text-sm font-semibold block mb-1 text-slate-700">Children (Wird erfüllt durch)</label>
-                <input type="text" id="childSearch" placeholder="Suchen..."
-                    class="w-full text-xs  border p-1.5 mb-2 bg-slate-50 outline-none"
-                    oninput="window.filterCheckboxes('childSearch', 'childrenCheckboxList')">
-                <div id="childrenCheckboxList"
-                    class="h-40 overflow-y-auto  border bg-white p-2 space-y-1 text-xs shadow-inner"></div>
-            </div>
+
+            <button
+                type="button"
+                onclick="document.getElementById('reqModal').classList.add('hidden')"
+                class="cl-button cl-button-secondary min-h-0 px-2.5 py-2"
+                title="Fenster schließen"
+                aria-label="Fenster schließen">
+
+                <svg
+                    class="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true">
+
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M6 18 18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
         </div>
 
-        <div class="flex justify-end gap-3 mt-6 border-t pt-4">
-            <button type="button" onclick="document.getElementById('reqModal').classList.add('hidden')"
-                class=" border px-4 py-2 hover:bg-slate-50 font-medium transition">Abbrechen</button>
-            <button type="submit"
-                class=" bg-blue-900 px-5 py-2 font-medium text-white shadow hover:bg-blue-800 transition">Speichern</button>
+
+        <!-- Modal-Inhalt -->
+        <div class="cl-modal-body">
+
+            <!-- Basisinformationen -->
+            <fieldset class="cl-fieldset">
+
+                <legend class="cl-legend">
+                    Basisinformationen
+                </legend>
+
+                <div class="cl-fieldset-body space-y-5">
+
+                    <!-- Typ -->
+                    <label class="cl-label">
+                        Typ
+
+                        <select
+                            id="type"
+                            class="cl-select font-medium">
+
+                            <optgroup label="System und Architektur">
+                                <option value="USR">
+                                    User Requirement (USR)
+                                </option>
+
+                                <option value="SYS">
+                                    System Requirement (SYS)
+                                </option>
+
+                                <option value="SEC">
+                                    Security & Cyber Resilience (SEC)
+                                </option>
+
+                                <option value="SRS">
+                                    Software Requirement (SRS)
+                                </option>
+
+                                <option value="HRS">
+                                    Hardware Requirement (HRS)
+                                </option>
+
+                                <option value="SWC">
+                                    Komponente / Modul (SWC)
+                                </option>
+                            </optgroup>
+
+                            <optgroup label="Verifikation und Test">
+                                <option value="TC">
+                                    Test Case / Specification (TC)
+                                </option>
+
+                                <option value="TR">
+                                    Test Result / Protocol (TR)
+                                </option>
+                            </optgroup>
+                        </select>
+                    </label>
+
+                    <!-- Titel -->
+                    <label class="cl-label">
+                        Titel / Name
+
+                        <input
+                            id="title"
+                            type="text"
+                            required
+                            maxlength="255"
+                            placeholder="Kurze und eindeutige Bezeichnung"
+                            class="cl-input text-base font-semibold">
+                    </label>
+
+                    <!-- Beschreibung -->
+                    <label class="cl-label">
+                        Beschreibung
+
+                        <textarea
+                            id="text"
+                            required
+                            rows="4"
+                            placeholder="Beschreibe die Anforderung eindeutig und prüfbar."
+                            class="cl-textarea"></textarea>
+                    </label>
+
+                    <!-- Rationale -->
+                    <label class="cl-label">
+                        Begründung / Rationale
+
+                        <textarea
+                            id="rationale"
+                            rows="3"
+                            placeholder="Warum ist diese Anforderung notwendig?"
+                            class="cl-textarea"></textarea>
+                    </label>
+                </div>
+            </fieldset>
+
+
+            <!-- Dynamische Attribute -->
+            <fieldset
+                id="dynamicAttributes"
+                class="cl-fieldset hidden border-indigo-200 bg-indigo-50/40">
+
+                <legend class="cl-legend bg-indigo-50 text-indigo-900">
+                    Spezifische Attribute
+                </legend>
+
+                <div class="cl-fieldset-body">
+                    <div
+                        id="attributeFields"
+                        class="grid gap-4 md:grid-cols-2">
+                    </div>
+                </div>
+            </fieldset>
+
+
+            <!-- Verantwortung und Planung -->
+            <fieldset class="cl-fieldset">
+
+                <legend class="cl-legend">
+                    Verantwortung und Planung
+                </legend>
+
+                <div class="cl-fieldset-body grid grid-cols-1 gap-5 md:grid-cols-2">
+
+                    <label class="cl-label">
+                        Zuständigkeit / Stakeholder
+
+                        <select
+                            id="source_contact"
+                            class="cl-select">
+
+                            <option value="">
+                                -- Niemand zugewiesen --
+                            </option>
+                        </select>
+
+                        <span class="cl-help">
+                            Zuständige oder fachlich verantwortliche Person.
+                        </span>
+                    </label>
+
+                    <label class="cl-label">
+                        Aufwandschätzung
+
+                        <input
+                            id="effort"
+                            type="text"
+                            placeholder="z.B. 3 Tage oder 5 Story Points"
+                            class="cl-input">
+
+                        <span class="cl-help">
+                            Freie Aufwandsangabe für Planung und Bewertung.
+                        </span>
+                    </label>
+                </div>
+            </fieldset>
+
+
+            <!-- Akzeptanzkriterien -->
+            <fieldset
+                id="criteria_container"
+                class="cl-fieldset transition-all">
+
+                <legend class="cl-legend">
+                    Akzeptanzkriterien
+                </legend>
+
+                <div class="cl-fieldset-body">
+
+                    <label class="cl-label">
+                        Prüfkriterien
+
+                        <textarea
+                            id="acceptance_criteria"
+                            rows="5"
+                            placeholder="- Kriterium 1&#10;- Kriterium 2"
+                            class="cl-textarea"></textarea>
+
+                        <span class="cl-help">
+                            Ein prüfbares Kriterium pro Zeile. Kriterien
+                            können später einzeln verifiziert werden.
+                        </span>
+                    </label>
+                </div>
+            </fieldset>
+
+
+            <!-- Workflow -->
+            <fieldset class="cl-fieldset">
+
+                <legend class="cl-legend">
+                    Review und Workflow
+                </legend>
+
+                <div class="cl-fieldset-body">
+
+                    <label class="cl-label">
+                        Prüfstatus
+
+                        <select
+                            id="review_status"
+                            class="cl-select font-semibold">
+
+                            <option value="Neu">
+                                Neu
+                            </option>
+
+                            <option value="Wartet auf Überprüfung">
+                                Wartet auf Überprüfung
+                            </option>
+
+                            <option value="Geprüft & Freigegeben">
+                                Geprüft & Freigegeben
+                            </option>
+
+                            <option value="Abgelehnt">
+                                Abgelehnt
+                            </option>
+                        </select>
+                    </label>
+                </div>
+            </fieldset>
+
+
+            <!-- Beziehungen -->
+            <fieldset class="cl-fieldset">
+
+                <legend class="cl-legend">
+                    Traceability und Beziehungen
+                </legend>
+
+                <div class="cl-fieldset-body grid grid-cols-1 gap-6 md:grid-cols-2">
+
+                    <!-- Parents -->
+                    <div>
+                        <label
+                            for="parentSearch"
+                            class="cl-label">
+                            Parents
+                        </label>
+
+                        <p class="cl-help mb-2">
+                            Übergeordnete Elemente, die durch dieses Element
+                            erfüllt oder unterstützt werden.
+                        </p>
+
+                        <div class="relative">
+                            <svg
+                                class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true">
+
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0z">
+                                </path>
+                            </svg>
+
+                            <input
+                                id="parentSearch"
+                                type="search"
+                                placeholder="Parents suchen"
+                                class="cl-input mt-0 pl-8 text-xs"
+                                oninput="window.filterCheckboxes('parentSearch', 'parentsCheckboxList')">
+                        </div>
+
+                        <div
+                            id="parentsCheckboxList"
+                            class="mt-2 h-44 space-y-1 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 p-2 text-xs">
+                        </div>
+                    </div>
+
+
+                    <!-- Children -->
+                    <div>
+                        <label
+                            for="childSearch"
+                            class="cl-label">
+                            Children
+                        </label>
+
+                        <p class="cl-help mb-2">
+                            Untergeordnete Elemente, durch die dieses Element
+                            umgesetzt oder nachgewiesen wird.
+                        </p>
+
+                        <div class="relative">
+                            <svg
+                                class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true">
+
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0z">
+                                </path>
+                            </svg>
+
+                            <input
+                                id="childSearch"
+                                type="search"
+                                placeholder="Children suchen"
+                                class="cl-input mt-0 pl-8 text-xs"
+                                oninput="window.filterCheckboxes('childSearch', 'childrenCheckboxList')">
+                        </div>
+
+                        <div
+                            id="childrenCheckboxList"
+                            class="mt-2 h-44 space-y-1 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 p-2 text-xs">
+                        </div>
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+
+
+        <!-- Modal-Fuß -->
+        <div class="cl-modal-footer">
+
+            <button
+                type="button"
+                onclick="document.getElementById('reqModal').classList.add('hidden')"
+                class="cl-button cl-button-secondary">
+                Abbrechen
+            </button>
+
+            <button
+                type="submit"
+                class="cl-button cl-button-primary">
+
+                <svg
+                    class="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true">
+
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M5 13l4 4L19 7">
+                    </path>
+                </svg>
+
+                Speichern
+            </button>
         </div>
     </form>
 </div>
 
-<!-- Modal für Akzeptanzkriterien-Prüfung bleibt unverändert -->
-<div id="verifyModal"
-    class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
-    <form id="verifyForm" class="w-full max-w-md space-y-4  bg-white p-6 shadow-2xl">
-        <h2 class="text-xl font-bold text-blue-900 border-b pb-2">Kriterium prüfen</h2>
-        <input type="hidden" id="verify_req_id">
-        <input type="hidden" id="verify_crit_idx">
-        <p id="verify_crit_text" class="text-sm font-semibold text-slate-800 bg-slate-100 p-3  border"></p>
-        <label class="block text-sm font-semibold text-slate-700 mt-4">Notiz / Link zum Testprotokoll
-            <textarea id="verify_note" required rows="3" placeholder="z.B. Test T-045 erfolgreich durchgeführt..."
-                class="mt-1 w-full  border p-2 font-normal focus:border-blue-500 outline-none"></textarea>
-        </label>
-        <div class="flex justify-end gap-3 mt-6 border-t pt-4">
-            <button type="button" onclick="document.getElementById('verifyModal').classList.add('hidden')"
-                class=" border px-4 py-2 hover:bg-slate-50 font-medium transition">Abbrechen</button>
-            <button type="submit"
-                class=" bg-emerald-600 px-5 py-2 font-medium text-white shadow hover:bg-emerald-500 transition">Als
-                'Geprüft' markieren</button>
+
+<!-- =========================================================
+     MODAL: AKZEPTANZKRITERIUM VERIFIZIEREN
+========================================================== -->
+<div
+    id="verifyModal"
+    class="cl-modal-overlay hidden z-[230]">
+
+    <form
+        id="verifyForm"
+        class="cl-modal max-w-md">
+
+        <!-- Modal-Kopf -->
+        <div class="cl-modal-header">
+
+            <div>
+                <p class="cl-panel-eyebrow">
+                    Verification
+                </p>
+
+                <h2 class="cl-modal-title">
+                    Kriterium prüfen
+                </h2>
+            </div>
+
+            <button
+                type="button"
+                onclick="document.getElementById('verifyModal').classList.add('hidden')"
+                class="cl-button cl-button-secondary min-h-0 px-2.5 py-2"
+                title="Fenster schließen"
+                aria-label="Fenster schließen">
+
+                <svg
+                    class="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true">
+
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M6 18 18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+        </div>
+
+
+        <!-- Modal-Inhalt -->
+        <div class="cl-modal-body space-y-5">
+
+            <input
+                id="verify_req_id"
+                type="hidden">
+
+            <input
+                id="verify_crit_idx"
+                type="hidden">
+
+            <div>
+                <div class="mb-2 text-xs font-extrabold uppercase tracking-wide text-blue-950">
+                    Zu prüfendes Kriterium
+                </div>
+
+                <p
+                    id="verify_crit_text"
+                    class="rounded-md border border-blue-200 bg-blue-50 p-4 text-sm font-semibold leading-6 text-slate-800">
+                </p>
+            </div>
+
+            <label class="cl-label">
+                Notiz / Link zum Testprotokoll
+
+                <textarea
+                    id="verify_note"
+                    required
+                    rows="4"
+                    placeholder="z.B. Test T-045 erfolgreich durchgeführt..."
+                    class="cl-textarea"></textarea>
+
+                <span class="cl-help">
+                    Hinterlege einen nachvollziehbaren Verifikationsnachweis,
+                    eine Test-ID oder einen Link zum Prüfprotokoll.
+                </span>
+            </label>
+        </div>
+
+
+        <!-- Modal-Fuß -->
+        <div class="cl-modal-footer">
+
+            <button
+                type="button"
+                onclick="document.getElementById('verifyModal').classList.add('hidden')"
+                class="cl-button cl-button-secondary">
+                Abbrechen
+            </button>
+
+            <button
+                type="submit"
+                class="cl-button cl-button-success">
+
+                <svg
+                    class="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true">
+
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M5 13l4 4L19 7">
+                    </path>
+                </svg>
+
+                Als geprüft markieren
+            </button>
         </div>
     </form>
 </div>
+
+<script type="module" src="js/acceptance_criteria_suggestions.js"></script>

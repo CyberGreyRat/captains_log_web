@@ -21,7 +21,7 @@ $username = $_SESSION['username'] ?? 'Gast';
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Captain's Log - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="captains-theme.css">
+    <link rel="stylesheet" href="css/captains-theme.css">
     <link rel="shortcut icon" href="css/favicon.ico" />
     <style>
         .panel {
@@ -78,9 +78,10 @@ $username = $_SESSION['username'] ?? 'Gast';
                     <?php endforeach; ?>
                 </select>
 
-                <button onclick="document.getElementById('newProjectModal').classList.remove('hidden')"
-                    class="border border-white px-3 py-1 text-sm hover:bg-white hover:text-[#0d3158] transition ">Neues
-                    Projekt</button>
+                <button type="button" onclick="window.openNewProjectModal()"
+                    class="rounded-md border border-white px-3 py-2 text-sm font-bold transition hover:bg-white hover:text-[#0d3158]">
+                    Neues Projekt
+                </button>
 
                 <a href="logout.php" class="text-sm text-red-300 hover:text-red-100 transition ml-2">Logout</a>
             </div>

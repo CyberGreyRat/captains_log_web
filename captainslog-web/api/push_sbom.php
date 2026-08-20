@@ -1,8 +1,10 @@
 <?php
 // api/push_sbom.php
 require_once '../config/db.php';
+require_once __DIR__ . '/../config/audit_context.php';
 
 header('Content-Type: application/json');
+set_audit_context($pdo, 'api', basename($_SERVER['SCRIPT_NAME']));
 
 // 1. Header auslesen
 $headers = getallheaders();
@@ -18,7 +20,7 @@ if (!preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
 $apiToken = $matches[1];
 
 // 3. User validieren
-$stmt = $pdo->prepare("SELECT id FROM users WHERE api_token = ?");
+$stmt = $pdo->prepare("SELECT id, username FROM users WHERE api_token = ?");
 $stmt->execute([$apiToken]);
 $user = $stmt->fetch();
 

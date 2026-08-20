@@ -5,9 +5,7 @@ import {
     currentProjectId
 } from './state.js';
 
-import {
-    fetchProjects
-} from './api.js';
+import { fetchProjects } from './api.js';
 
 import {
     loadRequirements,
@@ -30,16 +28,11 @@ import {
 } from './userstories.js';
 
 import {
-    loadHistory
+    loadHistory,
+    initHistoryEvents
 } from './history.js';
-
-import {
-    loadDashboard
-} from './dashboard.js';
-
-import {
-    loadSBOM
-} from './sbom.js';
+import { loadDashboard } from './dashboard.js';
+import { loadSBOM } from './sbom.js';
 
 import {
     loadRisks,
@@ -79,41 +72,26 @@ import {
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        /*
-         * Zuerst alle Event-Handler registrieren.
-         *
-         * Dadurch reagieren die Schaltflächen auch dann,
-         * wenn beim Seitenstart noch kein Projekt gewählt ist.
-         */
-        initAllModuleEvents();
+        initializeModuleEvents();
+        initializeTabNavigation();
 
-        /*
-         * Projektliste in das obere Dropdown laden.
-         */
-        await initProjectsDropdown();
+        await initializeProjectDropdown();
 
-        /*
-         * Projektwechsel vorbereiten.
-         */
-        initProjectSwitch();
+        initializeProjectSwitch();
+        initHistoryEvents();
 
-        /*
-         * Daten beim Klick auf einen Reiter aktualisieren.
-         */
-        initTabLoadEvents();
-
-        /*
-         * Zuletzt verwendetes Projekt wiederherstellen.
-         */
         if (currentProjectId) {
             const projectSelect =
                 document.getElementById('projectSelect');
 
             if (projectSelect) {
-                projectSelect.value = currentProjectId;
+                projectSelect.value =
+                    String(currentProjectId);
             }
 
             await loadAllProjectData();
+        } else {
+            clearProjectViews();
         }
     } catch (error) {
         console.error(
@@ -126,76 +104,66 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 
-/**
- * Initialisiert alle Ereignisse genau einmal.
- */
-function initAllModuleEvents() {
-    initRequirementEvents();
-    initStakeholderEvents();
-    initUseCaseEvents();
-    initUserStoryEvents();
-    initRiskEvents();
-    initProjectPlanEvents();
-    initIsoEvents();
-    initIssueEvents();
-    initAssetEvents();
-    initGoalEvents();
-    initProjectTeamEvents();
+function initializeModuleEvents() {
+    const initializers = [
+        initRequirementEvents,
+        initStakeholderEvents,
+        initUseCaseEvents,
+        initUserStoryEvents,
+        initRiskEvents,
+        initProjectPlanEvents,
+        initIsoEvents,
+        initIssueEvents,
+        initAssetEvents,
+        initGoalEvents,
+        initProjectTeamEvents
+    ];
+
+    initializers.forEach(initializer => {
+        try {
+            initializer();
+        } catch (error) {
+            console.error(
+                `Fehler beim Initialisieren von ${initializer.name}:`,
+                error
+            );
+        }
+    });
 }
 
 
-/**
- * Lädt sämtliche Daten des ausgewählten Projekts.
- *
- * Promise.allSettled verhindert, dass ein einzelnes fehlerhaftes
- * Modul das Laden aller anderen Reiter abbricht.
- */
 async function loadAllProjectData() {
     if (!currentProjectId) {
         clearProjectViews();
         return;
     }
 
-    const results = await Promise.allSettled([
-        loadProjectTeam(),
-        loadDashboard(),
-        loadRequirements(),
-        loadAssets(),
-        loadGoals(),
-        loadProjectPlan(),
-        loadIssues(),
-        loadRisks(),
-        loadStakeholders(),
-        loadUseCases(),
-        loadUserStories(),
-        loadSBOM(),
-        loadIsoData()
-    ]);
-
-    /*
-     * Einzelne Ladefehler in der Konsole ausgeben,
-     * ohne die gesamte Anwendung zu stoppen.
-     */
-    const moduleNames = [
-        'Projektteam',
-        'Dashboard',
-        'Anforderungen',
-        'Assets',
-        'Ziele',
-        'Projektplan',
-        'Issues',
-        'Risiken',
-        'Stakeholder',
-        'Use Cases',
-        'User Stories',
-        'SBOM',
-        'ISO 14001'
+    const modules = [
+        ['Projektteam', loadProjectTeam],
+        ['Dashboard', loadDashboard],
+        ['Anforderungen', loadRequirements],
+        ['Assets', loadAssets],
+        ['Ziele', loadGoals],
+        ['Projektplan', loadProjectPlan],
+        ['Issues', loadIssues],
+        ['Risiken', loadRisks],
+        ['Stakeholder', loadStakeholders],
+        ['Use Cases', loadUseCases],
+        ['User Stories', loadUserStories],
+        ['Historie', loadHistory],
+        ['SBOM', loadSBOM],
+        ['ISO 14001', loadIsoData]
     ];
+
+
+    const results = await Promise.allSettled(
+        modules.map(([, loader]) => loader())
+    );
 
     results.forEach((result, index) => {
         if (result.status === 'rejected') {
             console.error(
-                `Fehler beim Laden von ${moduleNames[index]}:`,
+                `Fehler beim Laden von ${modules[index][0]}:`,
                 result.reason
             );
         }
@@ -203,23 +171,21 @@ async function loadAllProjectData() {
 }
 
 
-/**
- * Initialisiert das Projekt-Dropdown.
- */
-async function initProjectsDropdown() {
+async function initializeProjectDropdown() {
+    const select =
+        document.getElementById('projectSelect');
+
+    if (!select) {
+        console.error(
+            'Projekt-Dropdown #projectSelect wurde nicht gefunden.'
+        );
+
+        return;
+    }
+
     try {
-        const projects = await fetchProjects();
-
-        const select =
-            document.getElementById('projectSelect');
-
-        if (!select) {
-            console.error(
-                'Projekt-Dropdown #projectSelect wurde nicht gefunden.'
-            );
-
-            return;
-        }
+        const projects =
+            await fetchProjects();
 
         select.innerHTML = `
             <option value="">
@@ -231,38 +197,40 @@ async function initProjectsDropdown() {
             const option =
                 document.createElement('option');
 
-            option.value = project.id;
-            option.textContent = project.name;
+            option.value =
+                String(project.id);
+
+            option.textContent =
+                project.name;
 
             select.appendChild(option);
         });
 
-        /*
-         * Zuletzt ausgewähltes Projekt wieder markieren.
-         */
         if (currentProjectId) {
-            select.value = currentProjectId;
+            select.value =
+                String(currentProjectId);
         }
     } catch (error) {
         console.error(
-            'Fehler beim Füllen des Projekt-Dropdowns:',
+            'Fehler beim Laden der Projektliste:',
             error
         );
     }
 }
 
 
-/**
- * Initialisiert den bestätigten Projektwechsel.
- */
-function initProjectSwitch() {
-    const projectSelect =
+function initializeProjectSwitch() {
+    const select =
         document.getElementById('projectSelect');
+
+    if (!select) {
+        return;
+    }
 
     const modal =
         document.getElementById('projectSwitchModal');
 
-    const modalProjectName =
+    const projectName =
         document.getElementById('modalProjectName');
 
     const confirmButton =
@@ -271,121 +239,83 @@ function initProjectSwitch() {
     const cancelButton =
         document.getElementById('modalCancelBtn');
 
-    /*
-     * Ohne Projekt-Dropdown ist kein Projektwechsel möglich.
-     */
-    if (!projectSelect) {
-        console.error(
-            'Projektwechsel: #projectSelect wurde nicht gefunden.'
-        );
-
-        return;
-    }
-
-    /*
-     * Fallback, falls das Bestätigungsfenster nicht existiert.
-     * In diesem Fall wird das Projekt direkt gewechselt.
-     */
     if (
         !modal ||
-        !modalProjectName ||
+        !projectName ||
         !confirmButton ||
         !cancelButton
     ) {
-        console.warn(
-            'Projektwechsel-Modal ist unvollständig. ' +
-            'Projekt wird ohne Bestätigung gewechselt.'
-        );
-
-        projectSelect.addEventListener(
+        select.addEventListener(
             'change',
-            async event => {
-                const selectedProjectId =
-                    event.currentTarget.value;
-
-                await switchProject(selectedProjectId);
+            event => {
+                switchProject(
+                    event.currentTarget.value
+                );
             }
         );
 
         return;
     }
 
-    let pendingProjectId = null;
-    let previousProjectId = currentProjectId || '';
+    let pendingProjectId = '';
 
-    projectSelect.addEventListener(
+    select.addEventListener(
         'change',
         event => {
-            const select =
-                event.currentTarget;
-
             const selectedOption =
                 select.options[select.selectedIndex];
 
             pendingProjectId =
-                select.value;
+                event.currentTarget.value;
 
-            /*
-             * Auswahl bis zur Bestätigung zurücksetzen.
-             */
             select.value =
-                currentProjectId || previousProjectId || '';
+                currentProjectId
+                    ? String(currentProjectId)
+                    : '';
 
             if (!pendingProjectId) {
                 return;
             }
 
-            const projectName =
-                selectedOption?.textContent?.trim() ||
-                pendingProjectId;
+            projectName.textContent =
+                `„${selectedOption?.textContent?.trim() || pendingProjectId}“`;
 
-            modalProjectName.textContent =
-                `"${projectName}"`;
-
-            modal.classList.remove('hidden');
+            openFlexModal(modal);
         }
     );
 
     confirmButton.addEventListener(
         'click',
         async () => {
-            if (!pendingProjectId) {
-                modal.classList.add('hidden');
-                return;
-            }
-
             const selectedProjectId =
                 pendingProjectId;
 
-            modal.classList.add('hidden');
+            pendingProjectId = '';
 
-            /*
-             * Wert vor dem asynchronen Ladevorgang sichern.
-             */
-            pendingProjectId = null;
+            closeFlexModal(modal);
 
-            await switchProject(selectedProjectId);
-
-            previousProjectId =
-                currentProjectId || '';
+            if (selectedProjectId) {
+                await switchProject(
+                    selectedProjectId
+                );
+            }
         }
     );
 
     cancelButton.addEventListener(
         'click',
         () => {
-            pendingProjectId = null;
+            pendingProjectId = '';
 
-            projectSelect.value =
-                currentProjectId || previousProjectId || '';
+            select.value =
+                currentProjectId
+                    ? String(currentProjectId)
+                    : '';
 
-            modal.classList.add('hidden');
+            closeFlexModal(modal);
         }
     );
 
-    /*
-     * Klick auf den dunklen Hintergrund bricht ebenfalls ab.
-     */
     modal.addEventListener(
         'click',
         event => {
@@ -393,29 +323,28 @@ function initProjectSwitch() {
                 return;
             }
 
-            pendingProjectId = null;
+            pendingProjectId = '';
 
-            projectSelect.value =
-                currentProjectId || previousProjectId || '';
+            select.value =
+                currentProjectId
+                    ? String(currentProjectId)
+                    : '';
 
-            modal.classList.add('hidden');
+            closeFlexModal(modal);
         }
     );
 }
 
 
-/**
- * Wechselt das aktive Projekt und lädt alle Daten.
- */
 async function switchProject(projectId) {
-    const projectSelect =
+    const select =
         document.getElementById('projectSelect');
 
     if (!projectId) {
         setCurrentProjectId('');
 
-        if (projectSelect) {
-            projectSelect.value = '';
+        if (select) {
+            select.value = '';
         }
 
         clearProjectViews();
@@ -425,29 +354,19 @@ async function switchProject(projectId) {
     showLoadingOverlay();
 
     try {
-        /*
-         * Die ID zuerst im zentralen State setzen.
-         *
-         * Der Import currentProjectId ist eine Live-Bindung und
-         * enthält danach den neuen Wert.
-         */
         setCurrentProjectId(projectId);
 
-        if (projectSelect) {
-            projectSelect.value = projectId;
+        if (select) {
+            select.value =
+                String(projectId);
         }
-
-        /*
-         * Ladeanzeige mindestens kurz sichtbar halten.
-         */
-        const minimumWait =
-            new Promise(resolve => {
-                setTimeout(resolve, 500);
-            });
 
         await Promise.all([
             loadAllProjectData(),
-            minimumWait
+
+            new Promise(resolve => {
+                setTimeout(resolve, 500);
+            })
         ]);
     } catch (error) {
         console.error(
@@ -460,93 +379,97 @@ async function switchProject(projectId) {
 }
 
 
-/**
- * Lädt beim Öffnen eines Reiters dessen Daten erneut.
- */
-function initTabLoadEvents() {
+function initializeTabNavigation() {
+    const panelLoaders = {
+        projectteam: loadProjectTeam,
+        dashboard: loadDashboard,
+        requirements: loadRequirements,
+        assets: loadAssets,
+        goals: loadGoals,
+        projectplan: loadProjectPlan,
+        issues: loadIssues,
+        risks: loadRisks,
+        stakeholders: loadStakeholders,
+        usecases: loadUseCases,
+        userstories: loadUserStories,
+        history: loadHistory,
+        sbom: loadSBOM,
+        iso14001: loadIsoData
+    };
+
     document
         .querySelectorAll('.tab')
         .forEach(button => {
             button.addEventListener(
                 'click',
                 async event => {
-                    /*
-                     * currentTarget verwenden.
-                     *
-                     * target kann ein SVG oder ein span innerhalb
-                     * der Schaltfläche sein.
-                     */
+                    const clickedTab =
+                        event.currentTarget;
+
                     const panelName =
-                        event.currentTarget.dataset.panel;
+                        clickedTab.dataset.panel;
 
                     if (!panelName) {
                         return;
                     }
 
+                    const targetPanel =
+                        document.getElementById(panelName);
+
+                    if (!targetPanel) {
+                        console.error(
+                            `Panel mit ID "${panelName}" wurde nicht gefunden.`
+                        );
+
+                        return;
+                    }
+
+                    document
+                        .querySelectorAll('.tab')
+                        .forEach(tab => {
+                            tab.classList.remove(
+                                'active',
+                                'border-blue-900',
+                                'bg-blue-50',
+                                'text-blue-900',
+                                'font-bold'
+                            );
+
+                            tab.classList.add(
+                                'border-transparent',
+                                'text-slate-600',
+                                'font-semibold'
+                            );
+                        });
+
+                    clickedTab.classList.add(
+                        'active',
+                        'border-blue-900',
+                        'bg-blue-50',
+                        'text-blue-900',
+                        'font-bold'
+                    );
+
+                    clickedTab.classList.remove(
+                        'border-transparent',
+                        'text-slate-600',
+                        'font-semibold'
+                    );
+
+                    document
+                        .querySelectorAll('.panel')
+                        .forEach(panel => {
+                            panel.classList.remove('show');
+                        });
+
+                    targetPanel.classList.add('show');
+
                     try {
-                        switch (panelName) {
-                            case 'projectteam':
-                                await loadProjectTeam();
-                                break;
+                        const loader =
+                            panelLoaders[panelName];
 
-                            case 'dashboard':
-                                await loadDashboard();
-                                break;
-
-                            case 'requirements':
-                                await loadRequirements();
-                                break;
-
-                            case 'assets':
-                                await loadAssets();
-                                break;
-
-                            case 'goals':
-                                await loadGoals();
-                                break;
-
-                            case 'projectplan':
-                                await loadProjectPlan();
-                                break;
-
-                            case 'issues':
-                                await loadIssues();
-                                break;
-
-                            case 'risks':
-                                await loadRisks();
-                                break;
-
-                            case 'stakeholders':
-                                await loadStakeholders();
-                                break;
-
-                            case 'usecases':
-                                await loadUseCases();
-                                break;
-
-                            case 'userstories':
-                                await loadUserStories();
-                                break;
-
-                            case 'history':
-                                await loadHistory();
-                                break;
-
-                            case 'sbom':
-                                await loadSBOM();
-                                break;
-
-                            /*
-                             * In index.php heißt das Panel:
-                             * data-panel="iso14001"
-                             */
-                            case 'iso14001':
-                                await loadIsoData();
-                                break;
-
-                            default:
-                                break;
+                        if (loader) {
+                            await loader();
                         }
                     } catch (error) {
                         console.error(
@@ -560,137 +483,182 @@ function initTabLoadEvents() {
 }
 
 
-/**
- * Zeigt den Ladebildschirm.
- */
+function openFlexModal(modal) {
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+
+function closeFlexModal(modal) {
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+
 function showLoadingOverlay() {
-    const loadingOverlay =
-        document.getElementById('loadingOverlay');
+    const loader =
+        document.getElementById('globalLoader');
 
-    if (loadingOverlay) {
-        loadingOverlay.classList.remove('hidden');
-    }
-
-    /*
-     * Falls der zweite globale Loader verwendet wird.
-     */
-    if (typeof window.showLoader === 'function') {
-        window.showLoader();
+    if (loader) {
+        loader.classList.remove('hidden');
+        loader.classList.add('flex');
     }
 }
 
 
-/**
- * Versteckt den Ladebildschirm.
- */
 function hideLoadingOverlay() {
-    const loadingOverlay =
-        document.getElementById('loadingOverlay');
+    const loader =
+        document.getElementById('globalLoader');
 
-    if (loadingOverlay) {
-        loadingOverlay.classList.add('hidden');
-    }
-
-    if (typeof window.hideLoader === 'function') {
-        window.hideLoader();
+    if (loader) {
+        loader.classList.add('hidden');
+        loader.classList.remove('flex');
     }
 }
 
 
-/**
- * Setzt Bereiche auf den Zustand ohne Projektauswahl zurück.
- */
+function setTableMessage(
+    elementId,
+    columnCount,
+    message
+) {
+    const element =
+        document.getElementById(elementId);
+
+    if (!element) {
+        return;
+    }
+
+    element.innerHTML = `
+        <tr>
+            <td
+                colspan="${columnCount}"
+                class="cl-empty-state">
+                ${message}
+            </td>
+        </tr>
+    `;
+}
+
+
 function clearProjectViews() {
+    const message =
+        'Bitte zuerst ein Projekt auswählen.';
+
     const items =
         document.getElementById('items');
 
     const detail =
         document.getElementById('detail');
 
-    const projectTeamBody =
-        document.getElementById('projectTeamTableBody');
-
-    const assetTableBody =
-        document.getElementById('assetTableBody');
-
-    const goalContainer =
+    const goals =
         document.getElementById('goalCardContainer');
 
-    const issueTableBody =
-        document.getElementById('issueTableBody');
+    const history =
+        document.getElementById('historyContainer');
 
-    const taskTableBody =
-        document.getElementById('taskTableBody');
+    const sbom =
+        document.getElementById('sbomContainer');
 
     if (items) {
         items.innerHTML = `
-            <div class="p-4 text-sm text-slate-500">
-                Bitte wähle oben ein Projekt aus.
+            <div class="cl-empty-state">
+                ${message}
             </div>
         `;
     }
 
     if (detail) {
         detail.innerHTML = `
-            <div class="flex h-full items-center justify-center text-slate-400 italic">
+            <div class="flex h-full items-center justify-center italic text-slate-400">
                 Anforderung auswählen
             </div>
         `;
     }
 
-    if (projectTeamBody) {
-        projectTeamBody.innerHTML = `
-            <tr>
-                <td
-                    colspan="7"
-                    class="p-8 text-center italic text-slate-400">
-                    Bitte zuerst ein Projekt auswählen.
-                </td>
-            </tr>
-        `;
-    }
-
-    if (assetTableBody) {
-        assetTableBody.innerHTML = `
-            <tr>
-                <td
-                    colspan="6"
-                    class="p-8 text-center italic text-slate-400">
-                    Bitte zuerst ein Projekt auswählen.
-                </td>
-            </tr>
-        `;
-    }
-
-    if (goalContainer) {
-        goalContainer.innerHTML = `
-            <div class="col-span-full border border-slate-300 bg-white p-8 text-center italic text-slate-400">
-                Bitte zuerst ein Projekt auswählen.
+    if (goals) {
+        goals.innerHTML = `
+            <div class="cl-empty-state col-span-full">
+                ${message}
             </div>
         `;
     }
 
-    if (issueTableBody) {
-        issueTableBody.innerHTML = `
-            <tr>
-                <td
-                    colspan="8"
-                    class="p-8 text-center italic text-slate-400">
-                    Bitte zuerst ein Projekt auswählen.
-                </td>
-            </tr>
+    if (history) {
+        history.innerHTML = `
+            <div class="cl-empty-state">
+                ${message}
+            </div>
         `;
     }
 
-    if (taskTableBody) {
-        taskTableBody.innerHTML = `
-            <tr>
-                <td
-                    colspan="7"
-                    class="p-8 text-center italic text-slate-400">
-                    Bitte zuerst ein Projekt auswählen.
-                </td>
-            </tr>
+    if (sbom) {
+        sbom.innerHTML = `
+            <div class="cl-empty-state">
+                ${message}
+            </div>
         `;
     }
+
+    setTableMessage(
+        'projectTeamTableBody',
+        7,
+        message
+    );
+
+    setTableMessage(
+        'assetTableBody',
+        6,
+        message
+    );
+
+    setTableMessage(
+        'issueTableBody',
+        8,
+        message
+    );
+
+    setTableMessage(
+        'taskTableBody',
+        7,
+        message
+    );
+
+    setTableMessage(
+        'riskTableBody',
+        12,
+        message
+    );
+
+    setTableMessage(
+        'stakeholderTableBody',
+        7,
+        message
+    );
+
+    setTableMessage(
+        'useCaseTableBody',
+        5,
+        message
+    );
+
+    setTableMessage(
+        'userStoryTableBody',
+        6,
+        message
+    );
+
+    setTableMessage(
+        'isoTableBody',
+        5,
+        message
+    );
 }

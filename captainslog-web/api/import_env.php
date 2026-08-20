@@ -1,9 +1,12 @@
 <?php
 // api/import_env.php
 ini_set('display_errors', 0); error_reporting(E_ALL); session_start();
-require '../config/db.php'; header('Content-Type: application/json');
+require '../config/db.php';
+require_once __DIR__ . '/../config/audit_context.php'; header('Content-Type: application/json');
 
 try {
+    set_audit_context($pdo, 'excel', basename($_SERVER['SCRIPT_NAME']));
+
     $data = json_decode(file_get_contents('php://input'), true);
     $source_id = $data['source_project_id'] ?? null;
     $target_id = $data['target_project_id'] ?? null;

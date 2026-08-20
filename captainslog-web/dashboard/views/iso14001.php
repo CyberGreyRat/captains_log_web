@@ -1,157 +1,79 @@
 <!-- dashboard/views/iso14001.php -->
-<div class="flex flex-col h-full overflow-hidden p-6 bg-slate-50">
-    <div class="flex justify-between items-center mb-6 shrink-0">
+<div class="cl-panel">
+    <div class="cl-panel-header">
         <div>
-            <h2 class="text-2xl font-bold text-emerald-900">ISO 14001 - Umweltmanagement</h2>
-            <p class="text-sm text-slate-500">Lebenszyklus-Analyse, Umweltaspekte und Maßnahmen</p>
+            <p class="cl-panel-eyebrow">Lebenszyklus · Umweltaspekte · Maßnahmen</p>
+            <h2 class="cl-panel-title">ISO 14001 Umweltmanagement</h2>
         </div>
-        <div class="flex gap-2">
-            <button onclick="window.openIsoImportModal()"
-                class="bg-white border border-emerald-300 text-emerald-700 px-4 py-2 font-bold shadow-sm hover:bg-emerald-50 transition rounded">
-                Aus anderem Projekt importieren
-            </button>
-            <button onclick="window.openIsoModal()"
-                class="bg-emerald-600 px-4 py-2 font-bold text-white shadow-md hover:bg-emerald-700 transition rounded">
-                + Neuer Umweltaspekt
-            </button>
+        <div class="flex flex-wrap gap-2">
+            <button type="button" onclick="window.openIsoImportModal()" class="cl-button cl-button-secondary">Aus Projekt importieren</button>
+            <button type="button" onclick="window.openIsoModal()" class="cl-button cl-button-primary">+ Neuer Umweltaspekt</button>
         </div>
     </div>
 
-    <!-- Tabelle der Umweltaspekte -->
-    <div class="flex-1 overflow-auto bg-white border border-slate-200 shadow-sm rounded">
-        <table class="w-full text-left text-sm text-slate-600">
-            <thead class="bg-emerald-50 text-emerald-900 uppercase font-bold border-b border-emerald-200 text-xs">
-                <tr>
-                    <th class="p-3 w-1/3">Umweltaspekt</th>
-                    <th class="p-3 w-1/2">Auswirkung & Maßnahme</th>
-                    <th class="p-3 w-28 text-center">Relevanz</th>
-                    <th class="p-3 w-32 text-center">Status</th>
-                    <th class="p-3 w-24 text-right">Aktionen</th>
-                </tr>
-            </thead>
-           <tbody id="isoTableBody" class="divide-y divide-slate-100">
-                <!-- Der einheitliche System-Ladebalken -->
-                <tr>
-                    <td colspan="5" class="p-8 text-center text-slate-500 italic">
-                        <div class="inline-flex items-center gap-2">
-                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Daten werden geladen...
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
+    <div class="grid shrink-0 grid-cols-1 gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 md:grid-cols-3">
+        <div class="cl-kpi border-l-emerald-500"><div class="cl-kpi-label">Lebenszyklus</div><div class="mt-1 text-sm font-semibold text-slate-700">Von Entwurf und Beschaffung bis Entsorgung und Recycling.</div></div>
+        <div class="cl-kpi border-l-blue-500"><div class="cl-kpi-label">Umweltwirkung</div><div class="mt-1 text-sm font-semibold text-slate-700">Klima, Ressourcen, Luft, Boden, Gewässer und Abfall.</div></div>
+        <div class="cl-kpi border-l-amber-500"><div class="cl-kpi-label">Maßnahmen</div><div class="mt-1 text-sm font-semibold text-slate-700">Konkrete Vermeidung, Reduzierung und Überwachung.</div></div>
+    </div>
+
+    <div class="cl-table-container">
+        <table class="cl-table min-w-[1100px]">
+            <thead><tr><th class="min-w-[310px]">Umweltaspekt</th><th class="min-w-[480px]">Auswirkung & Maßnahme</th><th class="w-[130px] text-center">Relevanz</th><th class="w-[150px] text-center">Status</th><th class="w-[135px] text-right">Aktionen</th></tr></thead>
+            <tbody id="isoTableBody"><tr><td colspan="5" class="cl-empty-state">Daten werden geladen...</td></tr></tbody>
         </table>
     </div>
+
+    <div class="cl-panel-footer"><span>ISO 14001 Umweltmanagement</span><span>Lebenszyklus · Relevanz · Auswirkungen · Maßnahmen</span></div>
 </div>
 
-<!-- SPEZIAL-MODAL: ISO 14001 BEARBEITEN (Schlank & Fokussiert) -->
-<div id="modalIsoEdit"
-    class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
-    <form id="formIsoEdit" class="w-full max-w-2xl bg-white p-8 rounded shadow-2xl space-y-5">
-        <h2 class="text-xl font-bold text-emerald-900 border-b border-emerald-100 pb-2">Umweltaspekt definieren</h2>
-        <input type="hidden" id="iso_id">
-        <!-- NEU: Excel-Vorlagen Lader -->
-        <div class="bg-emerald-50 border border-emerald-200 p-4 -mx-8 -mt-2 mb-6">
-            <label class="block text-sm font-bold text-emerald-900 mb-1">Aus Norm-Katalog laden (Standard Excel)</label>
-            <select id="iso_template_selector"
-                class="w-full border border-emerald-300 p-2 font-bold text-emerald-800 bg-white outline-none focus:border-emerald-500 shadow-sm cursor-pointer">
-                <option value="">-- Frei ausfüllen oder Excel-Vorlage wählen --</option>
-            </select>
+<div id="modalIsoEdit" class="cl-modal-overlay hidden">
+    <form id="formIsoEdit" class="cl-modal max-w-3xl">
+        <div class="cl-modal-header">
+            <div><p class="cl-panel-eyebrow">Umweltmanagement</p><h2 class="cl-modal-title">Umweltaspekt definieren</h2></div>
+            <button type="button" onclick="document.getElementById('modalIsoEdit').classList.add('hidden')" class="cl-button cl-button-secondary min-h-0 px-2.5 py-2" aria-label="Fenster schließen">✕</button>
         </div>
+        <input id="iso_id" type="hidden">
+        <div class="cl-modal-body">
+            <fieldset class="cl-fieldset border-emerald-200 bg-emerald-50/40">
+                <legend class="cl-legend bg-emerald-50 text-emerald-900">Norm-Katalog</legend>
+                <div class="cl-fieldset-body"><label class="cl-label">Aus ISO-Vorlage laden<select id="iso_template_selector" class="cl-select border-emerald-300 font-semibold"><option value="">-- Frei ausfüllen oder Vorlage wählen --</option></select><span class="cl-help">Übernimmt vordefinierte Angaben aus dem Umweltkatalog.</span></label></div>
+            </fieldset>
 
+            <fieldset class="cl-fieldset">
+                <legend class="cl-legend">Einordnung</legend>
+                <div class="cl-fieldset-body grid grid-cols-1 gap-5 md:grid-cols-2">
+                    <label class="cl-label">Lebenszyklusphase<select id="iso_phase" class="cl-select"><option value="Entwurf">Entwurf & Design</option><option value="Entwicklung">Entwicklung</option><option value="Rohstoffe">Rohstoffe & Beschaffung</option><option value="Produktion">Produktion & Bestückung</option><option value="Lieferung">Verpackung & Lieferung</option><option value="Installation/Wartung">Installation & Wartung</option><option value="Betrieb">Betrieb & Verwendung</option><option value="EOL">End of Life / Recycling</option></select></label>
+                    <label class="cl-label">Relevanz / Signifikanz<select id="iso_relevance" class="cl-select font-semibold"><option value="Gering">Gering: beobachten</option><option value="Mittel" selected>Mittel: steuern</option><option value="Signifikant">Signifikant: Handlungsbedarf</option></select></label>
+                </div>
+            </fieldset>
 
-        <div class="grid grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1">Lebenszyklus-Phase</label>
-                <select id="iso_phase"
-                    class="w-full border border-slate-300 p-2 font-medium bg-slate-50 outline-none focus:border-emerald-500">
-                    <option value="Entwurf">Entwurf & Design</option>
-                    <option value="Entwicklung">Entwicklung</option>
-                    <option value="Rohstoffe">Rohstoffe & Beschaffung</option>
-                    <option value="Produktion">Produktion & Bestückung</option>
-                    <option value="Lieferung">Verpackung & Lieferung</option>
-                    <option value="Installation/Wartung">Installation & Wartung</option>
-                    <option value="Betrieb">Betrieb & Verwendung</option>
-                    <option value="EOL">End of Life (Entsorgung/Recycling)</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-bold text-slate-700 mb-1">Relevanz / Signifikanz</label>
-                <select id="iso_relevance"
-                    class="w-full border border-slate-300 p-2 font-medium bg-slate-50 outline-none focus:border-emerald-500">
-                    <option value="Gering">Gering (Beobachten)</option>
-                    <option value="Mittel" selected>Mittel (Steuern)</option>
-                    <option value="Signifikant" class="font-bold text-red-600">Signifikant (Zwingender Handlungsbedarf!)
-                    </option>
-                </select>
-            </div>
+            <fieldset class="cl-fieldset">
+                <legend class="cl-legend">Umweltaspekt</legend>
+                <div class="cl-fieldset-body"><label class="cl-label">Titel / Ursache<input id="iso_title" required maxlength="255" placeholder="z.B. Standby-Verbrauch der Leiterplatte" class="cl-input text-base font-semibold"></label></div>
+            </fieldset>
+
+            <fieldset class="cl-fieldset">
+                <legend class="cl-legend">Umweltauswirkung</legend>
+                <div class="cl-fieldset-body space-y-4">
+                    <label class="cl-label">Textvorlage<select id="iso_impact_helper" class="cl-select border-emerald-200 bg-emerald-50" onchange="document.getElementById('iso_impact').value=this.value;this.value='';"><option value="">-- Optionale Textvorlage wählen --</option><option value="Veränderung des Klimas (durch hohen Energie-/CO2-Verbrauch)">Klimaänderung / CO₂-Ausstoß</option><option value="Ressourcenerschöpfung (durch Verbrauch seltener Erden/Metalle)">Ressourcenerschöpfung</option><option value="Luftverschmutzung (durch Emissionen/Transport)">Luftverschmutzung</option><option value="Gewässer- und Bodenverschmutzung (durch Chemikalien/Abfall)">Gewässer- und Bodenverschmutzung</option><option value="Abfallerzeugung (durch nicht recycelbare Materialien)">Abfallerzeugung</option></select></label>
+                    <label class="cl-label">Beschreibung der Umweltwirkung<textarea id="iso_impact" required rows="4" class="cl-textarea"></textarea></label>
+                </div>
+            </fieldset>
+
+            <fieldset class="cl-fieldset">
+                <legend class="cl-legend">Maßnahme</legend>
+                <div class="cl-fieldset-body"><label class="cl-label">Getroffene Maßnahme / Mitigation<textarea id="iso_measure" required rows="5" placeholder="Was wird konkret zur Vermeidung oder Reduzierung umgesetzt?" class="cl-textarea"></textarea></label></div>
+            </fieldset>
         </div>
-
-        <div>
-            <label class="block text-sm font-bold text-slate-700 mb-1">Titel des Umweltaspekts (Ursache)</label>
-            <input id="iso_title" required
-                class="w-full border border-slate-300 p-2 font-semibold outline-none focus:border-emerald-500"
-                placeholder="z.B. Standby-Verbrauch der Leiterplatte">
-        </div>
-
-        <div>
-            <label class="block text-sm font-bold text-slate-700 mb-1">Umweltauswirkung (Wirkung)</label>
-            <!-- Smarte Ausfüllhilfe / Norm-Kategorien -->
-            <select id="iso_impact_helper"
-                onchange="document.getElementById('iso_impact').value = this.value; this.value='';"
-                class="w-full border border-slate-300 p-2 text-sm bg-emerald-50 text-emerald-800 mb-2 font-medium cursor-pointer">
-                <option value="">-- Textvorlage aus Norm wählen (optional) --</option>
-                <option value="Veränderung des Klimas (durch hohen Energie-/CO2-Verbrauch)">Klimaänderung / CO2-Ausstoß
-                </option>
-                <option value="Ressourcenerschöpfung (durch Verbrauch seltener Erden/Metalle)">Ressourcenerschöpfung
-                </option>
-                <option value="Luftverschmutzung (durch Emissionen/Transport)">Luftverschmutzung</option>
-                <option value="Gewässer- und Bodenverschmutzung (durch Chemikalien/Abfall)">Gewässer- &
-                    Bodenverschmutzung</option>
-                <option value="Abfallerzeugung (durch nicht recycelbare Materialien)">Abfallerzeugung</option>
-            </select>
-            <textarea id="iso_impact" required rows="2"
-                class="w-full border border-slate-300 p-2 font-normal outline-none focus:border-emerald-500"></textarea>
-        </div>
-
-        <div>
-            <label class="block text-sm font-bold text-slate-700 mb-1">Getroffene Maßnahme (Mitigation)</label>
-            <textarea id="iso_measure" required rows="3"
-                class="w-full border border-slate-300 p-2 font-normal outline-none focus:border-emerald-500"
-                placeholder="Was tun wir konkret dagegen? z.B. Einsatz von Deep-Sleep Modus..."></textarea>
-        </div>
-
-        <div class="flex justify-end gap-3 mt-6 border-t pt-4">
-            <button type="button" onclick="document.getElementById('modalIsoEdit').classList.add('hidden')"
-                class="border px-4 py-2 hover:bg-slate-50 font-bold transition rounded text-slate-600">Abbrechen</button>
-            <button type="submit"
-                class="bg-emerald-600 px-6 py-2 font-bold text-white shadow hover:bg-emerald-700 transition rounded">Speichern</button>
-        </div>
+        <div class="cl-modal-footer"><button type="button" onclick="document.getElementById('modalIsoEdit').classList.add('hidden')" class="cl-button cl-button-secondary">Abbrechen</button><button type="submit" class="cl-button cl-button-primary">Umweltaspekt speichern</button></div>
     </form>
 </div>
 
-<!-- MODAL: PROJEKT IMPORT -->
-<div id="modalIsoImport"
-    class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm">
-    <form id="formIsoImport" class="w-full max-w-md bg-white p-6 rounded shadow-2xl">
-        <h2 class="text-lg font-bold text-emerald-900 border-b pb-2 mb-4">Aus altem Projekt importieren</h2>
-        <p class="text-xs text-slate-500 mb-4">Kopiert alle Umweltaspekte eines vorherigen Projekts in dieses Projekt.
-            Du kannst sie danach individuell anpassen.</p>
-
-        <label class="block text-sm font-bold text-slate-700 mb-2">Quell-Projekt wählen</label>
-        <select id="iso_import_source" required
-            class="w-full border border-slate-300 p-2 bg-slate-50 font-medium"></select>
-
-        <div class="flex justify-end gap-3 mt-6">
-            <button type="button" onclick="document.getElementById('modalIsoImport').classList.add('hidden')"
-                class="border px-4 py-2 hover:bg-slate-50 text-sm font-bold transition rounded">Abbrechen</button>
-            <button type="submit"
-                class="bg-emerald-600 px-4 py-2 font-bold text-white text-sm shadow hover:bg-emerald-700 transition rounded">Importieren</button>
-        </div>
+<div id="modalIsoImport" class="cl-modal-overlay hidden z-[230]">
+    <form id="formIsoImport" class="cl-modal max-w-lg">
+        <div class="cl-modal-header"><div><p class="cl-panel-eyebrow">Datenübernahme</p><h2 class="cl-modal-title">Umweltaspekte importieren</h2></div><button type="button" onclick="document.getElementById('modalIsoImport').classList.add('hidden')" class="cl-button cl-button-secondary min-h-0 px-2.5 py-2" aria-label="Fenster schließen">✕</button></div>
+        <div class="cl-modal-body"><div class="mb-5 rounded-md border border-blue-200 bg-blue-50 p-4 text-xs leading-5 text-blue-900">Alle Umweltaspekte des Quellprojekts werden kopiert und können danach angepasst werden.</div><label class="cl-label">Quellprojekt<select id="iso_import_source" required class="cl-select font-semibold"><option value="">-- Quellprojekt auswählen --</option></select></label></div>
+        <div class="cl-modal-footer"><button type="button" onclick="document.getElementById('modalIsoImport').classList.add('hidden')" class="cl-button cl-button-secondary">Abbrechen</button><button type="submit" class="cl-button cl-button-primary">Importieren</button></div>
     </form>
 </div>
-
-<script type="module" src="js/iso14001.js"></script>

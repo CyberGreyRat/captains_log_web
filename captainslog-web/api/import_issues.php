@@ -1,6 +1,9 @@
 <?php
-ini_set('display_errors',0);error_reporting(E_ALL);session_start();require '../config/db.php';header('Content-Type: application/json; charset=utf-8');
-try{require_edit_permission();$d=json_decode(file_get_contents('php://input'),true)?:[];$project=$d['project_id']??'';$rows=$d['rows']??[];$filename=basename($d['filename']??'Excel-Import.xlsx');$sheet=$d['sheet_name']??'Tabelle';$hash=$d['file_hash']??hash('sha256',json_encode($rows));$uid=$_SESSION['user_id']??0;
+ini_set('display_errors',0);error_reporting(E_ALL);session_start();require '../config/db.php';
+require_once __DIR__ . '/../config/audit_context.php';header('Content-Type: application/json; charset=utf-8');
+try{
+    set_audit_context($pdo, 'excel', basename($_SERVER['SCRIPT_NAME']));
+require_edit_permission();$d=json_decode(file_get_contents('php://input'),true)?:[];$project=$d['project_id']??'';$rows=$d['rows']??[];$filename=basename($d['filename']??'Excel-Import.xlsx');$sheet=$d['sheet_name']??'Tabelle';$hash=$d['file_hash']??hash('sha256',json_encode($rows));$uid=$_SESSION['user_id']??0;
 if(!$project||!is_array($rows)||!$uid)throw new Exception('Importdaten fehlen.');$a=$pdo->prepare('SELECT 1 FROM project_members WHERE project_id=? AND user_id=?');$a->execute([$project,$uid]);if(!$a->fetchColumn())throw new Exception('Kein Projektzugriff.');
 $pdo->beginTransaction();$next=$pdo->prepare("SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(issue_key,'-',-1) AS UNSIGNED)),0) FROM issues WHERE project_id=?");$next->execute([$project]);$counter=(int)$next->fetchColumn();
 $ins=$pdo->prepare('INSERT IGNORE INTO issues(project_id,issue_key,external_id,issue_type,title,description,status,priority,severity,category,external_assignee,reported_at,external_response,internal_response,source_type,source_document,source_sheet,source_row,created_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');$ok=0;$skip=0;

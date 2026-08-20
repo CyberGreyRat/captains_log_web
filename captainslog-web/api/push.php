@@ -4,6 +4,7 @@ ini_set('display_errors', 0);
 error_reporting(E_ALL);
 header('Content-Type: application/json');
 require '../config/db.php';
+require_once __DIR__ . '/../config/audit_context.php';
 
 $input = json_decode(file_get_contents('php://input'), true);
 $token = $input['token'] ?? '';
@@ -12,7 +13,7 @@ $updates = $input['updates'] ?? [];
 $evidences = $input['evidences'] ?? []; 
 
 // User über Token validieren
-$stmt = $pdo->prepare("SELECT id FROM users WHERE api_token = ?");
+$stmt = $pdo->prepare("SELECT id, username FROM users WHERE api_token = ?");
 $stmt->execute([$token]);
 $user = $stmt->fetch();
 
@@ -23,9 +24,13 @@ if (!$user) {
 }
 
 $user_id = $user['id'];
+$_SESSION['user_id'] = $user_id;
+$_SESSION['username'] = $user['username'] ?? 'API-Nutzer';
 $action_logs = [];
 
 try {
+    set_audit_context($pdo, 'api', basename($_SERVER['SCRIPT_NAME']));
+
     $pdo->beginTransaction();
 
     $clean = function($txt) {

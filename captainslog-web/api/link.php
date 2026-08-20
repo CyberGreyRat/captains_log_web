@@ -1,7 +1,9 @@
 <?php
 // api/link.php
 header('Content-Type: application/json');
+set_audit_context($pdo, 'web', basename($_SERVER['SCRIPT_NAME']));
 require '../config/db.php';
+require_once __DIR__ . '/../config/audit_context.php';
 
 $input = json_decode(file_get_contents('php://input'), true);
 $token = $input['token'] ?? '';

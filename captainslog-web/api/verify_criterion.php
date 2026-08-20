@@ -1,7 +1,8 @@
 <?php
 // api/verify_criterion.php
 ini_set('display_errors', 0); error_reporting(E_ALL); session_start();
-require '../config/db.php'; header('Content-Type: application/json');
+require '../config/db.php';
+require_once __DIR__ . '/../config/audit_context.php'; header('Content-Type: application/json');
 
 $data = json_decode(file_get_contents('php://input'), true);
 $req_id = $data['req_id'] ?? null;
@@ -18,6 +19,8 @@ if (!$req_id || $idx === null) {
 }
 
 try {
+    set_audit_context($pdo, 'web', basename($_SERVER['SCRIPT_NAME']));
+
     $pdo->beginTransaction();
 
     // 1. Aktuelle Kriterien laden
