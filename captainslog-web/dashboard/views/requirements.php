@@ -315,18 +315,26 @@
 
                 <div class="cl-fieldset-body grid grid-cols-1 gap-5 md:grid-cols-2">
 
+                    <!-- NEU: Die Dokumenten-Quelle -->
+                    <label class="cl-label">
+                        Quelle / Dokument
+                        <input id="source_document" type="text" placeholder="z.B. Lastenheft Rev 1.1 oder PDF-Name"
+                            class="cl-input text-blue-900 font-semibold">
+                        <span class="cl-help">
+                            Ursprung der Anforderung (wird beim Import automatisch befüllt).
+                        </span>
+                    </label>
+
+                    <!-- BESTEHEND: Der Stakeholder -->
                     <label class="cl-label">
                         Zuständigkeit / Stakeholder
-
                         <select id="source_contact" class="cl-select">
-
                             <option value="">
                                 -- Niemand zugewiesen --
                             </option>
                         </select>
-
                         <span class="cl-help">
-                            Zuständige oder fachlich verantwortliche Person.
+                            Zuständige oder fachlich verantwortliche Person im Team.
                         </span>
                     </label>
 

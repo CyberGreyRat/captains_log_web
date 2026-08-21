@@ -17,7 +17,8 @@ const targetOptions = [
     ['description', 'Beschreibung'],
     ['title_and_description', 'Titel und Beschreibung'],
     ['rationale', 'Begründung'],
-    ['source_contact', 'Quelle / Kontakt'],
+    ['source_document', 'Quelle / Dokument'], 
+    ['source_contact', 'Stakeholder / Person'],
     ['effort', 'Aufwand'],
     ['acceptance_criteria', 'Akzeptanzkriterien'],
     ['review_status', 'Prüfstatus']
@@ -166,7 +167,8 @@ function guessTarget(header, result) {
     if (/titel|title|kurztext/.test(heading)) return 'title';
     if (/beschreibung|spezifikation|description|anforderung/.test(heading)) return 'description';
     if (/begründ|rationale/.test(heading)) return 'rationale';
-    if (/quelle|kontakt|source/.test(heading)) return 'source_contact';
+    if (/quelle|dokument|source/.test(heading)) return 'source_document';
+    if (/kontakt|stakeholder|person/.test(heading)) return 'source_contact';
     if (/aufwand|effort/.test(heading)) return 'effort';
     if (/akzeptanz|kriter|acceptance/.test(heading)) return 'acceptance_criteria';
     if (/status|freigabe|review/.test(heading)) return 'review_status';
@@ -286,7 +288,7 @@ function collectRows() {
         title: row.querySelector('.riTitle').value.trim(),
         description: row.querySelector('.riDescription').value.trim(),
         acceptance_criteria: row.querySelector('.riCriteria').value.trim(),
-        source_contact: row.querySelector('.riSource').value.trim(),
+        source_document: row.querySelector('.riSource').value.trim(),
         review_status: 'Neu'
     }));
 }

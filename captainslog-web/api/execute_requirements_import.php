@@ -5,53 +5,99 @@ session_start();
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../config/audit_context.php';
 require_once __DIR__ . '/requirements_import_common.php';
+
 $uid = imp_user();
+
 try {
     $d = json_decode(file_get_contents('php://input'), true) ?: [];
     $project = imp_clean($d['project_id'] ?? '');
     $rows = $d['rows'] ?? [];
     $mode = $d['import_mode'] ?? 'skip';
+
     if (!$project || !is_array($rows) || !in_array($mode, ['skip', 'update'], true))
         throw new Exception('Importdaten sind ungültig.');
     if (count($rows) > 3000)
         throw new Exception('Maximal 3000 Zeilen je Import.');
+
     $batch = 'reqimp-' . bin2hex(random_bytes(14));
     $source = imp_clean($d['source_name'] ?? 'Import');
+
     set_audit_context($pdo, $d['source_format'] ?? 'import', $source, $batch);
     $pdo->beginTransaction();
+
+    // FIX 1: Wir holen uns vor der Schleife die höchste Nummer im Projekt
+    $maxNumQuery = $pdo->prepare('SELECT COALESCE(MAX(serial_number), 0) FROM requirements WHERE project_id = ?');
+    $maxNumQuery->execute([$project]);
+    $currentSerial = (int) $maxNumQuery->fetchColumn();
+
     $find = $pdo->prepare('SELECT id FROM requirements WHERE project_id=? AND req_key=? LIMIT 1');
     $count = $pdo->prepare('SELECT COUNT(*)+1 FROM requirements WHERE project_id=? AND type=?');
-    $insert = $pdo->prepare('INSERT INTO requirements(project_id,req_key,type,title,description,rationale,status,source_contact,effort,acceptance_criteria,review_status,parents,children,attributes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
-    $update = $pdo->prepare('UPDATE requirements SET type=?,title=?,description=?,rationale=?,source_contact=?,effort=?,acceptance_criteria=?,review_status=? WHERE id=? AND project_id=?');
+
+    // FIX 2: serial_number, display_number UND source_document hinzugefügt!
+    $insert = $pdo->prepare('INSERT INTO requirements(project_id,serial_number,display_number,req_key,type,title,description,rationale,status,source_document,source_contact,effort,acceptance_criteria,review_status,parents,children,attributes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+    $update = $pdo->prepare('UPDATE requirements SET type=?,title=?,description=?,rationale=?,source_document=?,source_contact=?,effort=?,acceptance_criteria=?,review_status=? WHERE id=? AND project_id=?');
+
     $created = $updated = $skipped = $failed = 0;
     $errors = [];
+
     foreach ($rows as $i => $row) {
         try {
             if (empty($row['import']))
                 continue;
+
             $type = strtoupper(imp_clean($row['type'] ?? 'SYS')) ?: 'SYS';
             $key = imp_clean($row['req_key'] ?? '');
             $title = imp_clean($row['title'] ?? '');
             $description = imp_clean($row['description'] ?? '');
+
             if ($title === '' && $description !== '')
                 $title = mb_substr($description, 0, 240);
             if ($title === '')
                 throw new Exception('Titel fehlt.');
+
             if ($key === '') {
                 $count->execute([$project, $type]);
                 $key = $type . '-' . str_pad((string) $count->fetchColumn(), 3, '0', STR_PAD_LEFT);
             }
+
             $find->execute([$project, $key]);
             $id = $find->fetchColumn();
+
             if ($id) {
                 if ($mode === 'update') {
-                    $update->execute([$type, $title, $description, $row['rationale'] ?? '', $row['source_contact'] ?? '', $row['effort'] ?? '', $row['acceptance_criteria'] ?? '', $row['review_status'] ?? 'Neu', $id, $project]);
+                    // Update mit neuem source_document Feld
+                    $update->execute([$type, $title, $description, $row['rationale'] ?? '', $row['source_document'] ?? '', $row['source_contact'] ?? '', $row['effort'] ?? '', $row['acceptance_criteria'] ?? '', $row['review_status'] ?? 'Neu', $id, $project]);
                     $updated++;
-                } else
+                } else {
                     $skipped++;
+                }
             } else {
+                // FIX 3: Für jede neue Zeile zählen wir die Nummer um 1 hoch
+                $currentSerial++;
                 $attrs = json_encode(['import_batch_id' => $batch, 'source_name' => $source], JSON_UNESCAPED_UNICODE);
-                $insert->execute([$project, $key, $type, $title, $description, $row['rationale'] ?? '', 'open', $row['source_contact'] ?? '', $row['effort'] ?? '', $row['acceptance_criteria'] ?? '', $row['review_status'] ?? 'Neu', '[]', '[]', $attrs]);
+
+                // HIER WIRD GESPEICHERT:
+                $docName = !empty($row['source_document']) ? $row['source_document'] : $source;
+
+                $insert->execute([
+                    $project,
+                    $currentSerial,
+                    $currentSerial,
+                    $key,
+                    $type,
+                    $title,
+                    $description,
+                    $row['rationale'] ?? '',
+                    'open',
+                    $docName, // <-- Hier landet nun der Dateiname (z.B. Lastenheft.pdf) in der DB!
+                    $row['source_contact'] ?? '',
+                    $effort ?? null,
+                    $row['acceptance_criteria'] ?? '',
+                    $row['review_status'] ?? 'Neu',
+                    '[]',
+                    '[]',
+                    $attrs
+                ]);
                 $created++;
             }
         } catch (Throwable $e) {
@@ -61,11 +107,14 @@ try {
                 throw $e;
         }
     }
+
     $status = $failed ? 'completed_with_errors' : 'completed';
     $q = $pdo->prepare('INSERT INTO requirement_import_batches(id,project_id,original_filename,source_format,extraction_mode,profile_id,import_mode,total_rows,created_rows,updated_rows,skipped_rows,failed_rows,status,result_json,created_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
     $q->execute([$batch, $project, $source, $d['source_format'] ?? 'text', $d['extraction_mode'] ?? 'table', $d['profile_id'] ?? null, $mode, count($rows), $created, $updated, $skipped, $failed, $status, json_encode($errors, JSON_UNESCAPED_UNICODE), $uid]);
+
     $pdo->commit();
     imp_json(['success' => true, 'batch_id' => $batch, 'created' => $created, 'updated' => $updated, 'skipped' => $skipped, 'failed' => $failed, 'errors' => $errors]);
+
 } catch (Throwable $e) {
     if (isset($pdo) && $pdo->inTransaction())
         $pdo->rollBack();
