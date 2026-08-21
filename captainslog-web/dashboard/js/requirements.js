@@ -6,24 +6,24 @@ let loadedRequirements = [];
 let globalStakeholders = [];
 
 // NEU: Globale Variable für die aktiven Checkbox-Filter
-window.activeTypeFilters = []; 
+window.activeTypeFilters = [];
 
 // Wird vom HTML-Filter-Bereich aus aufgerufen
-window.updateTypeFilters = function() {
+window.updateTypeFilters = function () {
     const container = document.getElementById('reqFilterCheckboxes');
     if (!container) return;
 
     const checkboxes = container.querySelectorAll('input[type="checkbox"]');
-    
+
     // Holt sich alle angehakten Values in ein Array (z.B. ['SRS', 'TC', 'GOAL'])
     window.activeTypeFilters = Array.from(checkboxes)
-                                    .filter(cb => cb.checked)
-                                    .map(cb => cb.value);
-    
+        .filter(cb => cb.checked)
+        .map(cb => cb.value);
+
     window.renderTreeList();
 };
 
-window.selectAllFilters = function(state) {
+window.selectAllFilters = function (state) {
     const container = document.getElementById('reqFilterCheckboxes');
     if (!container) return;
     const checkboxes = container.querySelectorAll('input[type="checkbox"]');
@@ -96,7 +96,7 @@ window.handleTypeChange = function (loadedAttrs = {}) {
     const type = typeDropdown.value;
 
     const criteriaContainer = document.getElementById('criteria_container');
-    const needsCriteria = ['USR', 'SYS', 'SEC', 'SRS', 'HRS' ,'SWC'];
+    const needsCriteria = ['USR', 'SYS', 'SEC', 'SRS', 'HRS', 'SWC'];
     if (criteriaContainer) {
         if (needsCriteria.includes(type)) {
             criteriaContainer.classList.remove('hidden');
@@ -230,9 +230,13 @@ function getStakeholderName(id) {
 export async function loadRequirements() {
     if (!currentProjectId) return;
     if (globalStakeholders.length === 0) await loadStakeholdersForDropdown();
+
     try {
-        const res = await fetch(`../api/get_requirements.php?project_id=${currentProjectId}`);
+        const res = await fetch(`../api/get_requirements.php?project_id=${currentProjectId}&t=${new Date().getTime()}`);
+
+        // HIER IST DIE FEHLENDE ZEILE:
         const data = await res.json();
+
         if (!data.success || data.requirements.length === 0) {
             loadedRequirements = [];
             window.renderTreeList();
@@ -240,20 +244,20 @@ export async function loadRequirements() {
             if (detail) detail.innerHTML = '<div class="flex h-full items-center justify-center text-slate-400 italic">Noch keine Elemente vorhanden.</div>';
             return;
         }
+
         loadedRequirements = data.requirements;
         loadedRequirements.forEach(req => {
             let p = req.parents;
             if (typeof p === 'string') { try { p = JSON.parse(p); } catch (e) { p = []; } }
             req.parsedParents = Array.isArray(p) ? p : [];
         });
-        
-        // Neu: Initial die Checkboxen auslesen, bevor das erste Mal gerendert wird
-        window.updateTypeFilters(); 
-        
+
+        window.updateTypeFilters();
+
     } catch (e) {
         console.error("Fehler beim Laden:", e);
     } finally {
-        if(typeof window.hideLoader === 'function') window.hideLoader();
+        if (typeof window.hideLoader === 'function') window.hideLoader();
     }
 }
 
@@ -265,9 +269,9 @@ window.renderTreeList = function () {
         listContainer.innerHTML = '<div class="p-4 text-sm text-slate-500 italic">Keine Elemente vorhanden.</div>';
         return;
     }
-    
+
     listContainer.innerHTML = '';
-    
+
     // Wir holen uns nun alle Elemente, deren Typ in den Checkboxen aktiviert ist
     let targetReqs = [];
     if (window.activeTypeFilters.length === 0) {
@@ -286,16 +290,16 @@ window.renderTreeList = function () {
 
     // Baum-Struktur Rendern (mit Parent-Rettung)
     const rendered = new Set();
-    
+
     // Parent-Rettung: Wenn ein Kind sichtbar sein soll, müssen wir seine Parents zwingend in unsere targetReqs aufnehmen (damit der Baum nicht reißt)
     let needsParentCheck = true;
-    while(needsParentCheck) {
+    while (needsParentCheck) {
         needsParentCheck = false;
         const currentTargetKeys = targetReqs.map(r => r.req_key);
-        
+
         targetReqs.forEach(req => {
             req.parsedParents.forEach(parentId => {
-                if(!currentTargetKeys.includes(parentId)) {
+                if (!currentTargetKeys.includes(parentId)) {
                     const missingParent = loadedRequirements.find(r => r.req_key === parentId);
                     if (missingParent) {
                         targetReqs.push(missingParent);
@@ -310,17 +314,17 @@ window.renderTreeList = function () {
     function renderNode(req, level) {
         if (rendered.has(req.req_key)) return;
         rendered.add(req.req_key);
-        
+
         const btn = document.createElement('button');
         const indentRem = level * 1.2;
         const bgClass = level > 0 ? 'bg-slate-50/60' : 'bg-white';
-        
+
         btn.className = `w-full text-left p-2.5 border-b border-slate-100 hover:bg-blue-50 transition focus:bg-blue-100 flex items-center justify-between text-xs ${bgClass}`;
         btn.style.paddingLeft = `calc(0.75rem + ${indentRem}rem)`;
-        
+
         const children = targetReqs.filter(r => r.parsedParents.includes(req.req_key));
         const icon = children.length > 0 ? `<span class="text-slate-400 mr-1">▶</span>` : `<span class="mr-3"></span>`;
-        
+
         btn.innerHTML = `
             <div class="flex items-center truncate">
                 ${icon}
@@ -331,18 +335,18 @@ window.renderTreeList = function () {
         `;
         btn.onclick = () => showRequirementDetail(req);
         listContainer.appendChild(btn);
-        
+
         children.forEach(child => renderNode(child, level + 1));
     }
-    
+
     // Wurzelelemente finden (Die keine Parents innerhalb der sichtbaren Liste haben)
-    const roots = targetReqs.filter(req => 
-        req.parsedParents.length === 0 || 
+    const roots = targetReqs.filter(req =>
+        req.parsedParents.length === 0 ||
         !req.parsedParents.some(pk => targetReqs.find(r => r.req_key === pk))
     );
-    
+
     roots.forEach(root => renderNode(root, 0));
-    
+
     // Sicherheitsnetz für verwaiste Elemente
     targetReqs.forEach(req => { if (!rendered.has(req.req_key)) renderNode(req, 0); });
 };
@@ -355,7 +359,11 @@ window.showRequirementDetailById = function (id) {
 window.triggerVerify = function (reqId, idx, checkbox) {
     if (!checkbox.checked) return;
     checkbox.checked = false;
-    const textNode = checkbox.nextElementSibling.querySelector('label').textContent;
+    
+    // FIX: Sucht das Label jetzt im gesamten übergeordneten Element (robuster)
+    const labelEl = checkbox.parentNode.querySelector('label') || checkbox.nextElementSibling;
+    const textNode = labelEl.textContent;
+    
     document.getElementById('verify_req_id').value = reqId;
     document.getElementById('verify_crit_idx').value = idx;
     document.getElementById('verify_crit_text').textContent = textNode;
@@ -367,9 +375,24 @@ function showRequirementDetail(req) {
     const detail = document.getElementById('detail');
     if (!detail) return;
 
-    let attrs = {};
-    try { attrs = JSON.parse(req.attributes || '{}'); } catch (e) { }
-    const states = attrs.criteria_states || {};
+  let attrs = {};
+    try { 
+        // Kugelsicheres Parsen: Egal ob die API einen Text oder ein Objekt schickt
+        if (typeof req.attributes === 'object' && req.attributes !== null) {
+            attrs = req.attributes;
+        } else {
+            let parsed = JSON.parse(req.attributes || '{}'); 
+            if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+            attrs = parsed;
+        }
+    } catch (e) { 
+        console.error("Fehler beim Parsen der Attribute:", e);
+    }
+
+    let states = attrs.criteria_states || {};
+    if (typeof states === 'string') {
+        try { states = JSON.parse(states); } catch (e) { states = {}; }
+    }
 
     let criteriaHtml = '<span class="italic text-slate-400">Keine Kriterien definiert.</span>';
     if (req.acceptance_criteria) {
@@ -378,19 +401,33 @@ function showRequirementDetail(req) {
         lines.forEach((line, idx) => {
             const cleanLine = line.replace(/^-\s*/, '');
             if (cleanLine.trim() !== '') {
-                const state = states[idx];
-                const isChecked = state && state.checked ? 'checked disabled' : '';
-                const infoBadge = state ? `<div class="mt-1 text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-1 "> <b>Geprüft von ${state.by}</b> am ${state.date}<br><span class="italic">"${state.note}"</span></div>` : '';
-
-                criteriaHtml += `
-                    <li class="flex items-start gap-3 text-sm text-slate-700 bg-white p-2 border">
-                        <input type="checkbox" id="crit_${req.id}_${idx}" class="mt-1 w-4 h-4 text-blue-900 focus:ring-blue-500 cursor-pointer" ${isChecked} onchange="window.triggerVerify(${req.id}, ${idx}, this)">
-                        <div class="flex flex-col w-full">
-                            <label for="crit_${req.id}_${idx}" class="cursor-pointer font-medium leading-tight">${cleanLine}</label>
-                            ${infoBadge}
-                        </div>
-                    </li>
-                `;
+                // Holt sich den Status sicher anhand des Array-Indexes
+                const state = states[idx] || states[String(idx)];
+                
+                if (state && state.checked) {
+                    // WENN GEPRÜFT: Fette grüne Box OHNE Checkbox, dafür mit Check-Icon
+                    criteriaHtml += `
+                        <li class="flex items-start gap-4 p-4 border-2 border-emerald-400 rounded-lg bg-emerald-50 shadow-sm">
+                            <div class="mt-0.5 shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500 text-white font-extrabold shadow">✓</div>
+                            <div class="flex flex-col w-full">
+                                <span class="font-bold text-emerald-950 leading-relaxed">${cleanLine}</span>
+                                <div class="mt-3 text-xs text-emerald-900 bg-white border border-emerald-200 p-3 rounded shadow-sm">
+                                    <div class="uppercase tracking-widest font-extrabold text-[10px] text-emerald-600 mb-1">Prüfvermerk</div>
+                                    <span class="font-bold">Geprüft von ${state.by}</span> am ${state.date}<br>
+                                    <span class="italic mt-1 block">"${state.note}"</span>
+                                </div>
+                            </div>
+                        </li>
+                    `;
+                } else {
+                    // WENN OFFEN: Normale Checkbox zum Anklicken
+                    criteriaHtml += `
+                        <li class="flex items-start gap-4 p-4 border border-slate-200 rounded-lg bg-white shadow-sm hover:border-blue-400 transition">
+                            <input type="checkbox" id="crit_${req.id}_${idx}" class="mt-1 shrink-0 w-5 h-5 rounded border-slate-400 text-blue-900 cursor-pointer focus:ring-blue-900" onchange="window.triggerVerify(${req.id}, ${idx}, this)">
+                            <label for="crit_${req.id}_${idx}" class="cursor-pointer text-slate-700 font-medium leading-relaxed">${cleanLine}</label>
+                        </li>
+                    `;
+                }
             }
         });
         criteriaHtml += '</ul>';
@@ -438,6 +475,7 @@ function showRequirementDetail(req) {
                     <h2 class="text-2xl font-bold text-slate-900 mt-1">${req.title}</h2>
                 </div>
                 <button onclick="window.editRequirement(${req.id})" class="bg-blue-900 text-white text-xs px-3 py-1.5 font-bold hover:bg-blue-800 shadow">Bearbeiten</button>
+                <button onclick="window.hardDeleteRequirement(${req.id}, '${req.req_key}')" class="bg-red-50 text-red-700 border border-red-200 text-xs px-3 py-1.5 font-bold hover:bg-red-100 shadow-sm transition">Löschen</button>
             </div>
             <div class="flex gap-4 mt-3 text-xs text-slate-500 font-medium flex-wrap">
                 <div> Quelle: <strong class="text-slate-700">${stakeholderName}</strong></div>
@@ -464,7 +502,7 @@ function showRequirementDetail(req) {
 }
 
 export function initRequirementEvents() {
-    
+
     // NEU: Event Listener für die Checkboxen aktivieren
     const filterContainer = document.getElementById('reqFilterCheckboxes');
     if (filterContainer) {
@@ -635,4 +673,32 @@ window.editRequirement = function (id) {
 
     const modal = document.getElementById('reqModal');
     if (modal) modal.classList.remove('hidden');
+};
+
+window.hardDeleteRequirement = async function (id, key) {
+    // Doppel-Check: Nutzer muss das Wort manuell eintippen
+    const code = prompt(`ACHTUNG: Willst du die Anforderung ${key} wirklich restlos löschen?\nAlle Kriterien, Beziehungen und die Historie werden endgültig vernichtet!\n\nZum Bestätigen tippe das Wort "LÖSCHEN" ein:`);
+
+    if (code !== 'LÖSCHEN') {
+        return; // Abbruch, wenn das Wort falsch getippt wurde
+    }
+
+    try {
+        const res = await fetch('../api/delete_requirement.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            document.getElementById('detail').innerHTML = '<div class="flex h-full items-center justify-center italic text-slate-400">Anforderung restlos gelöscht.</div>';
+            await loadRequirements(); // Lädt die Liste links neu
+        } else {
+            alert("Fehler beim Löschen: " + data.error);
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Netzwerkfehler beim Löschen.");
+    }
 };

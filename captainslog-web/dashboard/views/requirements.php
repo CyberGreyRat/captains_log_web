@@ -12,30 +12,16 @@
                 Requirements · Traceability · Verification
             </p>
 
-            <h2
-                id="reqMainTitle"
-                class="cl-panel-title">
+            <h2 id="reqMainTitle" class="cl-panel-title">
                 Anforderungen
             </h2>
         </div>
 
-        <button
-            id="new"
-            type="button"
-            class="cl-button cl-button-primary">
+        <button id="new" type="button" class="cl-button cl-button-primary">
 
-            <svg
-                class="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 4v16m8-8H4">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
                 </path>
             </svg>
 
@@ -63,25 +49,19 @@
 
             <div class="flex items-center gap-2">
 
-                <button
-                    id="selectAllFilters"
-                    type="button"
+                <button id="selectAllFilters" type="button"
                     class="cl-button cl-button-secondary min-h-0 px-3 py-1.5 text-[10px]">
                     Alle auswählen
                 </button>
 
-                <button
-                    id="clearAllFilters"
-                    type="button"
+                <button id="clearAllFilters" type="button"
                     class="cl-button cl-button-secondary min-h-0 px-3 py-1.5 text-[10px]">
                     Auswahl löschen
                 </button>
             </div>
         </div>
 
-        <div
-            id="reqFilterCheckboxes"
-            class="flex flex-wrap gap-2">
+        <div id="reqFilterCheckboxes" class="flex flex-wrap gap-2">
 
             <?php
             $filterTypes = [
@@ -96,14 +76,11 @@
             ];
 
             foreach ($filterTypes as $type):
-            ?>
+                ?>
                 <label
                     class="inline-flex cursor-pointer items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 shadow-sm transition hover:border-blue-300 hover:bg-blue-50">
 
-                    <input
-                        type="checkbox"
-                        value="<?= htmlspecialchars($type) ?>"
-                        checked
+                    <input type="checkbox" value="<?= htmlspecialchars($type) ?>" checked
                         class="h-3.5 w-3.5 cursor-pointer rounded border-slate-300 text-blue-950 focus:ring-blue-900">
 
                     <span class="font-mono text-[11px] font-extrabold text-slate-700">
@@ -135,25 +112,15 @@
                     </p>
                 </div>
 
-                <svg
-                    class="h-5 w-5 text-slate-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                     aria-hidden="true">
 
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M4 6h16M4 12h16M4 18h16">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
                     </path>
                 </svg>
             </div>
 
-            <div
-                id="items"
-                class="min-h-0 flex-1 overflow-y-auto p-3 text-sm text-slate-500">
+            <div id="items" class="min-h-0 flex-1 overflow-y-auto p-3 text-sm text-slate-500">
 
                 <div class="cl-empty-state">
                     Bitte zuerst ein Projekt auswählen.
@@ -163,25 +130,17 @@
 
 
         <!-- Detailansicht -->
-        <article
-            id="detail"
-            class="cl-card relative h-full min-h-0 overflow-y-auto p-6">
+        <article id="detail" class="cl-card relative h-full min-h-0 overflow-y-auto p-6">
 
             <div class="flex h-full min-h-[300px] flex-col items-center justify-center text-center text-slate-400">
 
-                <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-lg border border-slate-200 bg-slate-50">
+                <div
+                    class="mb-4 flex h-14 w-14 items-center justify-center rounded-lg border border-slate-200 bg-slate-50">
 
-                    <svg
-                        class="h-7 w-7 text-slate-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                    <svg class="h-7 w-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"
                         aria-hidden="true">
 
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="1.7"
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"
                             d="M9 12h6m-6 4h6M9 8h6M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z">
                         </path>
                     </svg>
@@ -219,13 +178,9 @@
 <!-- =========================================================
      MODAL: ANFORDERUNG ERSTELLEN ODER BEARBEITEN
 ========================================================== -->
-<div
-    id="reqModal"
-    class="cl-modal-overlay hidden">
+<div id="reqModal" class="cl-modal-overlay hidden">
 
-    <form
-        id="reqForm"
-        class="cl-modal max-w-3xl">
+    <form id="reqForm" class="cl-modal max-w-3xl">
 
         <!-- Modal-Kopf -->
         <div class="cl-modal-header">
@@ -235,32 +190,18 @@
                     Requirements Engineering
                 </p>
 
-                <h2
-                    id="reqHeading"
-                    class="cl-modal-title">
+                <h2 id="reqHeading" class="cl-modal-title">
                     Neues Element anlegen
                 </h2>
             </div>
 
-            <button
-                type="button"
-                onclick="document.getElementById('reqModal').classList.add('hidden')"
-                class="cl-button cl-button-secondary min-h-0 px-2.5 py-2"
-                title="Fenster schließen"
+            <button type="button" onclick="document.getElementById('reqModal').classList.add('hidden')"
+                class="cl-button cl-button-secondary min-h-0 px-2.5 py-2" title="Fenster schließen"
                 aria-label="Fenster schließen">
 
-                <svg
-                    class="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M6 18 18 6M6 6l12 12">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12">
                     </path>
                 </svg>
             </button>
@@ -283,9 +224,7 @@
                     <label class="cl-label">
                         Typ
 
-                        <select
-                            id="type"
-                            class="cl-select font-medium">
+                        <select id="type" class="cl-select font-medium">
 
                             <optgroup label="System und Architektur">
                                 <option value="USR">
@@ -329,23 +268,15 @@
                     <label class="cl-label">
                         Titel / Name
 
-                        <input
-                            id="title"
-                            type="text"
-                            required
-                            maxlength="255"
-                            placeholder="Kurze und eindeutige Bezeichnung"
-                            class="cl-input text-base font-semibold">
+                        <input id="title" type="text" required maxlength="255"
+                            placeholder="Kurze und eindeutige Bezeichnung" class="cl-input text-base font-semibold">
                     </label>
 
                     <!-- Beschreibung -->
                     <label class="cl-label">
                         Beschreibung
 
-                        <textarea
-                            id="text"
-                            required
-                            rows="4"
+                        <textarea id="text" required rows="4"
                             placeholder="Beschreibe die Anforderung eindeutig und prüfbar."
                             class="cl-textarea"></textarea>
                     </label>
@@ -354,10 +285,7 @@
                     <label class="cl-label">
                         Begründung / Rationale
 
-                        <textarea
-                            id="rationale"
-                            rows="3"
-                            placeholder="Warum ist diese Anforderung notwendig?"
+                        <textarea id="rationale" rows="3" placeholder="Warum ist diese Anforderung notwendig?"
                             class="cl-textarea"></textarea>
                     </label>
                 </div>
@@ -365,18 +293,14 @@
 
 
             <!-- Dynamische Attribute -->
-            <fieldset
-                id="dynamicAttributes"
-                class="cl-fieldset hidden border-indigo-200 bg-indigo-50/40">
+            <fieldset id="dynamicAttributes" class="cl-fieldset hidden border-indigo-200 bg-indigo-50/40">
 
                 <legend class="cl-legend bg-indigo-50 text-indigo-900">
                     Spezifische Attribute
                 </legend>
 
                 <div class="cl-fieldset-body">
-                    <div
-                        id="attributeFields"
-                        class="grid gap-4 md:grid-cols-2">
+                    <div id="attributeFields" class="grid gap-4 md:grid-cols-2">
                     </div>
                 </div>
             </fieldset>
@@ -394,9 +318,7 @@
                     <label class="cl-label">
                         Zuständigkeit / Stakeholder
 
-                        <select
-                            id="source_contact"
-                            class="cl-select">
+                        <select id="source_contact" class="cl-select">
 
                             <option value="">
                                 -- Niemand zugewiesen --
@@ -411,11 +333,7 @@
                     <label class="cl-label">
                         Aufwandschätzung
 
-                        <input
-                            id="effort"
-                            type="text"
-                            placeholder="z.B. 3 Tage oder 5 Story Points"
-                            class="cl-input">
+                        <input id="effort" type="text" placeholder="z.B. 3 Tage oder 5 Story Points" class="cl-input">
 
                         <span class="cl-help">
                             Freie Aufwandsangabe für Planung und Bewertung.
@@ -426,9 +344,7 @@
 
 
             <!-- Akzeptanzkriterien -->
-            <fieldset
-                id="criteria_container"
-                class="cl-fieldset transition-all">
+            <fieldset id="criteria_container" class="cl-fieldset transition-all">
 
                 <legend class="cl-legend">
                     Akzeptanzkriterien
@@ -439,10 +355,7 @@
                     <label class="cl-label">
                         Prüfkriterien
 
-                        <textarea
-                            id="acceptance_criteria"
-                            rows="5"
-                            placeholder="- Kriterium 1&#10;- Kriterium 2"
+                        <textarea id="acceptance_criteria" rows="5" placeholder="- Kriterium 1&#10;- Kriterium 2"
                             class="cl-textarea"></textarea>
 
                         <span class="cl-help">
@@ -466,9 +379,7 @@
                     <label class="cl-label">
                         Prüfstatus
 
-                        <select
-                            id="review_status"
-                            class="cl-select font-semibold">
+                        <select id="review_status" class="cl-select font-semibold">
 
                             <option value="Neu">
                                 Neu
@@ -502,9 +413,7 @@
 
                     <!-- Parents -->
                     <div>
-                        <label
-                            for="parentSearch"
-                            class="cl-label">
+                        <label for="parentSearch" class="cl-label">
                             Parents
                         </label>
 
@@ -514,31 +423,20 @@
                         </p>
 
                         <div class="relative">
-                            <svg
-                                class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true">
+                            <svg class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0z">
                                 </path>
                             </svg>
 
-                            <input
-                                id="parentSearch"
-                                type="search"
-                                placeholder="Parents suchen"
+                            <input id="parentSearch" type="search" placeholder="Parents suchen"
                                 class="cl-input mt-0 pl-8 text-xs"
                                 oninput="window.filterCheckboxes('parentSearch', 'parentsCheckboxList')">
                         </div>
 
-                        <div
-                            id="parentsCheckboxList"
+                        <div id="parentsCheckboxList"
                             class="mt-2 h-44 space-y-1 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 p-2 text-xs">
                         </div>
                     </div>
@@ -546,9 +444,7 @@
 
                     <!-- Children -->
                     <div>
-                        <label
-                            for="childSearch"
-                            class="cl-label">
+                        <label for="childSearch" class="cl-label">
                             Children
                         </label>
 
@@ -558,31 +454,20 @@
                         </p>
 
                         <div class="relative">
-                            <svg
-                                class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true">
+                            <svg class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0z">
                                 </path>
                             </svg>
 
-                            <input
-                                id="childSearch"
-                                type="search"
-                                placeholder="Children suchen"
+                            <input id="childSearch" type="search" placeholder="Children suchen"
                                 class="cl-input mt-0 pl-8 text-xs"
                                 oninput="window.filterCheckboxes('childSearch', 'childrenCheckboxList')">
                         </div>
 
-                        <div
-                            id="childrenCheckboxList"
+                        <div id="childrenCheckboxList"
                             class="mt-2 h-44 space-y-1 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 p-2 text-xs">
                         </div>
                     </div>
@@ -594,29 +479,16 @@
         <!-- Modal-Fuß -->
         <div class="cl-modal-footer">
 
-            <button
-                type="button"
-                onclick="document.getElementById('reqModal').classList.add('hidden')"
+            <button type="button" onclick="document.getElementById('reqModal').classList.add('hidden')"
                 class="cl-button cl-button-secondary">
                 Abbrechen
             </button>
 
-            <button
-                type="submit"
-                class="cl-button cl-button-primary">
+            <button type="submit" class="cl-button cl-button-primary">
 
-                <svg
-                    class="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M5 13l4 4L19 7">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7">
                     </path>
                 </svg>
 
@@ -630,13 +502,9 @@
 <!-- =========================================================
      MODAL: AKZEPTANZKRITERIUM VERIFIZIEREN
 ========================================================== -->
-<div
-    id="verifyModal"
-    class="cl-modal-overlay hidden z-[230]">
+<div id="verifyModal" class="cl-modal-overlay hidden z-[230]">
 
-    <form
-        id="verifyForm"
-        class="cl-modal max-w-md">
+    <form id="verifyForm" class="cl-modal max-w-md">
 
         <!-- Modal-Kopf -->
         <div class="cl-modal-header">
@@ -651,25 +519,13 @@
                 </h2>
             </div>
 
-            <button
-                type="button"
-                onclick="document.getElementById('verifyModal').classList.add('hidden')"
-                class="cl-button cl-button-secondary min-h-0 px-2.5 py-2"
-                title="Fenster schließen"
+            <button type="button" onclick="document.getElementById('verifyModal').classList.add('hidden')"
+                class="cl-button cl-button-secondary min-h-0 px-2.5 py-2" title="Fenster schließen"
                 aria-label="Fenster schließen">
 
-                <svg
-                    class="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M6 18 18 6M6 6l12 12">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12">
                     </path>
                 </svg>
             </button>
@@ -679,21 +535,16 @@
         <!-- Modal-Inhalt -->
         <div class="cl-modal-body space-y-5">
 
-            <input
-                id="verify_req_id"
-                type="hidden">
+            <input id="verify_req_id" type="hidden">
 
-            <input
-                id="verify_crit_idx"
-                type="hidden">
+            <input id="verify_crit_idx" type="hidden">
 
             <div>
                 <div class="mb-2 text-xs font-extrabold uppercase tracking-wide text-blue-950">
                     Zu prüfendes Kriterium
                 </div>
 
-                <p
-                    id="verify_crit_text"
+                <p id="verify_crit_text"
                     class="rounded-md border border-blue-200 bg-blue-50 p-4 text-sm font-semibold leading-6 text-slate-800">
                 </p>
             </div>
@@ -701,11 +552,7 @@
             <label class="cl-label">
                 Notiz / Link zum Testprotokoll
 
-                <textarea
-                    id="verify_note"
-                    required
-                    rows="4"
-                    placeholder="z.B. Test T-045 erfolgreich durchgeführt..."
+                <textarea id="verify_note" required rows="4" placeholder="z.B. Test T-045 erfolgreich durchgeführt..."
                     class="cl-textarea"></textarea>
 
                 <span class="cl-help">
@@ -719,29 +566,16 @@
         <!-- Modal-Fuß -->
         <div class="cl-modal-footer">
 
-            <button
-                type="button"
-                onclick="document.getElementById('verifyModal').classList.add('hidden')"
+            <button type="button" onclick="document.getElementById('verifyModal').classList.add('hidden')"
                 class="cl-button cl-button-secondary">
                 Abbrechen
             </button>
 
-            <button
-                type="submit"
-                class="cl-button cl-button-success">
+            <button type="submit" class="cl-button cl-button-success">
 
-                <svg
-                    class="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M5 13l4 4L19 7">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7">
                     </path>
                 </svg>
 
@@ -751,4 +585,5 @@
     </form>
 </div>
 
-<script type="module" src="js/acceptance_criteria_suggestions.js"></script>
+<script type="module" src="js/requirements_import.js?v=general-1"></script>
+<script type="module" src="js/acceptance_criteria_suggestions.js?v=2"></script>

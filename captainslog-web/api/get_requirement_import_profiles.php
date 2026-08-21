@@ -1,0 +1,3 @@
+<?php
+ini_set('display_errors','0');session_start();require_once __DIR__.'/../config/db.php';require_once __DIR__.'/requirements_import_common.php';imp_user();
+try{$project=imp_clean($_GET['project_id']??'');$q=$pdo->prepare('SELECT id,profile_name,source_format,extraction_mode,configuration_json FROM requirement_import_profiles WHERE project_id IS NULL OR project_id=? ORDER BY profile_name');$q->execute([$project]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);foreach($rows as &$r){$r['configuration']=json_decode($r['configuration_json'],true)?:[];unset($r['configuration_json']);}imp_json(['success'=>true,'profiles'=>$rows]);}catch(Throwable $e){imp_json(['success'=>false,'error'=>$e->getMessage()],400);}

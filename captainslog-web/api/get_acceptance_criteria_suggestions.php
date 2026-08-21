@@ -65,7 +65,7 @@ try {
             category,
             criterion_text,
             keywords,
-            source_type,
+            requirement_type AS source_type, 
             usage_count,
             (
                 CASE

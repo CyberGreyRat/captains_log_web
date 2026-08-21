@@ -1,29 +1,28 @@
 <?php
 // api/delete_requirement.php
 ini_set('display_errors', 0); error_reporting(E_ALL); session_start();
-require '../config/db.php';
-require_once __DIR__ . '/../config/audit_context.php'; header('Content-Type: application/json');
+require '../config/db.php'; header('Content-Type: application/json');
 
 try {
-    set_audit_context($pdo, 'web', basename($_SERVER['SCRIPT_NAME']));
-
     $data = json_decode(file_get_contents('php://input'), true);
-    $id = $data['id'] ?? null;
+    if (empty($data['id'])) throw new Exception("Keine ID übergeben.");
+
+    $pdo->beginTransaction();
     
-    if (!$id) {
-        throw new Exception("Keine ID übergeben.");
-    }
-
-    // 1. Zuerst die Historie zu diesem Element sauber entfernen (verhindert Foreign-Key Konflikte)
-    $stmtHist = $pdo->prepare("DELETE FROM requirement_history WHERE requirement_id = ?");
-    $stmtHist->execute([$id]);
-
-    // 2. Dann das eigentliche Element löschen
-    $stmtReq = $pdo->prepare("DELETE FROM requirements WHERE id = ?");
-    $stmtReq->execute([$id]);
-
+    // 1. Historie restlos entfernen
+    $pdo->prepare("DELETE FROM requirement_history WHERE requirement_id = ?")->execute([$data['id']]);
+    
+    // 2. Audit-Log bereinigen (damit keine Geister-Einträge bleiben)
+    $pdo->prepare("DELETE FROM audit_log WHERE entity_type = 'requirement' AND entity_id = ?")->execute([$data['id']]);
+    
+    // 3. Die eigentliche Anforderung löschen
+    $pdo->prepare("DELETE FROM requirements WHERE id = ?")->execute([$data['id']]);
+    
+    $pdo->commit();
     echo json_encode(['success' => true]);
 
 } catch (Exception $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
+?>

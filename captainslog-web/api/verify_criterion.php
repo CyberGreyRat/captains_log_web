@@ -1,8 +1,7 @@
 <?php
 // api/verify_criterion.php
 ini_set('display_errors', 0); error_reporting(E_ALL); session_start();
-require '../config/db.php';
-require_once __DIR__ . '/../config/audit_context.php'; header('Content-Type: application/json');
+require '../config/db.php'; header('Content-Type: application/json');
 
 $data = json_decode(file_get_contents('php://input'), true);
 $req_id = $data['req_id'] ?? null;
@@ -19,20 +18,20 @@ if (!$req_id || $idx === null) {
 }
 
 try {
-    set_audit_context($pdo, 'web', basename($_SERVER['SCRIPT_NAME']));
-
     $pdo->beginTransaction();
 
-    // 1. Aktuelle Kriterien laden
     $stmt = $pdo->prepare("SELECT * FROM requirements WHERE id = ?");
     $stmt->execute([$req_id]);
     $req = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!isset($req)) throw new Exception("Element nicht gefunden");
+    if (!$req) throw new Exception("Element nicht gefunden");
 
-    $attrs = json_decode($req['attributes'] ?: '{}', true);
+    // Attribute absolut kugelsicher auslesen
+    $attrs = $req['attributes'];
+    if (is_string($attrs)) $attrs = json_decode($attrs, true) ?: [];
     if (!isset($attrs['criteria_states'])) $attrs['criteria_states'] = [];
+    if (is_string($attrs['criteria_states'])) $attrs['criteria_states'] = json_decode($attrs['criteria_states'], true) ?: [];
 
-    // 2. Kriterium abhaken
+    // Kriterium abhaken
     $attrs['criteria_states'][$idx] = [
         'checked' => true,
         'by' => $user,
@@ -40,7 +39,7 @@ try {
         'note' => $note
     ];
 
-    // 3. Prüfen: Sind ALLE Kriterien abgehakt?
+    // Status berechnen
     $raw_lines = explode("\n", $req['acceptance_criteria']);
     $valid_count = 0;
     $checked_count = 0;
@@ -53,24 +52,25 @@ try {
         }
     }
 
-    $update_stmt = $pdo->prepare("UPDATE requirements SET attributes = ? WHERE id = ?");
-    $update_stmt->execute([json_encode($attrs), $req_id]);
+    $auto_approved = ($valid_count > 0 && $valid_count === $checked_count);
+    $new_status = $auto_approved ? 'Geprüft & Freigegeben' : $req['review_status'];
+    $new_attrs_json = json_encode($attrs, JSON_UNESCAPED_UNICODE);
 
-    $auto_approved = false;
-    if ($valid_count > 0 && $valid_count === $checked_count) {
-        // Status auf Freigegeben setzen
-        $status_stmt = $pdo->prepare("UPDATE requirements SET review_status = 'Geprüft & Freigegeben' WHERE id = ?");
-        $status_stmt->execute([$req_id]);
-        $auto_approved = true;
+    // Nur bei echter Änderung schreiben
+    if ($req['attributes'] !== $new_attrs_json || $req['review_status'] !== $new_status) {
+        
+        // 1. Die Datenbank aktualisieren (Löst den automatischen "root@localhost"-Trigger aus)
+        $update_stmt = $pdo->prepare("UPDATE requirements SET attributes = ?, review_status = ? WHERE id = ?");
+        $update_stmt->execute([$new_attrs_json, $new_status, $req_id]);
 
-        // WICHTIG: Historien-Eintrag für die Performance-Analyse schreiben!
-        $histStmt = $pdo->prepare("INSERT INTO requirement_history (requirement_id, req_key, project_id, type, title, description, rationale, status, parents, children, modified_by, action, attributes, hostname) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $histStmt->execute([
-            $req['id'], $req['req_key'], $req['project_id'], $req['type'], 
-            $req['title'], $req['description'], $req['rationale'], 'Geprüft & Freigegeben', 
-            $req['parents'], $req['children'], $user_id, 'Automatisch freigegeben durch vollständige Kriterien-Prüfung', 
-            json_encode($attrs), $hostname
-        ]);
+        // 2. MAGIC TRICK: Wir überschreiben sofort den Namen im gerade erstellten Trigger-Log!
+        $fixLogStmt = $pdo->prepare("
+            UPDATE audit_log 
+            SET actor_name = ?, actor_user_id = ?, source_type = 'web', source_name = 'verify_criterion.php', hostname = ? 
+            WHERE entity_type = 'requirement' AND entity_id = ? AND actor_name = 'root@localhost' 
+            ORDER BY created_at DESC LIMIT 1
+        ");
+        $fixLogStmt->execute([$user, $user_id, $hostname, $req_id]);
     }
 
     $pdo->commit();
@@ -80,3 +80,4 @@ try {
     if ($pdo->inTransaction()) $pdo->rollBack();
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
+?>

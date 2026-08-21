@@ -3,16 +3,37 @@
 
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
-
 session_start();
 
-require '../config/db.php';
-require '../config/audit_context.php';
+require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/audit_context.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
+function requirement_json(array $data, int $status = 200): never
+{
+    http_response_code($status);
+    echo json_encode(
+        $data,
+        JSON_UNESCAPED_UNICODE |
+        JSON_UNESCAPED_SLASHES |
+        JSON_INVALID_UTF8_SUBSTITUTE
+    );
+    exit;
+}
+
 try {
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    if (empty($_SESSION['user_id'])) {
+        requirement_json([
+            'success' => false,
+            'error' => 'Nicht angemeldet.'
+        ], 401);
+    }
+
+    $pdo->setAttribute(
+        PDO::ATTR_ERRMODE,
+        PDO::ERRMODE_EXCEPTION
+    );
 
     set_audit_context(
         $pdo,
@@ -20,185 +41,154 @@ try {
         basename($_SERVER['SCRIPT_NAME'])
     );
 
-    $data = json_decode(file_get_contents('php://input'), true);
-
-    if (empty($data['project_id']) || empty($data['title'])) {
-        throw new Exception('Projekt-ID und Titel fehlen!');
-    }
-
-    $id = $data['id'] ?? null;
-    $project_id = $data['project_id'];
-    $type = $data['type'] ?? 'SYS';
-    $title = $data['title'];
-    $description = $data['description'] ?? '';
-    $rationale = $data['rationale'] ?? '';
-    $status = $data['status'] ?? 'open';
-    $source_contact = $data['source_contact'] ?? '';
-    $effort = $data['effort'] ?? '';
-    $acceptance_criteria = $data['acceptance_criteria'] ?? '';
-    $review_status = $data['review_status'] ?? 'Neu';
-
-    $parents_array = (
-        isset($data['parents']) &&
-        is_array($data['parents'])
-    ) ? $data['parents'] : [];
-
-    $children_array = (
-        isset($data['children']) &&
-        is_array($data['children'])
-    ) ? $data['children'] : [];
-
-    $parents = json_encode(
-        $parents_array,
-        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+    $data = json_decode(
+        file_get_contents('php://input'),
+        true
     );
 
-    $children = json_encode(
-        $children_array,
-        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-    );
-
-    $user_id = $_SESSION['user_id'] ?? 1;
-    $hostname = $_SESSION['hostname'] ?? 'LocalPC';
-
-    $existing_attrs = [];
-    $req_key = '';
-    $old_row = null;
-
-    if ($id) {
-        $stmtOld = $pdo->prepare(
-            'SELECT *
-             FROM requirements
-             WHERE id = ?
-               AND project_id = ?'
-        );
-
-        $stmtOld->execute([
-            $id,
-            $project_id
-        ]);
-
-        $old_row = $stmtOld->fetch(PDO::FETCH_ASSOC);
-
-        if ($old_row) {
-            $req_key = $old_row['req_key'];
-
-            if (!empty($old_row['attributes'])) {
-                $decoded = json_decode(
-                    $old_row['attributes'],
-                    true
-                );
-
-                if (is_array($decoded)) {
-                    $existing_attrs = $decoded;
-                }
-            }
-        }
+    if (!is_array($data)) {
+        throw new Exception('Ungültige JSON-Daten.');
     }
 
-    if (
-        isset($data['attributes']) &&
-        is_array($data['attributes'])
-    ) {
-        foreach ($data['attributes'] as $key => $value) {
-            $existing_attrs[$key] = $value;
-        }
+    $id = !empty($data['id'])
+        ? (int)$data['id']
+        : null;
+
+    $projectId = trim((string)($data['project_id'] ?? ''));
+    $type = strtoupper(trim((string)($data['type'] ?? 'SYS')));
+    $title = trim((string)($data['title'] ?? ''));
+    $description = trim((string)($data['description'] ?? ''));
+    $rationale = trim((string)($data['rationale'] ?? ''));
+    $status = trim((string)($data['status'] ?? 'open'));
+    $sourceContact = trim((string)($data['source_contact'] ?? ''));
+    $effort = $data['effort'] ?? null;
+    $acceptanceCriteria = trim((string)($data['acceptance_criteria'] ?? ''));
+    $reviewStatus = trim((string)($data['review_status'] ?? 'Neu'));
+    $sourceReference = trim((string)($data['source_reference'] ?? ''));
+    $sourceDocument = trim((string)($data['source_document'] ?? ''));
+    $sourcePage = ($data['source_page'] ?? '') !== ''
+        ? (int)$data['source_page']
+        : null;
+    $attributes = is_array($data['attributes'] ?? null)
+        ? $data['attributes']
+        : [];
+
+    if ($projectId === '' || $title === '') {
+        throw new Exception('Projekt-ID und Titel sind Pflichtfelder.');
     }
 
-    $attributes_json = json_encode(
-        $existing_attrs,
-        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+    $allowedTypes = [
+        'USR', 'SYS', 'SEC', 'SRS', 'HRS',
+        'SWC', 'TC', 'TR', 'AST', 'GOAL', 'RISK', 'ENV'
+    ];
+
+    if (!in_array($type, $allowedTypes, true)) {
+        throw new Exception('Unbekannter Anforderungstyp.');
+    }
+
+    $parentIds = array_values(array_unique(array_filter(array_map(
+        'intval',
+        $data['parent_ids'] ?? []
+    ))));
+
+    $childIds = array_values(array_unique(array_filter(array_map(
+        'intval',
+        $data['child_ids'] ?? []
+    ))));
+
+    /* Rückwärtskompatibilität: alte UI sendet noch Keys. */
+    $parentKeys = array_values(array_filter(array_map(
+        static fn($value) => trim((string)$value),
+        $data['parents'] ?? []
+    )));
+
+    $childKeys = array_values(array_filter(array_map(
+        static fn($value) => trim((string)$value),
+        $data['children'] ?? []
+    )));
+
+    $resolver = $pdo->prepare(
+        'SELECT id
+         FROM requirements
+         WHERE project_id = ?
+           AND (
+               req_key = ?
+               OR source_reference = ?
+           )
+         LIMIT 1'
     );
+
+    foreach ($parentKeys as $key) {
+        $resolver->execute([$projectId, $key, $key]);
+        $resolvedId = (int)$resolver->fetchColumn();
+        if ($resolvedId > 0) $parentIds[] = $resolvedId;
+    }
+
+    foreach ($childKeys as $key) {
+        $resolver->execute([$projectId, $key, $key]);
+        $resolvedId = (int)$resolver->fetchColumn();
+        if ($resolvedId > 0) $childIds[] = $resolvedId;
+    }
+
+    $parentIds = array_values(array_unique($parentIds));
+    $childIds = array_values(array_unique($childIds));
 
     $pdo->beginTransaction();
 
-    if ($id && $old_row) {
-        $changes = [];
+    if ($id) {
+        $existingStatement = $pdo->prepare(
+            'SELECT *
+             FROM requirements
+             WHERE id = ?
+               AND project_id = ?
+             FOR UPDATE'
+        );
 
-        if ((string) $old_row['type'] !== (string) $type) {
-            $changes[] = 'Typ geändert';
+        $existingStatement->execute([$id, $projectId]);
+        $existing = $existingStatement->fetch(PDO::FETCH_ASSOC);
+
+        if (!$existing) {
+            throw new Exception('Anforderung wurde nicht gefunden.');
         }
 
-        if ((string) $old_row['title'] !== (string) $title) {
-            $changes[] = 'Titel geändert';
+        $serialNumber = (int)$existing['serial_number'];
+        $newKey = $type . '-' . str_pad(
+            (string)$serialNumber,
+            3,
+            '0',
+            STR_PAD_LEFT
+        );
+
+        if ($sourceReference === '') {
+            $sourceReference = (string)($existing['source_reference'] ?? '');
         }
 
-        if ((string) $old_row['description'] !== (string) $description) {
-            $changes[] = 'Beschreibung geändert';
+        if ($sourceDocument === '') {
+            $sourceDocument = (string)($existing['source_document'] ?? '');
         }
 
-        if ((string) $old_row['rationale'] !== (string) $rationale) {
-            $changes[] = 'Begründung geändert';
+        if ($sourcePage === null && $existing['source_page'] !== null) {
+            $sourcePage = (int)$existing['source_page'];
         }
 
-        if ((string) $old_row['status'] !== (string) $status) {
-            $changes[] = 'Status geändert';
-        }
-
-        if ((string) $old_row['source_contact'] !== (string) $source_contact) {
-            $changes[] = 'Zuständigkeit geändert';
-        }
-
-        if ((string) $old_row['effort'] !== (string) $effort) {
-            $changes[] = 'Aufwand geändert';
-        }
-
-        if (
-            trim((string) $old_row['acceptance_criteria']) !==
-            trim((string) $acceptance_criteria)
-        ) {
-            $changes[] = 'Akzeptanzkriterien geändert';
-        }
-
-        if (
-            (string) $old_row['review_status'] !==
-            (string) $review_status
-        ) {
-            $changes[] = 'Prüfstatus geändert';
-        }
-
-        $old_parents = json_decode(
-            $old_row['parents'] ?? '[]',
+        $existingAttributes = json_decode(
+            $existing['attributes'] ?? '{}',
             true
-        ) ?: [];
+        );
 
-        $old_children = json_decode(
-            $old_row['children'] ?? '[]',
-            true
-        ) ?: [];
-
-        if ($old_parents !== $parents_array) {
-            $changes[] = 'Parents geändert';
+        if (!is_array($existingAttributes)) {
+            $existingAttributes = [];
         }
 
-        if ($old_children !== $children_array) {
-            $changes[] = 'Children geändert';
-        }
+        $attributes = array_replace(
+            $existingAttributes,
+            $attributes
+        );
 
-        $old_attributes = json_decode(
-            $old_row['attributes'] ?? '{}',
-            true
-        ) ?: [];
-
-        if ($old_attributes !== $existing_attrs) {
-            $changes[] = 'Spezifische Attribute geändert';
-        }
-
-        if (empty($changes)) {
-            $pdo->rollBack();
-
-            echo json_encode([
-                'success' => true,
-                'id' => $id,
-                'message' => 'Keine Änderungen erkannt.'
-            ]);
-
-            exit;
-        }
-
-        $stmt = $pdo->prepare(
+        $update = $pdo->prepare(
             'UPDATE requirements
              SET
+                req_key = ?,
                 type = ?,
                 title = ?,
                 description = ?,
@@ -208,97 +198,75 @@ try {
                 effort = ?,
                 acceptance_criteria = ?,
                 review_status = ?,
-                parents = ?,
-                children = ?,
+                source_reference = ?,
+                source_document = ?,
+                source_page = ?,
                 attributes = ?
              WHERE id = ?
                AND project_id = ?'
         );
 
-        $stmt->execute([
+        $update->execute([
+            $newKey,
             $type,
             $title,
             $description,
             $rationale,
             $status,
-            $source_contact,
-            $effort,
-            $acceptance_criteria,
-            $review_status,
-            $parents,
-            $children,
-            $attributes_json,
+            $sourceContact,
+            $effort === '' ? null : $effort,
+            $acceptanceCriteria,
+            $reviewStatus,
+            $sourceReference ?: null,
+            $sourceDocument ?: null,
+            $sourcePage,
+            json_encode(
+                $attributes,
+                JSON_UNESCAPED_UNICODE |
+                JSON_UNESCAPED_SLASHES
+            ),
             $id,
-            $project_id
+            $projectId
         ]);
 
-        $action = 'Geändert: ' . implode(', ', $changes);
-
-        $histStmt = $pdo->prepare(
-            'INSERT INTO requirement_history (
-                requirement_id,
-                req_key,
-                project_id,
-                type,
-                title,
-                description,
-                rationale,
-                status,
-                parents,
-                children,
-                modified_by,
-                action,
-                attributes,
-                hostname
-             )
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        );
-
-        $histStmt->execute([
-            $id,
-            $req_key,
-            $project_id,
-            $type,
-            $title,
-            $description,
-            $rationale,
-            $status,
-            $parents,
-            $children,
-            $user_id,
-            $action,
-            $attributes_json,
-            $hostname
-        ]);
-
-        $saved_id = (int) $id;
-        $message = 'Anforderung erfolgreich aktualisiert.';
+        $savedId = $id;
     } else {
-        $countStmt = $pdo->prepare(
-            'SELECT COUNT(*)
-             FROM requirements
-             WHERE project_id = ?
-               AND type = ?'
+        /* Projektzeile sperren, damit die Nummer nicht doppelt vergeben wird. */
+        $projectLock = $pdo->prepare(
+            'SELECT id
+             FROM projects
+             WHERE id = ?
+             FOR UPDATE'
         );
+        $projectLock->execute([$projectId]);
 
-        $countStmt->execute([
-            $project_id,
-            $type
-        ]);
+        if (!$projectLock->fetchColumn()) {
+            throw new Exception('Projekt wurde nicht gefunden.');
+        }
 
-        $count = (int) $countStmt->fetchColumn() + 1;
+        $numberStatement = $pdo->prepare(
+            'SELECT COALESCE(MAX(serial_number), 0) + 1
+             FROM requirements
+             WHERE project_id = ?'
+        );
+        $numberStatement->execute([$projectId]);
+        $serialNumber = (int)$numberStatement->fetchColumn();
 
-        $req_key = $type . '-' . str_pad(
-            (string) $count,
+        $newKey = $type . '-' . str_pad(
+            (string)$serialNumber,
             3,
             '0',
             STR_PAD_LEFT
         );
 
-        $stmt = $pdo->prepare(
+        $insert = $pdo->prepare(
             'INSERT INTO requirements (
                 project_id,
+                serial_number,
                 req_key,
+                source_reference,
+                source_document,
+                source_page,
                 type,
                 title,
                 description,
@@ -311,85 +279,147 @@ try {
                 parents,
                 children,
                 attributes
-             )
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+             ) VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?
+             )'
         );
 
-        $stmt->execute([
-            $project_id,
-            $req_key,
+        $insert->execute([
+            $projectId,
+            $serialNumber,
+            $newKey,
+            $sourceReference ?: null,
+            $sourceDocument ?: null,
+            $sourcePage,
             $type,
             $title,
             $description,
             $rationale,
             $status,
-            $source_contact,
-            $effort,
-            $acceptance_criteria,
-            $review_status,
-            $parents,
-            $children,
-            $attributes_json
+            $sourceContact,
+            $effort === '' ? null : $effort,
+            $acceptanceCriteria,
+            $reviewStatus,
+            '[]',
+            '[]',
+            json_encode(
+                $attributes,
+                JSON_UNESCAPED_UNICODE |
+                JSON_UNESCAPED_SLASHES
+            )
         ]);
 
-        $saved_id = (int) $pdo->lastInsertId();
-
-        $histStmt = $pdo->prepare(
-            'INSERT INTO requirement_history (
-                requirement_id,
-                req_key,
-                project_id,
-                type,
-                title,
-                description,
-                rationale,
-                status,
-                parents,
-                children,
-                modified_by,
-                action,
-                attributes,
-                hostname
-             )
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        );
-
-        $histStmt->execute([
-            $saved_id,
-            $req_key,
-            $project_id,
-            $type,
-            $title,
-            $description,
-            $rationale,
-            $status,
-            $parents,
-            $children,
-            $user_id,
-            'CREATE (Neu angelegt)',
-            $attributes_json,
-            $hostname
-        ]);
-
-        $message = 'Anforderung erfolgreich angelegt.';
+        $savedId = (int)$pdo->lastInsertId();
     }
+
+    $parentIds = array_values(array_filter(
+        $parentIds,
+        static fn($relatedId) => $relatedId !== $savedId
+    ));
+
+    $childIds = array_values(array_filter(
+        $childIds,
+        static fn($relatedId) => $relatedId !== $savedId
+    ));
+
+    $pdo->prepare(
+        'DELETE FROM requirement_relations
+         WHERE child_requirement_id = ?
+            OR parent_requirement_id = ?'
+    )->execute([$savedId, $savedId]);
+
+    $relationInsert = $pdo->prepare(
+        'INSERT IGNORE INTO requirement_relations (
+            parent_requirement_id,
+            child_requirement_id,
+            relation_type,
+            created_by
+         ) VALUES (?, ?, ?, ?)'
+    );
+
+    foreach ($parentIds as $parentId) {
+        $relationInsert->execute([
+            $parentId,
+            $savedId,
+            'fulfills',
+            (int)$_SESSION['user_id']
+        ]);
+    }
+
+    foreach ($childIds as $childId) {
+        $relationInsert->execute([
+            $savedId,
+            $childId,
+            'fulfills',
+            (int)$_SESSION['user_id']
+        ]);
+    }
+
+    /* JSON-Snapshots für bestehenden Frontend-Code aktuell halten. */
+    $snapshotStatement = $pdo->prepare(
+        'UPDATE requirements current_requirement
+         SET
+            parents = COALESCE(
+                (
+                    SELECT CONCAT(
+                        "[",
+                        GROUP_CONCAT(
+                            JSON_QUOTE(parent_requirement.req_key)
+                            ORDER BY parent_requirement.serial_number
+                            SEPARATOR ","
+                        ),
+                        "]"
+                    )
+                    FROM requirement_relations relation_row
+                    JOIN requirements parent_requirement
+                      ON parent_requirement.id = relation_row.parent_requirement_id
+                    WHERE relation_row.child_requirement_id = current_requirement.id
+                ),
+                "[]"
+            ),
+            children = COALESCE(
+                (
+                    SELECT CONCAT(
+                        "[",
+                        GROUP_CONCAT(
+                            JSON_QUOTE(child_requirement.req_key)
+                            ORDER BY child_requirement.serial_number
+                            SEPARATOR ","
+                        ),
+                        "]"
+                    )
+                    FROM requirement_relations relation_row
+                    JOIN requirements child_requirement
+                      ON child_requirement.id = relation_row.child_requirement_id
+                    WHERE relation_row.parent_requirement_id = current_requirement.id
+                ),
+                "[]"
+            )
+         WHERE current_requirement.project_id = ?'
+    );
+
+    $snapshotStatement->execute([$projectId]);
 
     $pdo->commit();
 
-    echo json_encode([
+    requirement_json([
         'success' => true,
-        'id' => $saved_id,
-        'message' => $message
+        'id' => $savedId,
+        'req_key' => $newKey,
+        'serial_number' => $serialNumber,
+        'type' => $type,
+        'message' => $id
+            ? 'Anforderung erfolgreich aktualisiert.'
+            : 'Anforderung erfolgreich angelegt.'
     ]);
 } catch (Throwable $error) {
     if (isset($pdo) && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
 
-    http_response_code(500);
-
-    echo json_encode([
+    requirement_json([
         'success' => false,
         'error' => $error->getMessage()
-    ]);
+    ], 500);
 }
