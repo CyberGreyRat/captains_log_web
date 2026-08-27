@@ -449,6 +449,57 @@
 </div>
 
 
+<!-- =========================================================
+     ISSUE REPORT SLIDE-OVER PANEL ("Auge"-Ansicht)
+========================================================== -->
+<div id="issueReportOverlay"
+  class="fixed inset-0 z-[210] hidden cursor-pointer bg-slate-950/30 backdrop-blur-sm transition-opacity"
+  onclick="window.closeIssueReportPanel()">
+</div>
+
+<div id="issueReportPanel"
+class="fixed right-0 top-0 z-[220] flex h-full w-full max-w-2xl translate-x-full transform flex-col border-l border-slate-300 bg-slate-50 shadow-2xl transition-transform duration-300">
+  <!-- Panel-Kopf -->
+  <div class="flex shrink-0 items-start justify-between border-t-4 border-blue-600 bg-blue-950 p-6 text-white shadow-md">
+    <div>
+      <div id="reportIssueKey" class="mb-1 font-mono text-xs font-bold uppercase tracking-widest text-amber-400">
+        ISSUE-000
+      </div>
+
+      <h2 id="reportIssueTitle" class="text-xl font-extrabold leading-tight">
+        Lade Bericht...
+      </h2>
+    </div>
+
+    <button type="button" onclick="window.closeIssueReportPanel()"
+      class="rounded-md border border-white/20 bg-white/10 p-2 text-slate-200 transition hover:bg-white/20 hover:text-white"
+      title="Bericht schließen" aria-label="Bericht schließen">
+      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Panel-Inhalt -->
+  <div id="issueReportBody" class="flex-1 space-y-6 overflow-y-auto p-6 text-sm text-slate-700">
+    <!-- Wird dynamisch befüllt -->
+  </div>
+
+  <!-- Panel-Fuß -->
+  <div class="flex shrink-0 items-center justify-between border-t border-slate-300 bg-[#eef2f6] px-6 py-4">
+    <span class="text-xs font-bold uppercase tracking-wide text-slate-500">
+      Issue-Bericht
+    </span>
+
+    <button type="button" onclick="window.closeIssueReportPanel()"
+      class="rounded border border-slate-300 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-700 shadow-sm transition hover:bg-slate-100">
+      Schließen
+    </button>
+  </div>
+</div>
+
+
+
 <!-- Excel-Import -->
 <div id="issueImportModal"
   class="fixed inset-0 z-[230] hidden items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
@@ -549,6 +600,8 @@
       </button>
     </div>
   </div>
+
+  
 </div>
 
 

@@ -448,6 +448,11 @@ function render() {
         const statusClasses = getStatusClasses(issue.status);
         const priorityClasses = getPriorityClasses(issue.priority);
 
+        const iconEye = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>`;
+        const iconEdit = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>`;
+        const iconTrash = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
+
+
         const requirementCount =
             Number(issue.requirement_count || 0);
 
@@ -528,23 +533,34 @@ function render() {
                     </div>
                 </td>
 
-                <td class="p-3 align-top text-right whitespace-nowrap">
-                    <div class="flex flex-col items-end gap-1">
-                        <button
-                            type="button"
-                            onclick="window.editIssue(${Number(issue.id)})"
-                            class="font-bold text-blue-700 transition hover:text-blue-950">
-                            Bearbeiten
-                        </button>
+            
+        <td class="p-3 align-top text-right whitespace-nowrap">
+            <div class="flex justify-end gap-1.5">
+                <button
+                    type="button"
+                    onclick="window.viewIssueReport(${Number(issue.id)})"
+                    class="rounded border border-blue-200 bg-blue-50 p-1.5 text-blue-600 shadow-sm transition hover:bg-blue-600 hover:text-white"
+                    title="Bericht anzeigen">
+                    ${iconEye}
+                </button>
 
-                        <button
-                            type="button"
-                            onclick="window.deleteIssue(${Number(issue.id)})"
-                            class="font-bold text-red-600 transition hover:text-red-800">
-                            Löschen
-                        </button>
-                    </div>
-                </td>
+                <button
+                    type="button"
+                    onclick="window.editIssue(${Number(issue.id)})"
+                    class="rounded border border-slate-200 bg-slate-50 p-1.5 text-slate-500 shadow-sm transition hover:bg-blue-600 hover:text-white"
+                    title="Bearbeiten">
+                    ${iconEdit}
+                </button>
+
+                <button
+                    type="button"
+                    onclick="window.deleteIssue(${Number(issue.id)})"
+                    class="rounded border border-slate-200 bg-slate-50 p-1.5 text-slate-500 shadow-sm transition hover:bg-red-600 hover:text-white"
+                    title="Löschen">
+                    ${iconTrash}
+                </button>
+            </div>
+        </td>
             </tr>
         `;
     }).join('');
@@ -1475,3 +1491,196 @@ async function doImport() {
         }
     }
 }
+
+/**
+ * Öffnet das Slide-Over-Panel für den Issue-Bericht.
+ */
+window.viewIssueReport = async function (issueId) {
+    const overlay = document.getElementById('issueReportOverlay');
+    const panel = document.getElementById('issueReportPanel');
+
+    if (!overlay || !panel) {
+        return;
+    }
+
+    overlay.classList.remove('hidden');
+    setTimeout(() => {
+        panel.classList.remove('translate-x-full');
+    }, 10);
+
+    document.getElementById('reportIssueKey').textContent = 'Lade...';
+    document.getElementById('reportIssueTitle').textContent = 'Lade Bericht...';
+    document.getElementById('issueReportBody').innerHTML = `
+        <div class="py-12 text-center text-slate-400 italic">
+            Bericht wird geladen...
+        </div>
+    `;
+
+    try {
+        const response = await fetch(
+            `../api/get_issue.php?id=${encodeURIComponent(issueId)}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.error ||
+                'Bericht konnte nicht geladen werden.'
+            );
+        }
+
+        const iss = data.issue || {};
+        const linkedRequirements = data.requirements || [];
+        const linkedTasks = data.tasks || [];
+
+        document.getElementById('reportIssueKey').textContent =
+            iss.issue_key || 'ISSUE';
+
+        document.getElementById('reportIssueTitle').textContent =
+            iss.title || 'Kein Titel';
+
+        let html = `
+            <div class="space-y-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3 text-xs">
+                    <div>
+                        <span class="text-slate-400 font-bold uppercase">Status:</span>
+                        <strong class="text-blue-950">${esc(statusLabels[iss.status] || iss.status)}</strong>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 font-bold uppercase">Typ:</span>
+                        <strong class="text-blue-950">${esc(typeLabels[iss.issue_type] || iss.issue_type)}</strong>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 font-bold uppercase">Priorität:</span>
+                        <strong class="text-blue-950">${esc(priorityLabels[iss.priority] || iss.priority)}</strong>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                        Kategorie & Zuständigkeit
+                    </div>
+                    <div class="font-semibold text-slate-800">
+                        ${esc(iss.category || '-')} · <span class="text-blue-900">Zuständig: ${esc(iss.assignee_name || iss.external_assignee || 'Niemand')}</span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                        Fehlerbeschreibung / Meldung
+                    </div>
+                    <div class="rounded border border-slate-200 bg-slate-50 p-3 text-slate-800 whitespace-pre-wrap leading-relaxed">
+                        ${esc(iss.description || 'Keine Beschreibung vorhanden.')}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if (iss.external_response || iss.internal_response || iss.resolution) {
+            html += `
+                <div class="space-y-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                    <h3 class="border-b border-slate-200 pb-2 text-xs font-extrabold uppercase tracking-wider text-blue-950">
+                        Kommunikation & Lösung
+                    </h3>
+
+                    ${iss.external_response
+                    ? `
+                            <div>
+                                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Externe Rückmeldung</div>
+                                <div class="rounded border border-slate-200 bg-slate-50 p-2.5 text-slate-700 whitespace-pre-wrap">${esc(iss.external_response)}</div>
+                            </div>
+                        `
+                    : ''
+                }
+
+                    ${iss.internal_response
+                    ? `
+                            <div>
+                                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Interne Rückmeldung</div>
+                                <div class="rounded border border-slate-200 bg-slate-50 p-2.5 text-slate-700 whitespace-pre-wrap">${esc(iss.internal_response)}</div>
+                            </div>
+                        `
+                    : ''
+                }
+
+                    ${iss.resolution
+                    ? `
+                            <div>
+                                <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">Lösung / Abschlussinformation</div>
+                                <div class="rounded border border-emerald-200 bg-emerald-50/50 p-2.5 font-medium text-emerald-950 whitespace-pre-wrap">${esc(iss.resolution)}</div>
+                            </div>
+                        `
+                    : ''
+                }
+                </div>
+            `;
+        }
+
+        html += `
+            <div class="space-y-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <h3 class="border-b border-slate-200 pb-2 text-xs font-extrabold uppercase tracking-wider text-blue-950">
+                    Traceability & Verknüpfungen
+                </h3>
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                            Betroffene Reqs (${linkedRequirements.length})
+                        </div>
+                        ${linkedRequirements.length > 0
+                ? linkedRequirements.map(r => `
+                                <div class="mb-1 rounded border border-slate-200 bg-slate-50 p-2 font-mono text-xs">
+                                    <strong class="text-blue-900">${esc(r.req_key)}</strong> — ${esc(r.title)}
+                                </div>
+                            `).join('')
+                : '<div class="text-xs text-slate-400 italic">Keine Anforderungen verknüpft</div>'
+            }
+                    </div>
+
+                    <div>
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                            Umsetzungs-Tasks (${linkedTasks.length})
+                        </div>
+                        ${linkedTasks.length > 0
+                ? linkedTasks.map(t => `
+                                <div class="mb-1 rounded border border-slate-200 bg-slate-50 p-2 text-xs">
+                                    <strong class="font-mono text-indigo-950">${esc(t.wbs_code || t.id)}</strong> — ${esc(t.title)}
+                                </div>
+                            `).join('')
+                : '<div class="text-xs text-slate-400 italic">Keine Tasks verknüpft</div>'
+            }
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('issueReportBody').innerHTML = html;
+
+    } catch (error) {
+        console.error('Fehler beim Laden des Berichts:', error);
+        document.getElementById('issueReportBody').innerHTML = `
+            <div class="p-4 font-bold text-red-600">
+                Fehler: ${esc(error.message)}
+            </div>
+        `;
+    }
+};
+
+/**
+ * Schließt das Issue-Report-Panel.
+ */
+window.closeIssueReportPanel = function () {
+    const overlay = document.getElementById('issueReportOverlay');
+    const panel = document.getElementById('issueReportPanel');
+
+    if (panel) {
+        panel.classList.add('translate-x-full');
+    }
+
+    setTimeout(() => {
+        if (overlay) {
+            overlay.classList.add('hidden');
+        }
+    }, 300);
+};

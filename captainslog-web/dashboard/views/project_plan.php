@@ -317,12 +317,14 @@
                     <label class="cl-label md:col-span-6">
                         Zuweisung / Verantwortlich
 
-                        <input id="task_assignee" type="text" maxlength="100" placeholder="Name oder Projektrolle"
+                        <input id="task_assignee" type="text" list="teamMembersList" maxlength="100" placeholder="Name oder Projektrolle"
                             class="cl-input">
+                        
+                        <!-- Hier landen gleich die Namen aus der Datenbank -->
+                        <datalist id="teamMembersList"></datalist>
 
                         <span class="cl-help">
-                            Aktuell als Freitext gespeichert. Später kann dieses
-                            Feld direkt mit dem Projektteam verbunden werden.
+                            Wähle eine Person aus dem Dropdown oder tippe einen freien Text (z.B. eine externe Rolle) ein.
                         </span>
                     </label>
 
@@ -365,82 +367,113 @@
             </fieldset>
 
 
-            <!-- =============================================
+          <!-- =============================================
                  FORTSCHRITT UND REQUIREMENTS
             ============================================== -->
             <fieldset class="cl-fieldset">
-
                 <legend class="cl-legend">
                     Fortschritt und Traceability
                 </legend>
-
                 <div class="cl-fieldset-body">
-
+                    
                     <!-- Automatik -->
-                    <label
-                        class="flex cursor-pointer items-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-4 transition hover:border-blue-200 hover:bg-blue-50/40">
-
+                    <label class="flex cursor-pointer items-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-4 transition hover:border-blue-200 hover:bg-blue-50/40">
                         <input id="task_is_auto" type="checkbox" checked
                             class="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-blue-950 focus:ring-blue-900">
-
                         <span>
                             <span class="block text-sm font-bold text-slate-800">
                                 Fortschritt automatisch berechnen
                             </span>
-
                             <span class="mt-1 block text-xs leading-5 text-slate-500">
-                                Der Fortschritt wird aus verknüpften und
-                                freigegebenen Anforderungen berechnet. Falls
-                                Checklistenpunkte vorhanden sind, werden diese
-                                ebenfalls berücksichtigt.
+                                Der Fortschritt wird aus verknüpften und freigegebenen Anforderungen sowie gelösten Issues berechnet.
                             </span>
                         </span>
                     </label>
 
-
-                    <!-- Verknüpfte Anforderungen -->
-                    <div id="container_linked_reqs" class="relative mt-5 transition-all">
-
-                        <label class="cl-label">
-                            Verknüpfte Anforderungen
-                        </label>
-
-                        <p class="cl-help">
-                            Anforderungen auswählen, deren Freigabestatus den
-                            Aufgabenfortschritt beeinflusst.
-                        </p>
-
-                        <div id="task_selected_reqs_container"
-                            class="mt-3 flex min-h-[54px] flex-wrap gap-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-5">
+                        <!-- Verknüpfte Anforderungen -->
+                        <div id="container_linked_reqs" class="relative transition-all">
+                            <label class="cl-label">Verknüpfte Anforderungen</label>
+                            <p class="cl-help">Anforderungen, die durch diese Aufgabe umgesetzt werden.</p>
+                            
+                            <div id="task_selected_reqs_container" class="mt-3 flex min-h-[54px] flex-wrap gap-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+                                <span class="text-slate-500 text-sm font-medium italic mt-1">Keine ausgewählt...</span>
+                            </div>
+                            
+                            <button type="button" onclick="window.openReqPicker()" class="mt-3 w-full text-left px-4 py-3 bg-white hover:bg-indigo-50 font-bold text-sm text-indigo-900 border border-slate-300 rounded shadow-sm flex justify-between items-center transition">
+                                <span>+ Anforderungen suchen & hinzufügen...</span>
+                                <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                            </button>
+                            <input id="task_linked_reqs" type="hidden">
                         </div>
 
-                        <div id="reqMenuContainer" class="relative z-[160] mt-3">
-                            <!-- JavaScript erzeugt hier das Auswahlmenü -->
+                        <!-- Verknüpfte Issues -->
+                        <div id="container_linked_issues" class="relative transition-all">
+                            <label class="cl-label">Verknüpfte Issues (Bugs, CRs)</label>
+                            <p class="cl-help">Kunden-Issues, die durch diese Aufgabe gelöst werden.</p>
+                            
+                            <div id="task_selected_issues_container" class="mt-3 flex min-h-[54px] flex-wrap gap-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+                                <span class="text-slate-500 text-sm font-medium italic mt-1">Keine ausgewählt...</span>
+                            </div>
+                            
+                            <button type="button" onclick="window.openIssuePicker()" class="mt-3 w-full text-left px-4 py-3 bg-white hover:bg-rose-50 font-bold text-sm text-rose-900 border border-slate-300 rounded shadow-sm flex justify-between items-center transition">
+                                <span>+ Issues suchen & hinzufügen...</span>
+                                <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                            </button>
+                            <input id="task_linked_issues" type="hidden">
                         </div>
-
-                        <input id="task_linked_reqs" type="hidden">
                     </div>
-
 
                     <!-- Manueller Fortschritt -->
                     <div id="container_manual_progress" class="mt-5 hidden transition-all">
-
                         <label class="cl-label">
                             Manueller Fortschritt in Prozent
-
                             <input id="task_progress" type="number" min="0" max="100" value="0"
                                 class="cl-input max-w-xs font-bold">
-
-                            <span class="cl-help">
-                                Wird verwendet, wenn die automatische
-                                Fortschrittsberechnung deaktiviert ist.
-                            </span>
                         </label>
                     </div>
                 </div>
             </fieldset>
         </div>
 
+        <div class="cl-modal-footer">
+            <button type="button" onclick="document.getElementById('modalTask').classList.add('hidden')"
+                class="cl-button cl-button-secondary">Abbrechen</button>
+            <button type="submit" class="cl-button cl-button-primary">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                Aufgabe speichern
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- ANALYTICS SLIDE OVER WIE GEHABT HIER ... -->
+
+<!-- =========================================================
+     NEU MODAL: ELEMENT PICKER (REQS & ISSUES)
+========================================================== -->
+<div id="modalPicker" class="fixed inset-0 z-[300] hidden items-center justify-center bg-slate-950/40 backdrop-blur-sm transition-opacity">
+    <div class="flex flex-col w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-hidden m-4" style="max-h: 85vh;">
+        <!-- Header -->
+        <div class="flex justify-between items-center p-5 border-b border-slate-200 bg-slate-50">
+            <h2 id="pickerTitle" class="text-lg font-extrabold text-slate-800">Elemente auswählen</h2>
+            <button type="button" onclick="document.getElementById('modalPicker').classList.add('hidden')" class="text-slate-400 hover:text-slate-700 transition">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <!-- Content (Scrollbar) -->
+        <div class="flex-1 overflow-y-auto p-5 bg-slate-100" id="pickerContent">
+            <!-- Wird von JavaScript befüllt -->
+        </div>
+        
+        <!-- Footer -->
+        <div class="p-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
+            <button type="button" onclick="document.getElementById('modalPicker').classList.add('hidden')" class="px-4 py-2 font-bold text-slate-600 bg-white border border-slate-300 rounded shadow-sm hover:bg-slate-50 transition">Abbrechen</button>
+            <button type="button" id="btnPickerApply" class="px-5 py-2 font-bold text-white bg-blue-900 rounded shadow hover:bg-blue-800 transition">Auswahl übernehmen</button>
+        </div>
+    </div>
+</div>
 
         <!-- =================================================
              MODAL-FUSS
@@ -625,3 +658,4 @@
         </button>
     </div>
 </div>
+

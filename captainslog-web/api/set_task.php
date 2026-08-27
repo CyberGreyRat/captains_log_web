@@ -89,6 +89,28 @@ try {
         }
     }
 
+    // --- ISSUE-VERKNÜPFUNGEN VERARBEITEN ---
+    $raw_issues = explode(',', $data['linked_issues'] ?? '');
+    $linked_issues_arr = [];
+    foreach($raw_issues as $i) {
+        $i = trim($i);
+        if(!empty($i)) $linked_issues_arr[] = (int)$i; // Speichert die echte Issue-ID
+    }
+
+    // 2.5 ISSUES VERKNÜPFEN (in issue_tasks Tabelle)
+    if ($main_task_id) {
+        // Erst alle alten Verknüpfungen für diese Aufgabe löschen
+        $pdo->prepare("DELETE FROM issue_tasks WHERE task_id = ?")->execute([$main_task_id]);
+        
+        // Dann die neu ausgewählten eintragen
+        if (!empty($linked_issues_arr)) {
+            $stmtInsIssue = $pdo->prepare("INSERT INTO issue_tasks (issue_id, task_id, relation_type) VALUES (?, ?, 'implementation')");
+            foreach ($linked_issues_arr as $iss_id) {
+                $stmtInsIssue->execute([$iss_id, $main_task_id]);
+            }
+        }
+    }
+
     // 3. ANWENDUNG LERNT DAZU
     $stmtCheck = $pdo->prepare("SELECT id FROM task_templates WHERE LOWER(title) = LOWER(?)");
     $stmtCheck->execute([$title]);
