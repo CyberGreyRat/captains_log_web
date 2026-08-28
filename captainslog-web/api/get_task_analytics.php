@@ -1,17 +1,24 @@
 <?php
 // api/get_task_analytics.php
-ini_set('display_errors', 0); error_reporting(E_ALL); session_start();
-require '../config/db.php'; header('Content-Type: application/json');
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+session_start();
+require '../config/db.php';
+header('Content-Type: application/json');
 
 $task_id = $_GET['task_id'] ?? null;
 $project_id = $_GET['project_id'] ?? null;
-if (!$task_id || !$project_id) { echo json_encode(['success' => false]); exit; }
+if (!$task_id || !$project_id) {
+    echo json_encode(['success' => false]);
+    exit;
+}
 
 try {
     $stmt = $pdo->prepare("SELECT * FROM project_tasks WHERE id = ? AND project_id = ?");
     $stmt->execute([$task_id, $project_id]);
     $task = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!$task) throw new Exception("Task not found");
+    if (!$task)
+        throw new Exception("Task not found");
 
     $analytics = [
         'task_title' => $task['title'],
@@ -36,7 +43,10 @@ try {
         $analytics['has_checklist'] = true;
         $analytics['subtasks'] = $subs;
         $done = 0;
-        foreach($subs as $s) { if($s['progress_pct'] == 100) $done++; }
+        foreach ($subs as $s) {
+            if ($s['progress_pct'] == 100)
+                $done++;
+        }
         $analytics['checklist_progress'] = round(($done / count($subs)) * 100);
     }
 
@@ -48,17 +58,19 @@ try {
         $stmtReq = $pdo->prepare("SELECT req_key, title, status, review_status, attributes FROM requirements WHERE project_id = ? AND req_key IN ($inClause)");
         $params = array_merge([$project_id], $reqs);
         $stmtReq->execute($params);
-        
-        foreach($stmtReq->fetchAll(PDO::FETCH_ASSOC) as $r) {
-            $isAppr = ($r['review_status'] === 'Geprüft & Freigegeben');
-            if ($isAppr) $analytics['approved_reqs']++;
-            
+
+        foreach ($stmtReq->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $status_lower = strtolower(trim($r['review_status'] ?? ''));
+            $isAppr = ($status_lower === 'geprüft & freigegeben' || $status_lower === 'freigegeben' || $status_lower === 'genehmigt');
+            if ($isAppr)
+                $analytics['approved_reqs']++;
+
             $apprBy = 'Unbekannt';
             $apprDate = '-';
             if ($isAppr) {
                 $attrs = json_decode($r['attributes'], true) ?: [];
                 if (isset($attrs['criteria_states'])) {
-                    foreach($attrs['criteria_states'] as $state) {
+                    foreach ($attrs['criteria_states'] as $state) {
                         if (isset($state['checked']) && $state['checked']) {
                             $apprBy = $state['by'] ?? $apprBy;
                             $apprDate = $state['date'] ?? $apprDate;
@@ -69,7 +81,7 @@ try {
                     $analytics['contributors'][$apprBy] = ($analytics['contributors'][$apprBy] ?? 0) + 1;
                 }
             }
-            
+
             $analytics['req_details'][] = [
                 'req_key' => $r['req_key'],
                 'title' => $r['title'],
@@ -85,8 +97,8 @@ try {
     $stmtIss->execute([$task_id]);
     $issues = $stmtIss->fetchAll(PDO::FETCH_ASSOC);
     $analytics['total_issues'] = count($issues);
-    
-    foreach($issues as $iss) {
+
+    foreach ($issues as $iss) {
         $isClosed = in_array($iss['status'], ['closed', 'approved', 'rejected']);
         if ($isClosed) {
             $analytics['closed_issues']++;

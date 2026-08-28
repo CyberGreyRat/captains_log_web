@@ -16,9 +16,21 @@ export async function loadProjectPlan() {
 
         if (!tbody) return;
 
-        if (!data.success || data.tasks.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-400 italic font-medium">Keine Aufgaben im Projektplan gefunden.</td></tr>';
-            loadedTasks = [];
+        if (data.success && data.tasks.length > 0) {
+            loadedTasks = data.tasks;
+
+            // NEU: Kategorie-Filter Dropdown dynamisch befüllen
+            const catFilter = document.getElementById('taskCategoryFilter');
+            if (catFilter) {
+                const currentVal = catFilter.value;
+                const categories = [...new Set(loadedTasks.map(t => t.category || 'Allgemein'))].sort();
+                catFilter.innerHTML = '<option value="">Alle Kategorien (' + loadedTasks.filter(t => !t.parent_id).length + ')</option>';
+                categories.forEach(c => {
+                    catFilter.innerHTML += `<option value="${c}" ${c === currentVal ? 'selected' : ''}>${c}</option>`;
+                });
+            }
+
+            renderFilteredTasks();
         } else {
             loadedTasks = data.tasks;
             tbody.innerHTML = '';
@@ -68,6 +80,10 @@ function renderTaskRow(task, tbody) {
     const sDate = task.start_date ? new Date(task.start_date).toLocaleDateString('de-DE') : '-';
     const eDate = task.end_date ? new Date(task.end_date).toLocaleDateString('de-DE') : '-';
 
+    const categoryBadge = task.category
+        ? `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide bg-amber-100 text-amber-900 border border-amber-300 mr-1 mb-1">${task.category}</span>`
+        : '';
+
     // Assignee Logik: Direkt zugewiesen ODER aus Issues geerbt
     let assigneeHtml = '<span class="text-slate-400 italic">-</span>';
     if (task.assignee && task.assignee.trim() !== '') {
@@ -109,6 +125,7 @@ function renderTaskRow(task, tbody) {
         <tr class="${indentClass}">
             <td class="p-3 font-mono text-sm font-extrabold text-slate-800 border-r border-slate-100">${task.wbs_code || ''}</td>
             <td class="p-3 border-r border-slate-100">
+                <div>${categoryBadge}</div>
                 <div class="text-blue-950 text-base font-extrabold">${task.title}</div>
                 <div>${tagsHtml}</div>
             </td>
@@ -164,20 +181,20 @@ async function fetchIssuesForMenu() {
     } catch (e) { console.error(e); }
 }
 
-window.openReqPicker = function() {
+window.openReqPicker = function () {
     currentPickerMode = 'req';
     document.getElementById('pickerTitle').textContent = 'Anforderungen (Requirements) auswählen';
-    
+
     const currentVals = document.getElementById('task_linked_reqs').value.split(',').filter(x => x);
     let html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
-    
+
     const grouped = {};
     allRequirements.forEach(req => {
         if (!grouped[req.type]) grouped[req.type] = [];
         grouped[req.type].push(req);
     });
 
-    for(const type in grouped) {
+    for (const type in grouped) {
         html += `
             <div class="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden flex flex-col">
                 <div class="bg-blue-950 text-white px-4 py-2 text-sm font-extrabold uppercase tracking-wider sticky top-0 z-10">${type}</div>
@@ -198,7 +215,7 @@ window.openReqPicker = function() {
         html += `</div></div>`;
     }
     html += '</div>';
-    
+
     document.getElementById('pickerContent').innerHTML = html;
     document.getElementById('modalPicker').classList.remove('hidden');
     document.getElementById('modalPicker').style.display = 'flex'; // Tailwind Fix
@@ -211,10 +228,10 @@ async function fetchTeamMembers() {
         const res = await fetch(`../api/get_project_team.php?project_id=${currentProjectId}`);
         const data = await res.json();
         const datalist = document.getElementById('teamMembersList');
-        
+
         // Fängt beide Varianten ab, je nachdem wie dein API-Skript das Array nennt
         const teamArray = data.team || data.members || [];
-        
+
         if (datalist) {
             datalist.innerHTML = '';
             teamArray.forEach(m => {
@@ -223,8 +240,8 @@ async function fetchTeamMembers() {
                 datalist.innerHTML += `<option value="${displayName}"></option>`;
             });
         }
-    } catch (e) { 
-        console.error("Fehler beim Laden des Teams:", e); 
+    } catch (e) {
+        console.error("Fehler beim Laden des Teams:", e);
     }
 }
 
@@ -236,7 +253,7 @@ window.openIssuePicker = function () {
     let html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
 
     const grouped = {};
-    
+
     // NEU: Issues sauber nach ihrer Nummer im Key (z.B. ISSUE-012) sortieren
     const sortedIssues = [...allIssues].sort((a, b) => {
         const numA = parseInt((a.issue_key || '').replace(/\D/g, '')) || 0;
@@ -263,7 +280,7 @@ window.openIssuePicker = function () {
         `;
         grouped[type].forEach(iss => {
             const isChecked = currentVals.includes(String(iss.id)) ? 'checked' : '';
-            
+
             // NEU: Wenn ein Issue geschlossen ist, machen wir es leicht transparent und geben ihm ein Label
             const isClosed = (iss.status === 'closed' || iss.status === 'approved' || iss.status === 'rejected');
             const statusBadge = isClosed ? `<span class="ml-2 text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5 rounded uppercase">${iss.status}</span>` : '';
@@ -291,7 +308,7 @@ window.openIssuePicker = function () {
 // UI RE-RENDER HILFSFUNKTIONEN
 function renderReqTagsUI(vals) {
     const container = document.getElementById('task_selected_reqs_container');
-    if(!container) return;
+    if (!container) return;
     if (vals.length === 0) {
         container.innerHTML = '<span class="text-slate-500 text-sm font-medium italic mt-1">Keine ausgewählt...</span>';
         return;
@@ -308,7 +325,7 @@ function renderReqTagsUI(vals) {
 
 function renderIssueTagsUI(ids) {
     const container = document.getElementById('task_selected_issues_container');
-    if(!container) return;
+    if (!container) return;
     if (ids.length === 0) {
         container.innerHTML = '<span class="text-slate-500 text-sm font-medium italic mt-1">Keine ausgewählt...</span>';
         return;
@@ -327,14 +344,14 @@ function renderIssueTagsUI(ids) {
     }).join('');
 }
 
-window.removeReqTag = function(key) {
+window.removeReqTag = function (key) {
     let vals = document.getElementById('task_linked_reqs').value.split(',').filter(x => x);
     vals = vals.filter(v => v !== key);
     document.getElementById('task_linked_reqs').value = vals.join(',');
     renderReqTagsUI(vals);
 };
 
-window.removeIssueTag = function(id) {
+window.removeIssueTag = function (id) {
     let vals = document.getElementById('task_linked_issues').value.split(',').filter(x => x);
     vals = vals.filter(v => v !== String(id));
     document.getElementById('task_linked_issues').value = vals.join(',');
@@ -346,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnPickerApply').addEventListener('click', () => {
         const checkboxes = Array.from(document.querySelectorAll('#pickerContent .picker-cb:checked'));
         const vals = checkboxes.map(cb => cb.value);
-        
+
         if (currentPickerMode === 'req') {
             document.getElementById('task_linked_reqs').value = vals.join(',');
             renderReqTagsUI(vals);
@@ -354,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('task_linked_issues').value = vals.join(',');
             renderIssueTagsUI(vals);
         }
-        
+
         document.getElementById('modalPicker').classList.add('hidden');
         document.getElementById('modalPicker').style.display = '';
     });
@@ -376,7 +393,7 @@ export function initProjectPlanEvents() {
             form.reset();
             document.getElementById('task_id').value = '';
             document.getElementById('taskModalTitle').textContent = 'Neue Aufgabe anlegen';
-            
+
             // Löst den Fehler, wenn is_auto nicht existiert, aber das Feld MUSS existieren!
             if (autoToggle) autoToggle.dispatchEvent(new Event('change'));
 
@@ -601,7 +618,7 @@ window.viewTaskAnalytics = async function (id) {
             logDiv.innerHTML = '<div class="text-xs text-slate-500 italic">Keine Anforderungen oder Issues verknüpft.</div>';
         } else {
             let logHtml = '';
-            
+
             // Requirements einfügen
             a.req_details.forEach(r => {
                 const isAppr = r.status === 'Geprüft & Freigegeben';
@@ -680,3 +697,54 @@ window.deleteTask = async function (id) {
         if (data.success) { loadProjectPlan(); } else { alert("Fehler beim Löschen: " + data.error); }
     } catch (e) { console.error(e); }
 };
+
+function renderFilteredTasks() {
+    const tbody = document.getElementById('taskTableBody');
+    if (!tbody) return;
+
+    const searchQuery = (document.getElementById('taskSearchInput')?.value || '').toLowerCase();
+    const selectedCategory = document.getElementById('taskCategoryFilter')?.value || '';
+
+    tbody.innerHTML = '';
+
+    const groupedTasks = {};
+    loadedTasks.forEach(task => {
+        // Fallback, falls keine Kategorie eingetragen ist
+        const cat = (task.category && task.category.trim() !== '') ? task.category.trim() : 'Allgemein / Ohne Kategorie';
+
+        if (selectedCategory && cat !== selectedCategory) return;
+
+        const matchSearch = !searchQuery ||
+            task.title.toLowerCase().includes(searchQuery) ||
+            (task.wbs_code && task.wbs_code.toLowerCase().includes(searchQuery)) ||
+            (task.assignee && task.assignee.toLowerCase().includes(searchQuery));
+
+        if (!matchSearch) return;
+
+        if (!groupedTasks[cat]) groupedTasks[cat] = [];
+        groupedTasks[cat].push(task);
+    });
+
+    if (Object.keys(groupedTasks).length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400 italic font-medium">Keine passenden Aufgaben gefunden.</td></tr>';
+        return;
+    }
+
+    for (const cat in groupedTasks) {
+        // Kategorie-Trennzeile im Projektplan einfügen
+        tbody.innerHTML += `
+            <tr class="bg-blue-950 border-b border-blue-900">
+                <td colspan="7" class="p-3 px-4 text-xs font-extrabold text-white uppercase tracking-wider">${cat}</td>
+            </tr>
+        `;
+
+        const mainTasks = groupedTasks[cat].filter(t => !t.parent_id);
+        mainTasks.forEach(mainTask => {
+            renderTaskRow(mainTask, tbody);
+        });
+    }
+}
+// Event Listener für die Live-Filterung registrieren (in initProjectPlanEvents einfügen):
+// Live-Filter Event Listener registrieren
+document.getElementById('taskSearchInput')?.addEventListener('input', renderFilteredTasks);
+document.getElementById('taskCategoryFilter')?.addEventListener('change', renderFilteredTasks);

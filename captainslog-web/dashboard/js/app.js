@@ -69,6 +69,11 @@ import {
     initProjectTeamEvents
 } from './project_team.js';
 
+import { initReportsEvents } from './reports.js';
+
+
+
+
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
@@ -79,6 +84,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         initializeProjectSwitch();
         initHistoryEvents();
+        initReportsEvents();
 
         if (currentProjectId) {
             const projectSelect =
@@ -116,7 +122,8 @@ function initializeModuleEvents() {
         initIssueEvents,
         initAssetEvents,
         initGoalEvents,
-        initProjectTeamEvents
+        initProjectTeamEvents,
+        initReportsEvents
     ];
 
     initializers.forEach(initializer => {
