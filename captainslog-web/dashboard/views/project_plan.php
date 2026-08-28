@@ -412,52 +412,30 @@
                         </span>
                     </label>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-5">
-                        <!-- Verknüpfte Anforderungen -->
-                        <div id="container_linked_reqs" class="relative transition-all">
-                            <label class="cl-label">Verknüpfte Anforderungen</label>
-                            <p class="cl-help">Anforderungen, die durch diese Aufgabe umgesetzt werden.</p>
-
-                            <div id="task_selected_reqs_container"
-                                class="mt-3 flex min-h-[54px] flex-wrap gap-2 rounded-md border border-slate-200 bg-slate-50 p-3">
-                                <span class="text-slate-500 text-sm font-medium italic mt-1">Keine ausgewählt...</span>
+                    <div class="mt-5 grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <div>
+                            <label for="taskReqSearch" class="cl-label">Verknüpfte Anforderungen</label>
+                            <p class="cl-help">Suchen und direkt per Checkbox auswählen.</p>
+                            <input id="taskReqSearch" type="search" autocomplete="off"
+                                placeholder="ID, Typ oder Titel suchen..." class="cl-input mt-3">
+                            <div id="taskReqCheckboxList"
+                                class="mt-2 max-h-56 overflow-y-auto overscroll-contain rounded border border-slate-300 bg-white">
+                                <div class="p-4 text-sm italic text-slate-400">Anforderungen werden geladen...</div>
                             </div>
-
-                            <button type="button" onclick="window.openReqPicker()"
-                                class="mt-3 w-full text-left px-4 py-3 bg-white hover:bg-indigo-50 font-bold text-sm text-indigo-900 border border-slate-300 rounded shadow-sm flex justify-between items-center transition">
-                                <span>+ Anforderungen suchen & hinzufügen...</span>
-                                <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
-                                </svg>
-                            </button>
                             <input id="task_linked_reqs" type="hidden">
                         </div>
-
-                        <!-- Verknüpfte Issues -->
-                        <div id="container_linked_issues" class="relative transition-all">
-                            <label class="cl-label">Verknüpfte Issues (Bugs, CRs)</label>
-                            <p class="cl-help">Kunden-Issues, die durch diese Aufgabe gelöst werden.</p>
-
-                            <div id="task_selected_issues_container"
-                                class="mt-3 flex min-h-[54px] flex-wrap gap-2 rounded-md border border-slate-200 bg-slate-50 p-3">
-                                <span class="text-slate-500 text-sm font-medium italic mt-1">Keine ausgewählt...</span>
+                        <div>
+                            <label for="taskIssueSearch" class="cl-label">Verknüpfte Issues</label>
+                            <p class="cl-help">Suchen und direkt per Checkbox auswählen.</p>
+                            <input id="taskIssueSearch" type="search" autocomplete="off"
+                                placeholder="Issue, Typ, Status oder Titel suchen..." class="cl-input mt-3">
+                            <div id="taskIssueCheckboxList"
+                                class="mt-2 max-h-56 overflow-y-auto overscroll-contain rounded border border-slate-300 bg-white">
+                                <div class="p-4 text-sm italic text-slate-400">Issues werden geladen...</div>
                             </div>
-
-                            <button type="button" onclick="window.openIssuePicker()"
-                                class="mt-3 w-full text-left px-4 py-3 bg-white hover:bg-rose-50 font-bold text-sm text-rose-900 border border-slate-300 rounded shadow-sm flex justify-between items-center transition">
-                                <span>+ Issues suchen & hinzufügen...</span>
-                                <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
-                                </svg>
-                            </button>
                             <input id="task_linked_issues" type="hidden">
                         </div>
                     </div>
-
                     <!-- Manueller Fortschritt -->
                     <div id="container_manual_progress" class="mt-5 hidden transition-all">
                         <label class="cl-label">
@@ -483,223 +461,68 @@
     </form>
 </div>
 
-<!-- ANALYTICS SLIDE OVER WIE GEHABT HIER ... -->
-
-<!-- =========================================================
-     NEU MODAL: ELEMENT PICKER (REQS & ISSUES)
-========================================================== -->
-<div id="modalPicker"
-    class="fixed inset-0 z-[300] hidden items-center justify-center bg-slate-950/40 backdrop-blur-sm transition-opacity">
-    <div class="flex flex-col w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-hidden m-4" style="max-h: 85vh;">
-        <!-- Header -->
-        <div class="flex justify-between items-center p-5 border-b border-slate-200 bg-slate-50">
-            <h2 id="pickerTitle" class="text-lg font-extrabold text-slate-800">Elemente auswählen</h2>
-            <button type="button" onclick="document.getElementById('modalPicker').classList.add('hidden')"
-                class="text-slate-400 hover:text-slate-700 transition">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12">
-                    </path>
-                </svg>
-            </button>
-        </div>
-
-        <!-- Content (Scrollbar) -->
-        <div class="flex-1 overflow-y-auto p-5 bg-slate-100" id="pickerContent">
-            <!-- Wird von JavaScript befüllt -->
-        </div>
-
-        <!-- Footer -->
-        <div class="p-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
-            <button type="button" onclick="document.getElementById('modalPicker').classList.add('hidden')"
-                class="px-4 py-2 font-bold text-slate-600 bg-white border border-slate-300 rounded shadow-sm hover:bg-slate-50 transition">Abbrechen</button>
-            <button type="button" id="btnPickerApply"
-                class="px-5 py-2 font-bold text-white bg-blue-900 rounded shadow hover:bg-blue-800 transition">Auswahl
-                übernehmen</button>
-        </div>
-    </div>
-</div>
-
-<!-- =================================================
-             MODAL-FUSS
-        ================================================== -->
-<div class="cl-modal-footer">
-
-    <button type="button" onclick="document.getElementById('modalTask').classList.add('hidden')"
-        class="cl-button cl-button-secondary">
-        Abbrechen
-    </button>
-
-    <button type="submit" class="cl-button cl-button-primary">
-
-        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7">
-            </path>
-        </svg>
-
-        Aufgabe speichern
-    </button>
-</div>
-</form>
-</div>
-
-
-<!-- =========================================================
-     ANALYTICS-SLIDE-OVER
-========================================================== -->
-
-<!-- Hintergrund -->
+<!-- ANALYTICS SLIDE OVER (Dein bestehendes Analytics-Panel) -->
 <div id="analyticsPanelOverlay"
     class="fixed inset-0 z-[200] hidden cursor-pointer bg-slate-950/30 backdrop-blur-sm transition-opacity"
-    onclick="window.closeAnalyticsPanel()">
-</div>
-
-
-<!-- Seitenpanel -->
+    onclick="window.closeAnalyticsPanel()"></div>
 <div id="analyticsPanel"
     class="fixed right-0 top-0 z-[210] flex h-full w-full max-w-lg translate-x-full transform flex-col border-l border-slate-300 bg-slate-50 shadow-2xl transition-transform duration-300">
-
-    <!-- Panel-Kopf -->
     <div
         class="flex shrink-0 items-start justify-between border-t-4 border-amber-400 bg-blue-950 p-6 text-white shadow-md">
-
         <div>
-            <div class="mb-1 text-xs font-bold uppercase tracking-widest text-amber-400">
-                Performance Analyse
-            </div>
-
-            <h2 id="analyticsTitle" class="text-xl font-extrabold leading-tight">
-                Lade Daten...
-            </h2>
+            <div class="mb-1 text-xs font-bold uppercase tracking-widest text-amber-400">Performance Analyse</div>
+            <h2 id="analyticsTitle" class="text-xl font-extrabold leading-tight">Lade Daten...</h2>
         </div>
-
         <button type="button" onclick="window.closeAnalyticsPanel()"
-            class="rounded-md border border-white/20 bg-white/10 p-2 text-slate-200 transition hover:bg-white/20 hover:text-white"
-            title="Analyse schließen" aria-label="Analyse schließen">
-
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12">
-                </path>
-            </svg>
-        </button>
+            class="rounded-md border border-white/20 bg-white/10 p-2 text-slate-200 transition hover:bg-white/20 hover:text-white"><svg
+                class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"></path>
+            </svg></button>
     </div>
-
-
-    <!-- Panel-Inhalt -->
     <div class="flex-1 space-y-7 overflow-y-auto p-6">
-
-        <!-- Gesamtfortschritt -->
         <section class="cl-card">
-
             <div class="cl-card-body">
-
                 <div class="mb-4 flex items-center justify-between">
-
                     <div>
-                        <p class="cl-panel-eyebrow">
-                            Fortschritt
-                        </p>
-
-                        <h3 class="text-sm font-extrabold text-blue-950">
-                            Aktueller Aufgabenstatus
-                        </h3>
-                    </div>
-
-                    <span id="analyticsTotalProgress" class="text-3xl font-extrabold text-blue-950">
-                        0 %
-                    </span>
+                        <p class="cl-panel-eyebrow">Fortschritt</p>
+                        <h3 class="text-sm font-extrabold text-blue-950">Aktueller Aufgabenstatus</h3>
+                    </div><span id="analyticsTotalProgress" class="text-3xl font-extrabold text-blue-950">0 %</span>
                 </div>
-
-                <div class="mb-2 flex items-center justify-between">
-                    <span id="analyticsReqCount" class="text-xs font-semibold text-slate-500">
-                        0 / 0 freigegeben
-                    </span>
-                </div>
-
+                <div class="mb-2 flex items-center justify-between"><span id="analyticsReqCount"
+                        class="text-xs font-semibold text-slate-500">0 / 0 freigegeben</span></div>
                 <div class="h-3 w-full overflow-hidden rounded-full border border-slate-200 bg-slate-100">
-
                     <div id="analyticsProgressBar"
-                        class="h-full w-0 rounded-full bg-emerald-500 transition-all duration-1000">
-                    </div>
+                        class="h-full w-0 rounded-full bg-emerald-500 transition-all duration-1000"></div>
                 </div>
             </div>
         </section>
-
-
-        <!-- Checkliste -->
         <section id="analyticsChecklistContainer" class="cl-card hidden">
-
             <div class="border-b border-slate-200 bg-[#eef2f6] px-4 py-3">
-
-                <p class="cl-panel-eyebrow">
-                    Unteraufgaben
-                </p>
-
-                <h3 class="text-sm font-extrabold text-blue-950">
-                    Checkliste
-                </h3>
+                <p class="cl-panel-eyebrow">Unteraufgaben</p>
+                <h3 class="text-sm font-extrabold text-blue-950">Checkliste</h3>
             </div>
-
-            <div id="analyticsChecklist" class="space-y-2 p-4">
-                <!-- JavaScript füllt die Checkliste -->
-            </div>
+            <div id="analyticsChecklist" class="space-y-2 p-4"></div>
         </section>
-
-
-        <!-- Contributors -->
         <section class="cl-card">
-
             <div class="border-b border-slate-200 bg-[#eef2f6] px-4 py-3">
-
-                <p class="cl-panel-eyebrow">
-                    Bearbeitung
-                </p>
-
-                <h3 class="text-sm font-extrabold text-blue-950">
-                    Top Contributors
-                </h3>
+                <p class="cl-panel-eyebrow">Bearbeitung</p>
+                <h3 class="text-sm font-extrabold text-blue-950">Top Contributors</h3>
             </div>
-
             <div id="analyticsContributors" class="space-y-4 p-4">
-
-                <div class="text-xs italic text-slate-400">
-                    Noch keine Beiträge geladen.
-                </div>
+                <div class="text-xs italic text-slate-400">Noch keine Beiträge geladen.</div>
             </div>
         </section>
-
-
-        <!-- Detail-Log -->
         <section class="cl-card">
-
             <div class="border-b border-slate-200 bg-[#eef2f6] px-4 py-3">
-
-                <p class="cl-panel-eyebrow">
-                    Traceability
-                </p>
-
-                <h3 class="text-sm font-extrabold text-blue-950">
-                    Detail-Log
-                </h3>
+                <p class="cl-panel-eyebrow">Traceability</p>
+                <h3 class="text-sm font-extrabold text-blue-950">Detail-Log</h3>
             </div>
-
             <div id="analyticsReqList" class="space-y-2 p-4">
-
-                <div class="text-xs italic text-slate-400">
-                    Noch keine Anforderungsdaten geladen.
-                </div>
+                <div class="text-xs italic text-slate-400">Noch keine Anforderungsdaten geladen.</div>
             </div>
         </section>
     </div>
-
-
-    <!-- Panel-Fuß -->
-    <div class="flex shrink-0 justify-end border-t border-slate-300 bg-[#eef2f6] px-5 py-4">
-
-        <button type="button" onclick="window.closeAnalyticsPanel()" class="cl-button cl-button-secondary">
-            Analyse schließen
-        </button>
+    <div class="flex shrink-0 justify-end border-t border-slate-300 bg-[#eef2f6] px-5 py-4"><button type="button"
+            onclick="window.closeAnalyticsPanel()" class="cl-button cl-button-secondary">Analyse schließen</button>
     </div>
 </div>
-

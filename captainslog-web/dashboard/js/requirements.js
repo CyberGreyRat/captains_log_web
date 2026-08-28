@@ -271,11 +271,25 @@ window.renderTreeList = function () {
     listContainer.innerHTML = '';
 
     let targetReqs = [];
-    if (window.activeTypeFilters.length === 0) {
+   if (window.activeTypeFilters.length === 0) {
         listContainer.innerHTML = '<div class="p-4 text-sm text-slate-500 italic text-center">Bitte Filter oben auswählen.</div>';
         return;
     } else {
-        targetReqs = loadedRequirements.filter(r => window.activeTypeFilters.includes(r.type));
+        // Suchtext auslesen und in Kleinbuchstaben umwandeln
+        const searchQuery = (document.getElementById('reqSearchInput')?.value || '').toLowerCase();
+
+        targetReqs = loadedRequirements.filter(r => {
+            // 1. Ist der Typ in den Checkboxen aktiv?
+            const typeMatch = window.activeTypeFilters.includes(r.type);
+            
+            // 2. Passt der Suchtext zu ID, Titel oder Beschreibung?
+            const searchMatch = !searchQuery || 
+                (r.req_key && r.req_key.toLowerCase().includes(searchQuery)) ||
+                (r.title && r.title.toLowerCase().includes(searchQuery)) ||
+                (r.description && r.description.toLowerCase().includes(searchQuery));
+
+            return typeMatch && searchMatch;
+        });
     }
 
     if (targetReqs.length === 0) {
@@ -504,6 +518,13 @@ export function initRequirementEvents() {
         });
     }
 
+    const searchInput = document.getElementById('reqSearchInput');
+    if (searchInput) {
+        // Löst bei jedem Tastendruck direkt das Neu-Zeichnen der Liste aus
+        searchInput.addEventListener('input', window.renderTreeList);
+    }
+
+    
     const typeDropdown = document.getElementById('type');
     if (typeDropdown) {
         typeDropdown.addEventListener('change', () => window.handleTypeChange());

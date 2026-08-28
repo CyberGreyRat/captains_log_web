@@ -55,28 +55,64 @@ const typeLabels = {
 };
 
 
+
+// =========================================================================
+// INLINE-AUSWAHLLISTEN IM ISSUE-FORMULAR
+// =========================================================================
+function issueCsvValues(id) {
+    return (document.getElementById(id)?.value || '').split(',').map(value => value.trim()).filter(Boolean);
+}
+function renderIssueRequirementList() {
+    const list = document.getElementById('issueReqCheckboxList'); if (!list) return;
+    const selected = issueCsvValues('issue_requirements');
+    const query = (document.getElementById('issueReqSearch')?.value || '').trim().toLowerCase();
+    const rows = requirements.filter(item => !query || [item.req_key,item.type,item.title].filter(Boolean).join(' ').toLowerCase().includes(query));
+    list.innerHTML = rows.length ? rows.map(item => `
+      <label class="flex cursor-pointer items-start gap-3 border-b border-slate-200 px-3 py-2.5 last:border-b-0 hover:bg-indigo-50">
+        <input type="checkbox" class="issue-req-cb mt-0.5 h-4 w-4" value="${Number(item.id)}" ${selected.includes(String(item.id))?'checked':''}>
+        <span class="min-w-0 text-xs"><strong class="font-mono text-indigo-950">${esc(item.req_key)}</strong><span class="ml-2 text-[10px] font-bold uppercase text-slate-400">${esc(item.type||'')}</span><span class="mt-0.5 block truncate text-slate-700" title="${esc(item.title||'')}">${esc(item.title||'')}</span></span>
+      </label>`).join('') : '<div class="p-4 text-sm italic text-slate-400">Keine passenden Anforderungen.</div>';
+}
+function renderIssueTaskList() {
+    const list = document.getElementById('issueTaskCheckboxList'); if (!list) return;
+    const selected = issueCsvValues('issue_tasks');
+    const query = (document.getElementById('issueTaskSearch')?.value || '').trim().toLowerCase();
+    const rows = tasks.filter(item => !query || [item.wbs_code,item.category,item.title].filter(Boolean).join(' ').toLowerCase().includes(query));
+    list.innerHTML = rows.length ? rows.map(item => `
+      <label class="flex cursor-pointer items-start gap-3 border-b border-slate-200 px-3 py-2.5 last:border-b-0 hover:bg-sky-50">
+        <input type="checkbox" class="issue-task-cb mt-0.5 h-4 w-4" value="${Number(item.id)}" ${selected.includes(String(item.id))?'checked':''}>
+        <span class="min-w-0 text-xs"><strong class="font-mono text-sky-950">${esc(item.wbs_code||item.id)}</strong><span class="ml-2 text-[10px] font-bold uppercase text-slate-400">${esc(item.category||'')}</span><span class="mt-0.5 block truncate text-slate-700" title="${esc(item.title||'')}">${esc(item.title||'')}</span></span>
+      </label>`).join('') : '<div class="p-4 text-sm italic text-slate-400">Keine passenden Aufgaben.</div>';
+}
+function syncIssueRequirementSelection() {
+    document.getElementById('issue_requirements').value=[...document.querySelectorAll('#issueReqCheckboxList .issue-req-cb:checked')].map(cb=>cb.value).join(',');
+}
+function syncIssueTaskSelection() {
+    document.getElementById('issue_tasks').value=[...document.querySelectorAll('#issueTaskCheckboxList .issue-task-cb:checked')].map(cb=>cb.value).join(',');
+}
+
 /**
  * Verwandelt GitHub-Markdown in schicke HTML Code-Blöcke.
  * Escaped den Text vorher automatisch zur Sicherheit.
  */
 function formatIssueText(text) {
     if (!text) return '<span class="text-slate-400 italic">Keine Angabe</span>';
-    
+
     // 1. Sicherheit: Nutzt deine bestehende esc() Funktion
     let html = esc(text);
-    
+
     // 2. Mehrzeilige Code-Blöcke (```c ... ```) umwandeln -> Dunkles Theme
 
-    html = html.replace(/```([a-zA-Z0-9]*)\s*([\s\S]*?)```/g, function(match, lang, code) {
+    html = html.replace(/```([a-zA-Z0-9]*)\s*([\s\S]*?)```/g, function (match, lang, code) {
         const langBadge = lang ? `<div class="text-[10px] text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-700 pb-1">${lang}</div>` : '';
         return `<div class="bg-slate-900 text-slate-50 p-3 rounded-md my-3 overflow-x-auto shadow-inner border border-slate-700 font-mono text-xs text-left whitespace-pre">
                     ${langBadge}<code>${code}</code>
                 </div>`;
     });
-    
+
     // 3. Einzeiliger Inline-Code (`code`) umwandeln -> Helles Badge
     html = html.replace(/`([^`\n]+)`/g, '<code class="bg-slate-100 text-rose-600 border border-slate-200 px-1.5 py-0.5 rounded font-mono text-xs">$1</code>');
-    
+
     return html;
 }
 
@@ -356,15 +392,12 @@ export async function loadIssues() {
 /**
  * Füllt Benutzer-, Requirement- und Task-Auswahlfelder.
  */
+/**
+ * Füllt Benutzer-Auswahlfelder.
+ * (Anforderungen und Tasks laufen jetzt über den neuen Universal-Picker)
+ */
 function fillLists() {
-    const assigneeSelect =
-        document.getElementById('issue_assignee');
-
-    const requirementSelect =
-        document.getElementById('issue_requirements');
-
-    const taskSelect =
-        document.getElementById('issue_tasks');
+    const assigneeSelect = document.getElementById('issue_assignee');
 
     if (assigneeSelect) {
         assigneeSelect.innerHTML = `
@@ -376,28 +409,9 @@ function fillLists() {
             `).join('')}
         `;
     }
-
-    if (requirementSelect) {
-        requirementSelect.innerHTML = requirements.map(requirement => `
-            <option value="${Number(requirement.id)}">
-                ${esc(requirement.req_key)}
-                ·
-                ${esc(requirement.title)}
-            </option>
-        `).join('');
-    }
-
-    if (taskSelect) {
-        taskSelect.innerHTML = tasks.map(task => `
-            <option value="${Number(task.id)}">
-                ${esc(task.wbs_code || task.id)}
-                ·
-                ${esc(task.title)}
-            </option>
-        `).join('');
-    }
+    renderIssueRequirementList();
+    renderIssueTaskList();
 }
-
 /**
  * Rendert die Issue-Tabelle.
  */
@@ -727,94 +741,64 @@ function selected(elementId) {
  * Öffnet das Issue-Formular.
  */
 function openForm(issue = null, detail = null) {
-    const form =
-        document.getElementById('issueForm');
-
-    if (!form) {
-        return;
-    }
+    const form = document.getElementById('issueForm');
+    if (!form) return;
 
     form.reset();
 
-    document.getElementById('issue_id').value =
-        issue?.id || '';
+    // NEU: Suchfeld leeren und UI-Tags zurücksetzen
+    const initialReqSearch = document.getElementById('issueReqSearch');
+    if (initialReqSearch) initialReqSearch.value = '';
+
+    document.getElementById('issue_id').value = issue?.id || '';
 
     const fields = [
-        'external_id',
-        'title',
-        'description',
-        'category',
-        'reported_at',
-        'due_date',
-        'external_response',
-        'internal_response',
-        'resolution'
+        'external_id', 'title', 'description', 'category',
+        'reported_at', 'due_date', 'external_response',
+        'internal_response', 'resolution'
     ];
 
     fields.forEach(fieldName => {
-        const element =
-            document.getElementById(`issue_${fieldName}`);
-
+        const element = document.getElementById(`issue_${fieldName}`);
         if (element) {
-            element.value =
-                issue?.[fieldName] || '';
+            element.value = issue?.[fieldName] || '';
         }
     });
 
-    document.getElementById('issue_type').value =
-        issue?.issue_type || 'bug';
+    document.getElementById('issue_type').value = issue?.issue_type || 'bug';
+    document.getElementById('issue_status').value = issue?.status || 'open';
+    document.getElementById('issue_priority').value = issue?.priority || 'medium';
+    document.getElementById('issue_assignee').value = issue?.assignee_user_id || '';
 
-    document.getElementById('issue_status').value =
-        issue?.status || 'open';
+    // --- NEUE TRACEABILITY LOGIK ---
+    const linkedRequirements = detail?.requirements || [];
+    const linkedTasks = detail?.tasks || [];
 
-    document.getElementById('issue_priority').value =
-        issue?.priority || 'medium';
+    const reqIds = linkedRequirements.map(r => r.requirement_id);
+    const taskIds = linkedTasks.map(t => t.task_id);
 
-    document.getElementById('issue_assignee').value =
-        issue?.assignee_user_id || '';
+    // Werte ins versteckte Feld schreiben
+    const reqField = document.getElementById('issue_requirements');
+    const taskField = document.getElementById('issue_tasks');
 
-    const linkedRequirements =
-        detail?.requirements || [];
+    if (reqField) reqField.value = reqIds.join(',');
+    if (taskField) taskField.value = taskIds.join(',');
 
-    const linkedTasks =
-        detail?.tasks || [];
+    const reqSearch = document.getElementById('issueReqSearch');
+    const taskSearch = document.getElementById('issueTaskSearch');
+    if (reqSearch) reqSearch.value = '';
+    if (taskSearch) taskSearch.value = '';
+    renderIssueRequirementList();
+    renderIssueTaskList();
 
-    const requirementSelect =
-        document.getElementById('issue_requirements');
+    document.getElementById('issueModalTitle').textContent = issue ? `${issue.issue_key} bearbeiten` : 'Neues Issue';
 
-    const taskSelect =
-        document.getElementById('issue_tasks');
-
-    if (requirementSelect) {
-        Array.from(requirementSelect.options)
-            .forEach(option => {
-                option.selected =
-                    linkedRequirements.some(relation =>
-                        Number(relation.requirement_id) ===
-                        Number(option.value)
-                    );
-            });
+    // Modal zentriert öffnen
+    const modal = document.getElementById('issueModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
     }
-
-    if (taskSelect) {
-        Array.from(taskSelect.options)
-            .forEach(option => {
-                option.selected =
-                    linkedTasks.some(relation =>
-                        Number(relation.task_id) ===
-                        Number(option.value)
-                    );
-            });
-    }
-
-    document.getElementById('issueModalTitle').textContent =
-        issue
-            ? `${issue.issue_key} bearbeiten`
-            : 'Neues Issue';
-
-    document
-        .getElementById('issueModal')
-        .classList.remove('hidden');
 }
 
 /**
@@ -839,6 +823,16 @@ function closeImportModal() {
  * Initialisiert alle Events.
  */
 export function initIssueEvents() {
+    document.getElementById('issueReqSearch')?.addEventListener('input', renderIssueRequirementList);
+    document.getElementById('issueTaskSearch')?.addEventListener('input', renderIssueTaskList);
+    document.getElementById('issueReqCheckboxList')?.addEventListener('change', event => {
+        if (event.target.matches('.issue-req-cb')) syncIssueRequirementSelection();
+    });
+    document.getElementById('issueTaskCheckboxList')?.addEventListener('change', event => {
+        if (event.target.matches('.issue-task-cb')) syncIssueTaskSelection();
+    });
+
+
     document
         .getElementById('btnNewIssue')
         ?.addEventListener('click', () => {
@@ -963,11 +957,8 @@ async function save(event) {
         resolution:
             document.getElementById('issue_resolution').value.trim(),
 
-        requirement_ids:
-            selected('issue_requirements'),
-
-        task_ids:
-            selected('issue_tasks')
+        requirement_ids: document.getElementById('issue_requirements').value.split(',').filter(Boolean).map(Number),
+        task_ids: document.getElementById('issue_tasks').value.split(',').filter(Boolean).map(Number)
     };
 
     if (!payload.title) {
@@ -1106,6 +1097,11 @@ window.deleteIssue = async function (issueId) {
         alert(`Fehler: ${error.message}`);
     }
 };
+
+
+
+
+
 
 /**
  * Normalisiert Excel-Spaltenüberschriften.

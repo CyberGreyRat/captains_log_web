@@ -1,0 +1,5113 @@
+============================================================
+CAPTAIN'S LOG - REQUIRED FILES EXPORT
+Root: C:\xampp\htdocs\captainslog-web\
+Created: 28.08.2026 10:54:12,50
+============================================================
+
+
+============================================================
+FILE: dashboard\js\project_plan.js
+FULL PATH: C:\xampp\htdocs\captainslog-web\dashboard\js\project_plan.js
+============================================================
+// dashboard/js/project_plan.js
+import { currentProjectId } from './state.js';
+
+let loadedTasks = [];
+let loadedTemplates = [];
+let allRequirements = [];
+let allIssues = [];
+
+export async function loadProjectPlan() {
+    if (!currentProjectId) return;
+
+    try {
+        const res = await fetch(`../api/get_tasks.php?project_id=${currentProjectId}`);
+        const data = await res.json();
+        const tbody = document.getElementById('taskTableBody');
+
+        if (!tbody) return;
+
+        if (data.success && data.tasks.length > 0) {
+            loadedTasks = data.tasks;
+
+            // NEU: Kategorie-Filter Dropdown dynamisch befüllen
+            const catFilter = document.getElementById('taskCategoryFilter');
+            if (catFilter) {
+                const currentVal = catFilter.value;
+                const categories = [...new Set(loadedTasks.map(t => t.category || 'Allgemein'))].sort();
+                catFilter.innerHTML = '<option value="">Alle Kategorien (' + loadedTasks.filter(t => !t.parent_id).length + ')</option>';
+                categories.forEach(c => {
+                    catFilter.innerHTML += `<option value="${c}" ${c === currentVal ? 'selected' : ''}>${c}</option>`;
+                });
+            }
+
+            renderFilteredTasks();
+        } else {
+            loadedTasks = data.tasks;
+            tbody.innerHTML = '';
+
+            const groupedTasks = {};
+            loadedTasks.forEach(task => {
+                const cat = task.category || 'Allgemein';
+                if (!groupedTasks[cat]) groupedTasks[cat] = [];
+                groupedTasks[cat].push(task);
+            });
+
+            for (const cat in groupedTasks) {
+                tbody.innerHTML += `
+                    <tr class="bg-blue-950 border-b-2 border-blue-900">
+                        <td colspan="7" class="p-3 px-4 text-sm font-extrabold text-white uppercase tracking-widest shadow-inner">${cat}</td>
+                    </tr>
+                `;
+
+                const mainTasks = groupedTasks[cat].filter(t => !t.parent_id);
+                mainTasks.forEach(mainTask => {
+                    renderTaskRow(mainTask, tbody);
+                });
+            }
+        }
+
+        if (data.templates) {
+            loadedTemplates = data.templates;
+            const tplCategory = document.getElementById('tpl_category');
+            if (tplCategory && tplCategory.options.length <= 1) {
+                const cats = [...new Set(loadedTemplates.map(t => t.category))].sort();
+                cats.forEach(c => {
+                    tplCategory.innerHTML += `<option value="${c}">${c}</option>`;
+                });
+            }
+        }
+
+        await fetchRequirementsForMenu();
+        await fetchIssuesForMenu();
+        await fetchTeamMembers();
+
+    } catch (e) {
+        console.error("Fehler beim Laden des Plans:", e);
+    }
+}
+
+function renderTaskRow(task, tbody) {
+    const sDate = task.start_date ? new Date(task.start_date).toLocaleDateString('de-DE') : '-';
+    const eDate = task.end_date ? new Date(task.end_date).toLocaleDateString('de-DE') : '-';
+
+    const categoryBadge = task.category
+        ? `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide bg-amber-100 text-amber-900 border border-amber-300 mr-1 mb-1">${task.category}</span>`
+        : '';
+
+    // Assignee Logik: Direkt zugewiesen ODER aus Issues geerbt
+    let assigneeHtml = '<span class="text-slate-400 italic">-</span>';
+    if (task.assignee && task.assignee.trim() !== '') {
+        assigneeHtml = `<span class="font-bold text-slate-800">${task.assignee}</span>`;
+    } else if (task.inherited_assignees && task.inherited_assignees.trim() !== '') {
+        assigneeHtml = `<span class="text-xs text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded shadow-sm" title="Aus verknüpften Issues übernommen">Übernommen: ${task.inherited_assignees}</span>`;
+    }
+
+    let tagsHtml = '';
+
+    try {
+        const reqs = JSON.parse(task.linked_reqs || '[]');
+        reqs.forEach(r => {
+            tagsHtml += `<span class="inline-block bg-indigo-100 text-indigo-900 text-[10px] px-1.5 py-0.5 rounded border border-indigo-300 mr-1 mt-1 font-mono font-bold shadow-sm">${r}</span>`;
+        });
+    } catch (e) { }
+
+    if (task.has_checklist) {
+        tagsHtml += `<span class="inline-block bg-sky-100 text-sky-900 text-[10px] px-2 py-0.5 rounded border border-sky-300 mr-1 mt-1 font-bold shadow-sm">📋 Checkliste: ${task.checklist_done}/${task.checklist_total}</span>`;
+    }
+
+    let autoIcon = '';
+    if (task.is_auto_progress && !task.has_checklist) {
+        autoIcon = `<span class="text-[9px] bg-indigo-50 border border-indigo-300 text-indigo-700 px-1 rounded font-bold mr-1">AUTO</span>`;
+    } else if (task.has_checklist) {
+        autoIcon = `<span class="text-[9px] bg-sky-50 border border-sky-300 text-sky-700 px-1 rounded font-bold mr-1">LIST</span>`;
+    }
+
+    const progress = task.progress_pct || 0;
+    const barColor = progress === 100 ? 'bg-emerald-500' : 'bg-blue-500';
+    const effortVal = task.effort_mt ? task.effort_mt + ' h' : '-';
+    const indentClass = 'font-bold bg-white hover:bg-blue-50/50 border-t border-slate-200 transition-colors';
+
+    const iconEye = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>`;
+    const iconEdit = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>`;
+    const iconTrash = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
+
+    tbody.innerHTML += `
+        <tr class="${indentClass}">
+            <td class="p-3 font-mono text-sm font-extrabold text-slate-800 border-r border-slate-100">${task.wbs_code || ''}</td>
+            <td class="p-3 border-r border-slate-100">
+                <div>${categoryBadge}</div>
+                <div class="text-blue-950 text-base font-extrabold">${task.title}</div>
+                <div>${tagsHtml}</div>
+            </td>
+            <td class="p-3 text-xs border-r border-slate-100 leading-tight">${assigneeHtml}</td>
+            <td class="p-3 text-center text-sm font-mono font-semibold text-slate-800 border-r border-slate-100">${effortVal}</td>
+            <td class="p-3 text-center text-[11px] whitespace-nowrap font-medium text-slate-600 border-r border-slate-100">${sDate} <br> ${eDate}</td>
+            <td class="p-3 border-r border-slate-100">
+                <div class="flex justify-between items-end mb-1 text-xs">
+                    <div>${autoIcon}</div>
+                    <span class="font-extrabold text-slate-800">${progress}%</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-2.5 border border-slate-300">
+                    <div class="${barColor} h-2.5 rounded-full transition-all duration-500" style="width: ${progress}%"></div>
+                </div>
+            </td>
+            <td class="p-3 text-right">
+                <div class="flex justify-end gap-1.5">
+                    <button onclick="window.viewTaskAnalytics(${task.id})" class="text-blue-600 hover:text-white hover:bg-blue-600 transition p-1.5 bg-blue-50 border border-blue-200 rounded shadow-sm" title="Analyse & Checkliste">${iconEye}</button>
+                    <button onclick="window.editTask(${task.id})" class="text-slate-500 hover:text-blue-600 transition p-1.5 bg-slate-50 border border-slate-200 rounded shadow-sm" title="Bearbeiten">${iconEdit}</button>
+                    <button onclick="window.deleteTask(${task.id})" class="text-slate-500 hover:text-red-600 transition p-1.5 bg-slate-50 border border-slate-200 rounded shadow-sm" title="Löschen">${iconTrash}</button>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+function generateAutoId() {
+    const mainTasks = loadedTasks.filter(t => !t.parent_id);
+    document.getElementById('task_wbs').value = String(mainTasks.length + 1);
+}
+
+
+
+// =========================================================================
+// NEU: UNIVERSAL PICKER LOGIK (PROJEKTPLAN)
+// =========================================================================
+let currentPickerMode = ''; 
+
+window.closePlanPickerModal = function() {
+    const modal = document.getElementById('planPickerModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+document.getElementById('planPickerSearch')?.addEventListener('input', function (e) {
+    const term = e.target.value.toLowerCase();
+    document.querySelectorAll('#planPickerContent label').forEach(label => {
+        const text = label.textContent.toLowerCase();
+        label.style.display = text.includes(term) ? 'flex' : 'none';
+    });
+    document.querySelectorAll('#planPickerContent > div.category-group').forEach(group => {
+        const visibleItems = Array.from(group.querySelectorAll('label')).filter(l => l.style.display !== 'none');
+        group.style.display = visibleItems.length === 0 ? 'none' : 'block';
+    });
+});
+
+document.getElementById('btnPlanPickerApply')?.addEventListener('click', () => {
+    const checkboxes = Array.from(document.querySelectorAll('#planPickerContent .picker-cb:checked'));
+    const vals = checkboxes.map(cb => cb.value);
+
+    if (currentPickerMode === 'req') {
+        document.getElementById('task_linked_reqs').value = vals.join(',');
+        window.renderReqTagsUI(vals);
+    } else if (currentPickerMode === 'issue') {
+        document.getElementById('task_linked_issues').value = vals.join(',');
+        window.renderIssueTagsUI(vals);
+    }
+    window.closePlanPickerModal();
+});
+
+async function fetchRequirementsForMenu() {
+    if (!currentProjectId) return;
+    try {
+        const res = await fetch(`../api/get_requirements.php?project_id=${currentProjectId}`);
+        const data = await res.json();
+        if (data.success) allRequirements = data.requirements;
+    } catch (e) { console.error(e); }
+}
+
+async function fetchIssuesForMenu() {
+    if (!currentProjectId) return;
+    try {
+        const res = await fetch(`../api/get_issues.php?project_id=${currentProjectId}`);
+        const data = await res.json();
+        if (data.success) allIssues = data.issues || [];
+    } catch (e) { console.error(e); }
+}
+
+window.openReqPicker = function () {
+    currentPickerMode = 'req';
+    document.getElementById('planPickerTitle').textContent = 'Anforderungen auswählen';
+    const searchInput = document.getElementById('planPickerSearch');
+    if(searchInput) { searchInput.value = ''; searchInput.dispatchEvent(new Event('input')); }
+
+    const currentVals = document.getElementById('task_linked_reqs').value.split(',').filter(Boolean);
+    let html = '<div class="space-y-8">'; 
+
+    const grouped = {};
+    allRequirements.forEach(req => {
+        const type = req.type || 'Allgemein';
+        if (!grouped[type]) grouped[type] = [];
+        grouped[type].push(req);
+    });
+
+    for (const type in grouped) {
+        html += `<div class="category-group">
+                    <h3 class="text-sm font-extrabold text-blue-950 border-b-2 border-blue-900 pb-2 mb-3 uppercase tracking-wider">${type}</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">`;
+        grouped[type].forEach(req => {
+            const isChecked = currentVals.includes(req.req_key) ? 'checked' : '';
+            html += `
+                <label class="flex items-start gap-4 p-4 bg-white border border-slate-200 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-400 transition shadow-sm">
+                    <input type="checkbox" value="${req.req_key}" class="picker-cb mt-0.5 w-5 h-5 text-blue-700 rounded border-slate-300" ${isChecked}>
+                    <div class="flex flex-col w-full">
+                        <span class="text-sm font-extrabold text-blue-950 font-mono">${req.req_key}</span>
+                        <span class="text-sm text-slate-700 leading-snug mt-1">${req.title}</span>
+                    </div>
+                </label>`;
+        });
+        html += `</div></div>`;
+    }
+    html += '</div>';
+
+    document.getElementById('planPickerContent').innerHTML = html;
+    const modal = document.getElementById('planPickerModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+};
+
+window.openIssuePicker = function () {
+    currentPickerMode = 'issue';
+    document.getElementById('planPickerTitle').textContent = 'Issues (Bugs & CRs) auswählen';
+    const searchInput = document.getElementById('planPickerSearch');
+    if(searchInput) { searchInput.value = ''; searchInput.dispatchEvent(new Event('input')); }
+
+    const currentVals = document.getElementById('task_linked_issues').value.split(',').filter(Boolean);
+    let html = '<div class="space-y-8">'; 
+
+    const grouped = {};
+    const sortedIssues = [...allIssues].sort((a, b) => {
+        const numA = parseInt((a.issue_key || '').replace(/\D/g, '')) || 0;
+        const numB = parseInt((b.issue_key || '').replace(/\D/g, '')) || 0;
+        return numA - numB;
+    });
+
+    sortedIssues.forEach(iss => {
+        const type = iss.issue_type || 'bug';
+        if (!grouped[type]) grouped[type] = [];
+        grouped[type].push(iss);
+    });
+
+    if (Object.keys(grouped).length === 0) {
+        html = '<div class="p-6 text-center text-slate-500 italic bg-white rounded border border-slate-200">Keine Issues im Projekt vorhanden.</div>';
+    }
+
+    for (const type in grouped) {
+        html += `<div class="category-group">
+                    <h3 class="text-sm font-extrabold text-rose-950 border-b-2 border-rose-900 pb-2 mb-3 uppercase tracking-wider">${type}</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">`;
+        grouped[type].forEach(iss => {
+            const isChecked = currentVals.includes(String(iss.id)) ? 'checked' : '';
+            const isClosed = (iss.status === 'closed' || iss.status === 'approved' || iss.status === 'rejected');
+            const statusBadge = isClosed ? `<span class="ml-2 text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded font-sans uppercase">${iss.status}</span>` : '';
+            const opacityClass = isClosed ? 'opacity-60 grayscale' : '';
+
+            html += `
+                <label class="flex items-start gap-4 p-4 bg-white border border-slate-200 rounded-lg cursor-pointer hover:bg-rose-50 hover:border-rose-400 transition shadow-sm ${opacityClass}">
+                    <input type="checkbox" value="${iss.id}" class="picker-cb mt-0.5 w-5 h-5 text-rose-700 rounded border-slate-300" ${isChecked}>
+                    <div class="flex flex-col w-full">
+                        <span class="text-sm font-extrabold text-rose-950 font-mono">${iss.issue_key} ${statusBadge}</span>
+                        <span class="text-sm text-slate-700 leading-snug mt-1">${iss.title}</span>
+                    </div>
+                </label>`;
+        });
+        html += `</div></div>`;
+    }
+    html += '</div>';
+
+    document.getElementById('planPickerContent').innerHTML = html;
+    const modal = document.getElementById('planPickerModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+};
+
+// UI RE-RENDER HILFSFUNKTIONEN
+function renderReqTagsUI(vals) {
+    const container = document.getElementById('task_selected_reqs_container');
+    if (!container) return;
+    if (vals.length === 0) {
+        container.innerHTML = '<span class="text-slate-500 text-sm font-medium italic mt-1">Keine ausgewählt...</span>';
+        return;
+    }
+    container.innerHTML = vals.map(key => `
+        <span class="inline-flex items-center gap-1 bg-indigo-100 text-indigo-950 px-2.5 py-1 rounded text-xs font-extrabold font-mono border border-indigo-300 shadow-sm">
+            ${key}
+            <button type="button" onclick="window.removeReqTag('${key}')" class="text-indigo-500 hover:text-red-600 transition-colors ml-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </span>
+    `).join('');
+}
+
+function renderIssueTagsUI(ids) {
+    const container = document.getElementById('task_selected_issues_container');
+    if (!container) return;
+    if (ids.length === 0) {
+        container.innerHTML = '<span class="text-slate-500 text-sm font-medium italic mt-1">Keine ausgewählt...</span>';
+        return;
+    }
+    container.innerHTML = ids.map(id => {
+        const iss = allIssues.find(i => i.id == id);
+        const key = iss ? iss.issue_key : id;
+        return `
+        <span class="inline-flex items-center gap-1 bg-rose-100 text-rose-950 px-2.5 py-1 rounded text-xs font-extrabold font-mono border border-rose-300 shadow-sm">
+            ${key}
+            <button type="button" onclick="window.removeIssueTag('${id}')" class="text-rose-500 hover:text-red-600 transition-colors ml-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </span>
+        `;
+    }).join('');
+}
+
+window.removeReqTag = function (key) {
+    let vals = document.getElementById('task_linked_reqs').value.split(',').filter(x => x);
+    vals = vals.filter(v => v !== key);
+    document.getElementById('task_linked_reqs').value = vals.join(',');
+    renderReqTagsUI(vals);
+};
+
+window.removeIssueTag = function (id) {
+    let vals = document.getElementById('task_linked_issues').value.split(',').filter(x => x);
+    vals = vals.filter(v => v !== String(id));
+    document.getElementById('task_linked_issues').value = vals.join(',');
+    renderIssueTagsUI(vals);
+};
+
+// EVENT FÜR DEN "ÜBERNEHMEN" BUTTON IM PICKER
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('btnPickerApply').addEventListener('click', () => {
+        const checkboxes = Array.from(document.querySelectorAll('#pickerContent .picker-cb:checked'));
+        const vals = checkboxes.map(cb => cb.value);
+
+        if (currentPickerMode === 'req') {
+            document.getElementById('task_linked_reqs').value = vals.join(',');
+            renderReqTagsUI(vals);
+        } else if (currentPickerMode === 'issue') {
+            document.getElementById('task_linked_issues').value = vals.join(',');
+            renderIssueTagsUI(vals);
+        }
+
+        window.closePlanPickerModal();
+        document.getElementById('modalPicker').style.display = '';
+    });
+});
+
+
+window.closePlanPickerModal = function () {
+    const modal = document.getElementById('modalPicker');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modal.style.display = '';
+    }
+};
+
+// Live-Suche im Modal-Picker
+document.getElementById('pickerSearch')?.addEventListener('input', function (e) {
+    const term = e.target.value.toLowerCase();
+    document.querySelectorAll('#pickerContent label').forEach(label => {
+        const text = label.textContent.toLowerCase();
+        label.style.display = text.includes(term) ? 'flex' : 'none';
+    });
+    document.querySelectorAll('#pickerContent > div').forEach(group => {
+        const visibleItems = Array.from(group.querySelectorAll('label')).filter(l => l.style.display !== 'none');
+        group.style.display = visibleItems.length === 0 ? 'none' : 'flex';
+    });
+});
+
+
+// =========================================================================
+// INIT EVENTS
+// =========================================================================
+export function initProjectPlanEvents() {
+    const btnNew = document.getElementById('btnNewTask');
+    const form = document.getElementById('formTask');
+    const autoToggle = document.getElementById('task_is_auto');
+    const tplCat = document.getElementById('tpl_category');
+    const tplItem = document.getElementById('tpl_item');
+
+    if (btnNew) {
+        btnNew.addEventListener('click', () => {
+            if (!currentProjectId) { alert("Projekt wählen!"); return; }
+            form.reset();
+            document.getElementById('task_id').value = '';
+            document.getElementById('taskModalTitle').textContent = 'Neue Aufgabe anlegen';
+
+            // Löst den Fehler, wenn is_auto nicht existiert, aber das Feld MUSS existieren!
+            if (autoToggle) autoToggle.dispatchEvent(new Event('change'));
+
+            if (tplCat) tplCat.value = '';
+            if (tplItem) {
+                tplItem.innerHTML = '<option value="">-- Zuerst Hauptgruppe wählen --</option>';
+                tplItem.disabled = true;
+                tplItem.classList.add('bg-slate-100', 'cursor-not-allowed');
+                tplItem.classList.remove('bg-white');
+            }
+
+            document.getElementById('task_linked_reqs').value = '';
+            renderReqTagsUI([]);
+
+            document.getElementById('task_linked_issues').value = '';
+            renderIssueTagsUI([]);
+
+            generateAutoId();
+
+            document.getElementById('modalTask').classList.remove('hidden');
+        });
+    }
+
+    if (tplCat && tplItem) {
+        tplCat.addEventListener('change', (e) => {
+            const cat = e.target.value;
+            const catInput = document.getElementById('task_category');
+            if (catInput) catInput.value = cat;
+
+            if (!cat) {
+                tplItem.innerHTML = '<option value="">-- Zuerst Hauptgruppe wählen --</option>';
+                tplItem.disabled = true;
+                tplItem.classList.add('bg-slate-100', 'cursor-not-allowed');
+                tplItem.classList.remove('bg-white');
+                return;
+            }
+
+            tplItem.disabled = false;
+            tplItem.classList.remove('bg-slate-100', 'cursor-not-allowed');
+            tplItem.classList.add('bg-white');
+            tplItem.innerHTML = '<option value="">-- Aufgabe wählen --</option>';
+
+            const items = loadedTemplates.filter(t => t.category === cat);
+            items.forEach(t => {
+                tplItem.innerHTML += `<option value="${t.id}">${t.title} (${t.default_effort} h)</option>`;
+            });
+        });
+
+        tplItem.addEventListener('change', (e) => {
+            const tpl = loadedTemplates.find(t => t.id == e.target.value);
+            if (tpl) {
+                document.getElementById('task_category').value = tpl.category;
+                document.getElementById('task_title').value = tpl.title;
+                document.getElementById('task_effort').value = tpl.default_effort;
+            }
+        });
+    }
+
+    if (autoToggle) {
+        autoToggle.addEventListener('change', (e) => {
+            const isAuto = e.target.checked;
+            document.getElementById('container_linked_reqs').style.display = isAuto ? 'block' : 'none';
+            document.getElementById('container_linked_issues').style.display = isAuto ? 'block' : 'none';
+            document.getElementById('container_manual_progress').style.display = isAuto ? 'none' : 'block';
+        });
+    }
+
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                id: document.getElementById('task_id').value,
+                project_id: currentProjectId,
+                parent_id: null,
+                category: document.getElementById('task_category').value,
+                title: document.getElementById('task_title').value,
+                description: document.getElementById('task_description').value,
+                wbs_code: document.getElementById('task_wbs').value,
+                assignee: document.getElementById('task_assignee').value,
+                start_date: document.getElementById('task_start').value,
+                end_date: document.getElementById('task_end').value,
+                effort_mt: document.getElementById('task_effort').value,
+                performance_pct: document.getElementById('task_performance').value,
+                is_auto_progress: document.getElementById('task_is_auto').checked,
+
+                linked_reqs: document.getElementById('task_linked_reqs') ? document.getElementById('task_linked_reqs').value : '',
+                linked_issues: document.getElementById('task_linked_issues') ? document.getElementById('task_linked_issues').value : '',
+
+                progress_pct: document.getElementById('task_progress').value
+            };
+
+            const res = await fetch('../api/set_task.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                document.getElementById('modalTask').classList.add('hidden');
+                loadProjectPlan();
+            } else {
+                alert("Fehler: " + data.error);
+            }
+        });
+    }
+}
+
+window.editTask = function (id) {
+    const task = loadedTasks.find(item => item.id == id);
+    if (!task) return;
+
+    document.getElementById('task_id').value = task.id;
+    document.getElementById('task_category').value = task.category || '';
+    document.getElementById('task_title').value = task.title;
+    document.getElementById('task_description').value = task.description || '';
+    document.getElementById('task_wbs').value = task.wbs_code || '';
+    document.getElementById('task_assignee').value = task.assignee || '';
+    document.getElementById('task_start').value = task.start_date || '';
+    document.getElementById('task_end').value = task.end_date || '';
+    document.getElementById('task_effort').value = task.effort_mt || '';
+    document.getElementById('task_performance').value = task.performance_pct || 100;
+
+    document.getElementById('task_is_auto').checked = task.is_auto_progress == 1;
+    document.getElementById('task_progress').value = task.progress_pct || 0;
+
+    // Verknüpfte Elemente laden und rendern
+    const reqs = JSON.parse(task.linked_reqs || '[]');
+    document.getElementById('task_linked_reqs').value = reqs.join(',');
+    renderReqTagsUI(reqs);
+
+    const issues = JSON.parse(task.linked_issues || '[]');
+    document.getElementById('task_linked_issues').value = issues.join(',');
+    renderIssueTagsUI(issues);
+
+    document.getElementById('task_is_auto').dispatchEvent(new Event('change'));
+    document.getElementById('taskModalTitle').textContent = 'Aufgabe bearbeiten (ID: ' + (task.wbs_code || 'Neu') + ')';
+    document.getElementById('modalTask').classList.remove('hidden');
+};
+
+// =========================================================================
+// ANALYTICS & DELETE LOGIC
+// =========================================================================
+window.viewTaskAnalytics = async function (id) {
+    document.getElementById('analyticsPanelOverlay').classList.remove('hidden');
+    setTimeout(() => { document.getElementById('analyticsPanel').classList.remove('translate-x-full'); }, 10);
+
+    document.getElementById('analyticsTitle').textContent = "Lade Analyse...";
+    document.getElementById('analyticsContributors').innerHTML = '<div class="text-xs text-slate-500 animate-pulse">Lade Beiträge...</div>';
+    document.getElementById('analyticsReqList').innerHTML = '';
+    document.getElementById('analyticsChecklistContainer').classList.add('hidden');
+    document.getElementById('analyticsProgressBar').style.width = '0%';
+
+    try {
+        const res = await fetch(`../api/get_task_analytics.php?task_id=${id}&project_id=${currentProjectId}`);
+        const data = await res.json();
+
+        if (!data.success) {
+            document.getElementById('analyticsTitle').textContent = "Fehler: " + data.error;
+            return;
+        }
+
+        const a = data.analytics;
+        document.getElementById('analyticsTitle').textContent = (a.wbs_code ? a.wbs_code + ' - ' : '') + a.task_title;
+
+        // ALLES IN EINEN TOPF WERFEN
+        const totalItems = (a.has_checklist ? a.subtasks.length : 0) + a.total_reqs + a.total_issues;
+        const doneItems = (a.has_checklist ? a.subtasks.filter(s => s.progress_pct == 100).length : 0) + a.approved_reqs + a.closed_issues;
+        const combinedProgress = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
+
+        let textParts = [];
+        if (a.has_checklist) textParts.push(`${a.subtasks.filter(s => s.progress_pct == 100).length}/${a.subtasks.length} Check`);
+        if (a.total_reqs > 0) textParts.push(`${a.approved_reqs}/${a.total_reqs} Reqs`);
+        if (a.total_issues > 0) textParts.push(`${a.closed_issues}/${a.total_issues} Issues`);
+
+        document.getElementById('analyticsReqCount').textContent = textParts.length > 0 ? textParts.join(' & ') + ' erledigt' : '0 Elemente verknüpft';
+        document.getElementById('analyticsTotalProgress').textContent = `${combinedProgress}%`;
+        document.getElementById('analyticsProgressBar').style.width = `${combinedProgress}%`;
+
+        // CHECKLISTE RENDERN
+        if (a.has_checklist) {
+            document.getElementById('analyticsChecklistContainer').classList.remove('hidden');
+            let checkHtml = '';
+            a.subtasks.forEach(st => {
+                const checked = st.progress_pct == 100 ? 'checked' : '';
+                checkHtml += `
+                    <label class="flex items-start gap-3 p-3 bg-white border border-slate-200 rounded hover:bg-sky-50 cursor-pointer shadow-sm transition">
+                        <input type="checkbox" ${checked} onchange="window.toggleSubtask(${st.id}, this.checked, ${id})" class="mt-0.5 w-5 h-5 text-sky-600 rounded">
+                        <span class="text-sm font-semibold text-slate-800 ${checked ? 'line-through text-slate-400' : ''}">${st.title}</span>
+                    </label>
+                `;
+            });
+            document.getElementById('analyticsChecklist').innerHTML = checkHtml;
+        }
+
+        // CONTRIBUTORS RENDERN
+        const contDiv = document.getElementById('analyticsContributors');
+        if (Object.keys(a.contributors).length === 0) {
+            contDiv.innerHTML = '<div class="text-xs font-semibold text-slate-400 italic bg-slate-100 p-3 rounded">Noch keine Zuweisungen / Freigaben.</div>';
+        } else {
+            let html = '';
+            // Um die Balken korrekt zu zeichnen, nehmen wir die Gesamtzahl (Requirements + Issues)
+            const totalWorkable = a.total_reqs + a.total_issues;
+            for (const [user, count] of Object.entries(a.contributors)) {
+                const userPct = totalWorkable > 0 ? Math.round((count / totalWorkable) * 100) : 0;
+                html += `
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs font-bold text-slate-800 font-mono"><span class="text-blue-600">@</span>${user}</span>
+                            <span class="text-xs font-extrabold text-blue-900">${userPct}% (${count} erledigt)</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-1.5"><div class="bg-blue-600 h-1.5 rounded-full" style="width: ${userPct}%"></div></div>
+                    </div>
+                `;
+            }
+            contDiv.innerHTML = html;
+        }
+
+        // DETAIL-LOG (REQS & ISSUES)
+        const logDiv = document.getElementById('analyticsReqList');
+        if (a.req_details.length === 0 && a.issue_details.length === 0) {
+            logDiv.innerHTML = '<div class="text-xs text-slate-500 italic">Keine Anforderungen oder Issues verknüpft.</div>';
+        } else {
+            let logHtml = '';
+
+            // Requirements einfügen
+            a.req_details.forEach(r => {
+                const isAppr = r.status === 'Geprüft & Freigegeben';
+                const statusColor = isAppr ? 'text-indigo-700 bg-indigo-50 border-indigo-200' : 'text-slate-600 bg-white border-slate-200';
+                const icon = isAppr
+                    ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>'
+                    : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+
+                logHtml += `
+                    <div class="border ${statusColor} rounded-md p-3 text-sm mb-2 shadow-sm">
+                        <div class="flex justify-between font-bold mb-1">
+                            <span class="font-mono text-indigo-900">${r.req_key}</span>
+                            <span class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider">${icon} ${r.status}</span>
+                        </div>
+                        <div class="font-semibold text-slate-700 leading-tight mb-2">${r.title}</div>
+                        ${isAppr ? `<div class="text-[10px] text-indigo-800 border-t border-indigo-200/50 pt-2 mt-1 font-mono uppercase tracking-wide">Freigegeben von: <b>${r.approved_by}</b> <span class="opacity-70">am ${r.date}</span></div>` : ''}
+                    </div>
+                `;
+            });
+
+            // Issues einfügen
+            a.issue_details.forEach(i => {
+                const isClosed = ['closed', 'approved', 'rejected'].includes(i.status);
+                const statusColor = isClosed ? 'text-rose-700 bg-rose-50 border-rose-200' : 'text-slate-600 bg-white border-slate-200';
+                const icon = isClosed
+                    ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>'
+                    : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+
+                logHtml += `
+                    <div class="border ${statusColor} rounded-md p-3 text-sm mb-2 shadow-sm">
+                        <div class="flex justify-between font-bold mb-1">
+                            <span class="font-mono text-rose-900">${i.issue_key}</span>
+                            <span class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider">${icon} ${i.status}</span>
+                        </div>
+                        <div class="font-semibold text-slate-700 leading-tight mb-2">${i.title}</div>
+                        <div class="text-[10px] ${isClosed ? 'text-rose-800 border-rose-200/50' : 'text-slate-500 border-slate-200'} border-t pt-2 mt-1 font-mono uppercase tracking-wide">Zuständig: <b>${i.assignee}</b></div>
+                    </div>
+                `;
+            });
+
+            logDiv.innerHTML = logHtml;
+        }
+
+    } catch (e) {
+        console.error(e);
+        document.getElementById('analyticsTitle').textContent = "Netzwerk- oder Scriptfehler";
+    }
+};
+
+window.closeAnalyticsPanel = function () {
+    document.getElementById('analyticsPanel').classList.add('translate-x-full');
+    setTimeout(() => { document.getElementById('analyticsPanelOverlay').classList.add('hidden'); }, 300);
+};
+
+window.toggleSubtask = async function (subtaskId, isChecked, parentTaskId) {
+    try {
+        await fetch('../api/toggle_subtask.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: subtaskId, completed: isChecked })
+        });
+        await loadProjectPlan();
+        window.viewTaskAnalytics(parentTaskId);
+    } catch (e) { console.error(e); }
+};
+
+window.deleteTask = async function (id) {
+    if (!confirm("Möchtest du diese Aufgabe wirklich löschen?")) return;
+    try {
+        const res = await fetch('../api/delete_task.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id, project_id: currentProjectId })
+        });
+        const data = await res.json();
+        if (data.success) { loadProjectPlan(); } else { alert("Fehler beim Löschen: " + data.error); }
+    } catch (e) { console.error(e); }
+};
+
+function renderFilteredTasks() {
+    const tbody = document.getElementById('taskTableBody');
+    if (!tbody) return;
+
+    const searchQuery = (document.getElementById('taskSearchInput')?.value || '').toLowerCase();
+    const selectedCategory = document.getElementById('taskCategoryFilter')?.value || '';
+
+    tbody.innerHTML = '';
+
+    const groupedTasks = {};
+    loadedTasks.forEach(task => {
+        // Fallback, falls keine Kategorie eingetragen ist
+        const cat = (task.category && task.category.trim() !== '') ? task.category.trim() : 'Allgemein / Ohne Kategorie';
+
+        if (selectedCategory && cat !== selectedCategory) return;
+
+        const matchSearch = !searchQuery ||
+            task.title.toLowerCase().includes(searchQuery) ||
+            (task.wbs_code && task.wbs_code.toLowerCase().includes(searchQuery)) ||
+            (task.assignee && task.assignee.toLowerCase().includes(searchQuery));
+
+        if (!matchSearch) return;
+
+        if (!groupedTasks[cat]) groupedTasks[cat] = [];
+        groupedTasks[cat].push(task);
+    });
+
+    if (Object.keys(groupedTasks).length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400 italic font-medium">Keine passenden Aufgaben gefunden.</td></tr>';
+        return;
+    }
+
+    for (const cat in groupedTasks) {
+        // Kategorie-Trennzeile im Projektplan einfügen
+        tbody.innerHTML += `
+            <tr class="bg-blue-950 border-b border-blue-900">
+                <td colspan="7" class="p-3 px-4 text-xs font-extrabold text-white uppercase tracking-wider">${cat}</td>
+            </tr>
+        `;
+
+        const mainTasks = groupedTasks[cat].filter(t => !t.parent_id);
+        mainTasks.forEach(mainTask => {
+            renderTaskRow(mainTask, tbody);
+        });
+    }
+}
+// Event Listener für die Live-Filterung registrieren (in initProjectPlanEvents einfügen):
+// Live-Filter Event Listener registrieren
+document.getElementById('taskSearchInput')?.addEventListener('input', renderFilteredTasks);
+document.getElementById('taskCategoryFilter')?.addEventListener('change', renderFilteredTasks);
+ 
+
+============================================================
+FILE: dashboard\views\project_plan.php
+FULL PATH: C:\xampp\htdocs\captainslog-web\dashboard\views\project_plan.php
+============================================================
+<!-- dashboard/views/project_plan.php -->
+
+<div class="cl-panel">
+
+    <!-- =====================================================
+         KOPFBEREICH
+    ====================================================== -->
+    <div class="cl-panel-header">
+
+        <div>
+            <p class="cl-panel-eyebrow">
+                Planung · Aufgaben · Fortschritt
+            </p>
+
+            <h2 class="cl-panel-title">
+                Projektplan & Aufgaben
+            </h2>
+        </div>
+
+        <button id="btnNewTask" type="button" class="cl-button cl-button-primary">
+
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                </path>
+            </svg>
+
+            Neue Aufgabe
+        </button>
+    </div>
+
+
+    <!-- =====================================================
+         HINWEISLEISTE
+    ====================================================== -->
+    <div class="grid shrink-0 grid-cols-1 gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 lg:grid-cols-3">
+
+        <div class="cl-kpi">
+            <div class="cl-kpi-label">
+                Projektstruktur
+            </div>
+
+            <div class="mt-1 text-sm font-semibold text-slate-700">
+                Aufgaben werden nach Kategorie gruppiert.
+            </div>
+        </div>
+
+        <div class="cl-kpi border-l-emerald-500">
+            <div class="cl-kpi-label">
+                Automatischer Fortschritt
+            </div>
+
+            <div class="mt-1 text-sm font-semibold text-slate-700">
+                Fortschritt kann aus Requirements oder Checklisten berechnet werden.
+            </div>
+        </div>
+
+        <div class="cl-kpi border-l-amber-500">
+            <div class="cl-kpi-label">
+                Checklisten
+            </div>
+
+            <div class="mt-1 text-sm font-semibold text-slate-700">
+                Zeilen mit „-- “ erzeugen automatisch Unteraufgaben.
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter- und Suchleiste für den Projektplan -->
+    <div class="flex shrink-0 items-center justify-between gap-4 border-b border-slate-200 bg-white px-5 py-3">
+        <div class="flex items-center gap-3 flex-1 max-w-md">
+            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+            <input id="taskSearchInput" type="text" placeholder="Aufgabe oder WBS durchsuchen..."
+                class="w-full text-sm outline-none bg-transparent text-slate-700 placeholder:text-slate-400">
+        </div>
+        <div class="flex items-center gap-3">
+            <label class="text-xs font-bold text-slate-500 uppercase">Kategorie-Filter:</label>
+            <select id="taskCategoryFilter"
+                class="border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 rounded outline-none focus:border-blue-950">
+                <option value="">Alle Kategorien</option>
+            </select>
+        </div>
+    </div>
+
+
+    <!-- =====================================================
+         AUFGABENTABELLE
+    ====================================================== -->
+    <div class="cl-table-container">
+
+        <table class="cl-table min-w-[1150px]">
+
+            <thead>
+                <tr>
+                    <th class="w-[90px]">
+                        ID
+                    </th>
+
+                    <th class="min-w-[360px]">
+                        Aufgabe / Kommentare
+                    </th>
+
+                    <th class="min-w-[150px]">
+                        Zuweisung
+                    </th>
+
+                    <th class="w-[110px] text-center">
+                        Aufwand
+                    </th>
+
+                    <th class="w-[145px] text-center">
+                        Zeitraum
+                    </th>
+
+                    <th class="w-[190px]">
+                        Fortschritt
+                    </th>
+
+                    <th class="w-[135px] text-right">
+                        Aktionen
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody id="taskTableBody">
+
+                <tr>
+                    <td colspan="7" class="cl-empty-state">
+                        Bitte zuerst ein Projekt auswählen.
+                    </td>
+                </tr>
+
+            </tbody>
+        </table>
+    </div>
+
+
+    <!-- =====================================================
+         FUSSLEISTE
+    ====================================================== -->
+    <div class="cl-panel-footer">
+
+        <span>
+            Projektplanung
+        </span>
+
+        <span>
+            Aufgaben · Checklisten · Requirements · Fortschritt
+        </span>
+    </div>
+</div>
+
+
+<!-- =========================================================
+     MODAL: AUFGABE ERSTELLEN ODER BEARBEITEN
+========================================================== -->
+<div id="modalTask" class="cl-modal-overlay hidden">
+
+    <form id="formTask" class="cl-modal max-w-5xl">
+
+        <!-- Modal-Kopf -->
+        <div class="cl-modal-header">
+
+            <div>
+                <p class="cl-panel-eyebrow">
+                    Projektplanung
+                </p>
+
+                <h2 id="taskModalTitle" class="cl-modal-title">
+                    Aufgabe bearbeiten
+                </h2>
+            </div>
+
+            <button type="button" onclick="document.getElementById('modalTask').classList.add('hidden')"
+                class="cl-button cl-button-secondary min-h-0 px-2.5 py-2" title="Fenster schließen"
+                aria-label="Fenster schließen">
+
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+        </div>
+
+        <input id="task_id" type="hidden">
+
+
+        <!-- =================================================
+             SCROLLBARER MODAL-INHALT
+        ================================================== -->
+        <div class="cl-modal-body">
+
+            <!-- =============================================
+                 AUFGABENKATALOG
+            ============================================== -->
+            <fieldset class="cl-fieldset border-blue-200 bg-blue-50/30">
+
+                <legend class="cl-legend bg-blue-50 text-blue-950">
+                    Aus Aufgabenkatalog übernehmen
+                </legend>
+
+                <div class="cl-fieldset-body">
+
+                    <div class="mb-4 flex items-start gap-3">
+
+                        <div
+                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-blue-200 bg-white text-blue-950">
+
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                aria-hidden="true">
+
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6h16M4 10h16M4 14h16M4 18h16">
+                                </path>
+                            </svg>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-extrabold text-blue-950">
+                                Vorlage auswählen
+                            </h3>
+
+                            <p class="mt-1 text-xs leading-5 text-slate-500">
+                                Eine vorhandene Aufgabengruppe und danach eine
+                                passende Aufgabe auswählen. Titel, Kategorie und
+                                Standardaufwand werden automatisch übernommen.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+
+                        <label class="cl-label">
+                            1. Hauptgruppe wählen
+
+                            <select id="tpl_category" class="cl-select font-semibold">
+                            </select>
+                        </label>
+
+                        <label class="cl-label">
+                            2. Aufgabe wählen
+
+                            <select id="tpl_item" disabled
+                                class="cl-select cursor-not-allowed bg-slate-100 font-semibold">
+                            </select>
+                        </label>
+                    </div>
+                </div>
+            </fieldset>
+
+
+            <!-- =============================================
+                 BASISINFORMATIONEN
+            ============================================== -->
+            <fieldset class="cl-fieldset">
+
+                <legend class="cl-legend">
+                    Basisinformationen
+                </legend>
+
+                <div class="cl-fieldset-body grid grid-cols-1 gap-5 md:grid-cols-12">
+
+                    <!-- WBS -->
+                    <label class="cl-label md:col-span-3">
+                        ID / WBS-Code
+
+                        <input id="task_wbs" type="text" readonly
+                            class="cl-input cursor-not-allowed bg-slate-100 font-mono font-bold text-slate-600">
+
+                        <span class="cl-help">
+                            Wird für neue Hauptaufgaben automatisch erzeugt.
+                        </span>
+                    </label>
+
+                    <!-- Kategorie -->
+                    <label class="cl-label md:col-span-9">
+                        Kategorie / Bereich
+
+                        <input id="task_category" type="text" required maxlength="100"
+                            placeholder="z.B. Software Controller oder Gesamtinbetriebnahme"
+                            class="cl-input font-semibold">
+                    </label>
+
+                    <!-- Titel -->
+                    <label class="cl-label md:col-span-12">
+                        Titel der Aufgabe
+
+                        <input id="task_title" type="text" required maxlength="255"
+                            placeholder="Kurze und eindeutige Aufgabenbezeichnung"
+                            class="cl-input text-base font-semibold">
+                    </label>
+
+                    <!-- Kommentare / Checkliste -->
+                    <label class="cl-label md:col-span-12">
+
+                        <span class="flex flex-col justify-between gap-1 sm:flex-row sm:items-center">
+
+                            <span>
+                                Kommentare / Checkliste
+                            </span>
+
+                            <span class="text-xs font-normal italic text-slate-500">
+                                Zeilen mit „-- “ werden automatisch zu Unteraufgaben.
+                            </span>
+                        </span>
+
+                        <textarea id="task_description" rows="5"
+                            placeholder="Notizen zur Aufgabe&#10;-- Schaltplan prüfen&#10;-- Stückliste freigeben"
+                            class="cl-textarea"></textarea>
+
+                        <span class="cl-help">
+                            Normale Zeilen bleiben Kommentare. Jede Zeile mit
+                            „-- “ wird als eigener Checklistenpunkt gespeichert.
+                        </span>
+                    </label>
+                </div>
+            </fieldset>
+
+
+            <!-- =============================================
+                 VERANTWORTUNG UND ZEITPLAN
+            ============================================== -->
+            <fieldset class="cl-fieldset">
+
+                <legend class="cl-legend">
+                    Verantwortung und Zeitplan
+                </legend>
+
+                <div class="cl-fieldset-body grid grid-cols-1 gap-5 md:grid-cols-12">
+
+                    <!-- Assignee -->
+                    <label class="cl-label md:col-span-6">
+                        Zuweisung / Verantwortlich
+
+                        <input id="task_assignee" type="text" list="teamMembersList" maxlength="100"
+                            placeholder="Name oder Projektrolle" class="cl-input">
+
+                        <!-- Hier landen gleich die Namen aus der Datenbank -->
+                        <datalist id="teamMembersList"></datalist>
+
+                        <span class="cl-help">
+                            Wähle eine Person aus dem Dropdown oder tippe einen freien Text (z.B. eine externe Rolle)
+                            ein.
+                        </span>
+                    </label>
+
+                    <!-- Start -->
+                    <label class="cl-label md:col-span-3">
+                        Startdatum
+
+                        <input id="task_start" type="date" class="cl-input">
+                    </label>
+
+                    <!-- Ende -->
+                    <label class="cl-label md:col-span-3">
+                        Enddatum
+
+                        <input id="task_end" type="date" class="cl-input">
+                    </label>
+
+                    <!-- Aufwand -->
+                    <label class="cl-label md:col-span-6">
+                        Aufwand in Stunden
+
+                        <input id="task_effort" type="number" min="0" step="0.1" placeholder="0,0" class="cl-input">
+
+                        <span class="cl-help">
+                            Geplanter Gesamtaufwand für die Aufgabe.
+                        </span>
+                    </label>
+
+                    <!-- Performance -->
+                    <label class="cl-label md:col-span-6">
+                        Performance / Leistungsfaktor in Prozent
+
+                        <input id="task_performance" type="number" min="1" max="100" value="100" class="cl-input">
+
+                        <span class="cl-help">
+                            100 % entspricht der regulären Planleistung.
+                        </span>
+                    </label>
+                </div>
+            </fieldset>
+
+
+            <!-- =============================================
+                 FORTSCHRITT UND REQUIREMENTS
+            ============================================== -->
+            <fieldset class="cl-fieldset">
+                <legend class="cl-legend">
+                    Fortschritt und Traceability
+                </legend>
+                <div class="cl-fieldset-body">
+
+                    <!-- Automatik -->
+                    <label
+                        class="flex cursor-pointer items-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-4 transition hover:border-blue-200 hover:bg-blue-50/40">
+                        <input id="task_is_auto" type="checkbox" checked
+                            class="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-blue-950 focus:ring-blue-900">
+                        <span>
+                            <span class="block text-sm font-bold text-slate-800">
+                                Fortschritt automatisch berechnen
+                            </span>
+                            <span class="mt-1 block text-xs leading-5 text-slate-500">
+                                Der Fortschritt wird aus verknüpften und freigegebenen Anforderungen sowie gelösten
+                                Issues berechnet.
+                            </span>
+                        </span>
+                    </label>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-5">
+                        <!-- Verknüpfte Anforderungen -->
+                        <div id="container_linked_reqs" class="relative transition-all">
+                            <label class="cl-label">Verknüpfte Anforderungen</label>
+                            <p class="cl-help">Anforderungen, die durch diese Aufgabe umgesetzt werden.</p>
+
+                            <div id="task_selected_reqs_container"
+                                class="mt-3 flex min-h-[54px] flex-wrap gap-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+                                <span class="text-slate-500 text-sm font-medium italic mt-1">Keine ausgewählt...</span>
+                            </div>
+
+                            <button type="button" onclick="window.openReqPicker()"
+                                class="mt-3 w-full text-left px-4 py-3 bg-white hover:bg-indigo-50 font-bold text-sm text-indigo-900 border border-slate-300 rounded shadow-sm flex justify-between items-center transition">
+                                <span>+ Anforderungen suchen & hinzufügen...</span>
+                                <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                                </svg>
+                            </button>
+                            <input id="task_linked_reqs" type="hidden">
+                        </div>
+
+                        <!-- Verknüpfte Issues -->
+                        <div id="container_linked_issues" class="relative transition-all">
+                            <label class="cl-label">Verknüpfte Issues (Bugs, CRs)</label>
+                            <p class="cl-help">Kunden-Issues, die durch diese Aufgabe gelöst werden.</p>
+
+                            <div id="task_selected_issues_container"
+                                class="mt-3 flex min-h-[54px] flex-wrap gap-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+                                <span class="text-slate-500 text-sm font-medium italic mt-1">Keine ausgewählt...</span>
+                            </div>
+
+                            <button type="button" onclick="window.openIssuePicker()"
+                                class="mt-3 w-full text-left px-4 py-3 bg-white hover:bg-rose-50 font-bold text-sm text-rose-900 border border-slate-300 rounded shadow-sm flex justify-between items-center transition">
+                                <span>+ Issues suchen & hinzufügen...</span>
+                                <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                                </svg>
+                            </button>
+                            <input id="task_linked_issues" type="hidden">
+                        </div>
+                    </div>
+
+
+                    <!-- Manueller Fortschritt -->
+                    <div id="container_manual_progress" class="mt-5 hidden transition-all">
+                        <label class="cl-label">
+                            Manueller Fortschritt in Prozent
+                            <input id="task_progress" type="number" min="0" max="100" value="0"
+                                class="cl-input max-w-xs font-bold">
+                        </label>
+                    </div>
+                </div>
+            </fieldset>
+        </div>
+
+        <div class="cl-modal-footer">
+            <button type="button" onclick="document.getElementById('modalTask').classList.add('hidden')"
+                class="cl-button cl-button-secondary">Abbrechen</button>
+            <button type="submit" class="cl-button cl-button-primary">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Aufgabe speichern
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- ANALYTICS SLIDE OVER (Dein bestehendes Analytics-Panel) -->
+<div id="analyticsPanelOverlay"
+    class="fixed inset-0 z-[200] hidden cursor-pointer bg-slate-950/30 backdrop-blur-sm transition-opacity"
+    onclick="window.closeAnalyticsPanel()"></div>
+<div id="analyticsPanel"
+    class="fixed right-0 top-0 z-[210] flex h-full w-full max-w-lg translate-x-full transform flex-col border-l border-slate-300 bg-slate-50 shadow-2xl transition-transform duration-300">
+    <div
+        class="flex shrink-0 items-start justify-between border-t-4 border-amber-400 bg-blue-950 p-6 text-white shadow-md">
+        <div>
+            <div class="mb-1 text-xs font-bold uppercase tracking-widest text-amber-400">Performance Analyse</div>
+            <h2 id="analyticsTitle" class="text-xl font-extrabold leading-tight">Lade Daten...</h2>
+        </div>
+        <button type="button" onclick="window.closeAnalyticsPanel()"
+            class="rounded-md border border-white/20 bg-white/10 p-2 text-slate-200 transition hover:bg-white/20 hover:text-white"><svg
+                class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"></path>
+            </svg></button>
+    </div>
+    <div class="flex-1 space-y-7 overflow-y-auto p-6">
+        <section class="cl-card">
+            <div class="cl-card-body">
+                <div class="mb-4 flex items-center justify-between">
+                    <div>
+                        <p class="cl-panel-eyebrow">Fortschritt</p>
+                        <h3 class="text-sm font-extrabold text-blue-950">Aktueller Aufgabenstatus</h3>
+                    </div><span id="analyticsTotalProgress" class="text-3xl font-extrabold text-blue-950">0 %</span>
+                </div>
+                <div class="mb-2 flex items-center justify-between"><span id="analyticsReqCount"
+                        class="text-xs font-semibold text-slate-500">0 / 0 freigegeben</span></div>
+                <div class="h-3 w-full overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+                    <div id="analyticsProgressBar"
+                        class="h-full w-0 rounded-full bg-emerald-500 transition-all duration-1000"></div>
+                </div>
+            </div>
+        </section>
+        <section id="analyticsChecklistContainer" class="cl-card hidden">
+            <div class="border-b border-slate-200 bg-[#eef2f6] px-4 py-3">
+                <p class="cl-panel-eyebrow">Unteraufgaben</p>
+                <h3 class="text-sm font-extrabold text-blue-950">Checkliste</h3>
+            </div>
+            <div id="analyticsChecklist" class="space-y-2 p-4"></div>
+        </section>
+        <section class="cl-card">
+            <div class="border-b border-slate-200 bg-[#eef2f6] px-4 py-3">
+                <p class="cl-panel-eyebrow">Bearbeitung</p>
+                <h3 class="text-sm font-extrabold text-blue-950">Top Contributors</h3>
+            </div>
+            <div id="analyticsContributors" class="space-y-4 p-4">
+                <div class="text-xs italic text-slate-400">Noch keine Beiträge geladen.</div>
+            </div>
+        </section>
+        <section class="cl-card">
+            <div class="border-b border-slate-200 bg-[#eef2f6] px-4 py-3">
+                <p class="cl-panel-eyebrow">Traceability</p>
+                <h3 class="text-sm font-extrabold text-blue-950">Detail-Log</h3>
+            </div>
+            <div id="analyticsReqList" class="space-y-2 p-4">
+                <div class="text-xs italic text-slate-400">Noch keine Anforderungsdaten geladen.</div>
+            </div>
+        </section>
+    </div>
+    <div class="flex shrink-0 justify-end border-t border-slate-300 bg-[#eef2f6] px-5 py-4"><button type="button"
+            onclick="window.closeAnalyticsPanel()" class="cl-button cl-button-secondary">Analyse schließen</button>
+    </div>
+</div>
+
+<!-- =========================================================
+     NEU MODAL: ELEMENT PICKER FÜR PROJEKTPLAN
+========================================================== -->
+<div id="planPickerModal"
+    class="fixed inset-0 z-[300] hidden items-center justify-center bg-slate-950/40 backdrop-blur-sm transition-opacity">
+    <div class="flex flex-col w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-hidden m-4" style="max-h: 85vh;">
+
+        <div class="flex justify-between items-center p-5 border-b border-slate-200 bg-slate-50 shrink-0">
+            <h2 id="planPickerTitle" class="text-lg font-extrabold text-slate-800">Elemente auswählen</h2>
+            <button type="button" onclick="window.closePlanPickerModal()"
+                class="text-slate-400 hover:text-slate-700 transition">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+        </div>
+
+        <div class="border-b border-slate-200 bg-white p-4 shrink-0 shadow-sm z-10">
+            <div class="relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"></path>
+                </svg>
+                <input id="planPickerSearch" type="search" autocomplete="off"
+                    placeholder="Einträge nach ID, Typ oder Titel durchsuchen..."
+                    class="w-full border border-slate-300 rounded-md py-2.5 pl-10 pr-4 text-sm font-semibold outline-none focus:border-blue-900 focus:ring-1 focus:ring-blue-900">
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 bg-slate-100" id="planPickerContent">
+        </div>
+
+        <div class="p-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3 shrink-0">
+            <button type="button" onclick="window.closePlanPickerModal()"
+                class="px-4 py-2 font-bold text-slate-600 bg-white border border-slate-300 rounded shadow-sm hover:bg-slate-50 transition">Abbrechen</button>
+            <button type="button" id="btnPlanPickerApply"
+                class="px-5 py-2 font-bold text-white bg-blue-900 rounded shadow hover:bg-blue-800 transition">Auswahl
+                übernehmen</button>
+        </div>
+    </div>
+</div> 
+
+============================================================
+FILE: dashboard\js\issues.js
+FULL PATH: C:\xampp\htdocs\captainslog-web\dashboard\js\issues.js
+============================================================
+import { currentProjectId } from './state.js';
+
+let issues = [];
+let users = [];
+let requirements = [];
+let tasks = [];
+let importRows = [];
+let importMeta = {};
+
+/**
+ * Schützt dynamische Inhalte bei der HTML-Ausgabe.
+ */
+const esc = value =>
+    String(value ?? '').replace(/[&<>'"]/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+    }[character]));
+
+/**
+ * Deutsche Statusbezeichnungen.
+ */
+const statusLabels = {
+    open: 'Offen',
+    in_progress: 'In Bearbeitung',
+    waiting_response: 'Wartet auf Antwort',
+    ready_for_test: 'Testbereit',
+    approved: 'Freigegeben',
+    closed: 'Geschlossen',
+    rejected: 'Abgelehnt'
+};
+
+/**
+ * Deutsche Prioritätsbezeichnungen.
+ */
+const priorityLabels = {
+    low: 'Niedrig',
+    medium: 'Mittel',
+    high: 'Hoch',
+    critical: 'Kritisch'
+};
+
+/**
+ * Deutsche Typbezeichnungen.
+ */
+const typeLabels = {
+    bug: 'Fehler',
+    change_request: 'Change Request',
+    customer_feedback: 'Kundenrückmeldung',
+    question: 'Frage',
+    deviation: 'Abweichung',
+    improvement: 'Verbesserung'
+};
+
+
+
+// =========================================================================
+// UNIVERSAL PICKER FUER ANFORDERUNGEN UND AUFGABEN
+// =========================================================================
+let currentIssuePickerMode = '';
+let issuePickerEventsBound = false;
+
+function closeIssuePicker() {
+    const modal = document.getElementById('modalPicker');
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+function openIssuePicker(mode) {
+    const modal = document.getElementById('modalPicker');
+    const title = document.getElementById('pickerTitle');
+    const content = document.getElementById('pickerContent');
+    const search = document.getElementById('pickerSearch');
+
+    if (!modal || !title || !content) {
+        console.error('Issue-Picker: erforderliche HTML-Elemente fehlen.');
+        alert('Das Auswahlfenster konnte nicht geöffnet werden.');
+        return;
+    }
+
+    currentIssuePickerMode = mode;
+
+    if (search) {
+        search.value = '';
+    }
+
+    if (mode === 'req') {
+        title.textContent = 'Anforderungen auswählen';
+        renderRequirementPicker(content);
+    } else {
+        title.textContent = 'Projekt-Aufgaben auswählen';
+        renderTaskPicker(content);
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    requestAnimationFrame(() => search?.focus());
+}
+
+function selectedPickerValues(fieldId) {
+    return document
+        .getElementById(fieldId)
+        ?.value
+        .split(',')
+        .map(value => value.trim())
+        .filter(Boolean) || [];
+}
+
+function renderRequirementPicker(content) {
+    const selectedValues = selectedPickerValues('issue_requirements');
+
+    if (!requirements.length) {
+        content.innerHTML = `
+            <div class="p-8 text-center text-sm text-slate-500">
+                Für dieses Projekt wurden keine Anforderungen geladen.
+            </div>`;
+        return;
+    }
+
+    const grouped = requirements.reduce((groups, requirement) => {
+        const type = requirement.type || 'Allgemein';
+        (groups[type] ||= []).push(requirement);
+        return groups;
+    }, {});
+
+    content.innerHTML = Object.entries(grouped).map(([type, items]) => `
+        <section class="category-group mb-7">
+            <h3 class="mb-3 border-b-2 border-indigo-900 pb-2 text-sm font-extrabold uppercase tracking-wider text-indigo-950">
+                ${esc(type)}
+            </h3>
+            <div class="grid grid-cols-1 gap-3">
+                ${items.map(requirement => `
+                    <label class="flex cursor-pointer items-start gap-4 rounded-md border border-slate-300 bg-white p-4 transition hover:border-indigo-400 hover:bg-indigo-50">
+                        <input
+                            type="checkbox"
+                            value="${Number(requirement.id)}"
+                            class="picker-cb mt-0.5 h-5 w-5"
+                            ${selectedValues.includes(String(requirement.id)) ? 'checked' : ''}>
+                        <span class="flex min-w-0 flex-col">
+                            <strong class="font-mono text-sm text-indigo-950">
+                                ${esc(requirement.req_key || requirement.id)}
+                            </strong>
+                            <span class="mt-1 text-sm leading-snug text-slate-700">
+                                ${esc(requirement.title || '')}
+                            </span>
+                        </span>
+                    </label>`).join('')}
+            </div>
+        </section>`).join('');
+}
+
+function renderTaskPicker(content) {
+    const selectedValues = selectedPickerValues('issue_tasks');
+
+    if (!tasks.length) {
+        content.innerHTML = `
+            <div class="p-8 text-center text-sm text-slate-500">
+                Für dieses Projekt wurden keine Aufgaben geladen.
+            </div>`;
+        return;
+    }
+
+    const grouped = tasks.reduce((groups, task) => {
+        const category = task.category || 'Allgemein';
+        (groups[category] ||= []).push(task);
+        return groups;
+    }, {});
+
+    content.innerHTML = Object.entries(grouped).map(([category, items]) => `
+        <section class="category-group mb-7">
+            <h3 class="mb-3 border-b-2 border-sky-900 pb-2 text-sm font-extrabold uppercase tracking-wider text-sky-950">
+                ${esc(category)}
+            </h3>
+            <div class="grid grid-cols-1 gap-3">
+                ${items.map(task => `
+                    <label class="flex cursor-pointer items-start gap-4 rounded-md border border-slate-300 bg-white p-4 transition hover:border-sky-400 hover:bg-sky-50">
+                        <input
+                            type="checkbox"
+                            value="${Number(task.id)}"
+                            class="picker-cb mt-0.5 h-5 w-5"
+                            ${selectedValues.includes(String(task.id)) ? 'checked' : ''}>
+                        <span class="flex min-w-0 flex-col">
+                            <strong class="font-mono text-sm text-sky-950">
+                                ${esc(task.wbs_code || task.id)}
+                            </strong>
+                            <span class="mt-1 text-sm leading-snug text-slate-700">
+                                ${esc(task.title || '')}
+                            </span>
+                        </span>
+                    </label>`).join('')}
+            </div>
+        </section>`).join('');
+}
+
+function filterIssuePicker() {
+    const term = String(
+        document.getElementById('pickerSearch')?.value || ''
+    ).trim().toLowerCase();
+
+    document.querySelectorAll('#pickerContent label').forEach(label => {
+        label.classList.toggle(
+            'hidden',
+            term !== '' && !label.textContent.toLowerCase().includes(term)
+        );
+    });
+
+    document.querySelectorAll('#pickerContent .category-group').forEach(group => {
+        const hasVisibleItem = [...group.querySelectorAll('label')]
+            .some(label => !label.classList.contains('hidden'));
+        group.classList.toggle('hidden', !hasVisibleItem);
+    });
+}
+
+function applyIssuePickerSelection() {
+    const values = [...document.querySelectorAll(
+        '#pickerContent .picker-cb:checked'
+    )].map(checkbox => checkbox.value);
+
+    if (currentIssuePickerMode === 'req') {
+        const field = document.getElementById('issue_requirements');
+        if (field) field.value = values.join(',');
+        window.renderIssueReqTagsUI(values);
+    } else if (currentIssuePickerMode === 'task') {
+        const field = document.getElementById('issue_tasks');
+        if (field) field.value = values.join(',');
+        window.renderIssueTaskTagsUI(values);
+    }
+
+    closeIssuePicker();
+}
+
+function bindIssuePickerEvents() {
+    if (issuePickerEventsBound) {
+        return;
+    }
+
+    const requirementButton = document.getElementById('btnIssueReqPicker');
+    const taskButton = document.getElementById('btnIssueTaskPicker');
+    const applyButton = document.getElementById('btnPickerApply');
+    const search = document.getElementById('pickerSearch');
+    const modal = document.getElementById('modalPicker');
+
+    if (!requirementButton || !taskButton || !applyButton || !modal) {
+        console.error('Issue-Picker: Ereignisse konnten nicht gebunden werden.');
+        return;
+    }
+
+    issuePickerEventsBound = true;
+
+    requirementButton.addEventListener('click', () => openIssuePicker('req'));
+    taskButton.addEventListener('click', () => openIssuePicker('task'));
+    applyButton.addEventListener('click', applyIssuePickerSelection);
+    search?.addEventListener('input', filterIssuePicker);
+
+    document.querySelectorAll('[data-issue-picker-close]').forEach(button => {
+        button.addEventListener('click', closeIssuePicker);
+    });
+
+    modal.addEventListener('click', event => {
+        if (event.target === modal) {
+            closeIssuePicker();
+        }
+    });
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
+            closeIssuePicker();
+        }
+    });
+}
+
+window.openIssueReqPicker = () => openIssuePicker('req');
+window.openIssueTaskPicker = () => openIssuePicker('task');
+window.closePickerModal = closeIssuePicker;
+window.closeIssuePickerModal = closeIssuePicker;
+
+
+window.renderIssueReqTagsUI = function (ids) {
+    const container = document.getElementById('issue_selected_reqs_container');
+    if (!container) return;
+    if (ids.length === 0) {
+        container.innerHTML = '<span class="text-slate-500 text-sm font-medium italic mt-1">Keine ausgewählt...</span>';
+        return;
+    }
+    container.innerHTML = ids.map(id => {
+        const req = requirements.find(r => String(r.id) === String(id));
+        const display = req ? req.req_key : id;
+        return `
+        <span class="inline-flex items-center gap-1 bg-indigo-100 text-indigo-950 px-2.5 py-1 rounded text-xs font-extrabold font-mono border border-indigo-300 shadow-sm">
+            ${display}
+            <button type="button" onclick="window.removeIssueReqTag('${id}')" class="text-indigo-500 hover:text-red-600 transition-colors ml-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        </span>`}).join('');
+};
+
+window.renderIssueTaskTagsUI = function (ids) {
+    const container = document.getElementById('issue_selected_tasks_container');
+    if (!container) return;
+    if (ids.length === 0) {
+        container.innerHTML = '<span class="text-slate-500 text-sm font-medium italic mt-1">Keine ausgewählt...</span>';
+        return;
+    }
+    container.innerHTML = ids.map(id => {
+        const t = tasks.find(x => String(x.id) === String(id));
+        const display = t ? (t.wbs_code || t.id) : id;
+        return `
+        <span class="inline-flex items-center gap-1 bg-sky-100 text-sky-950 px-2.5 py-1 rounded text-xs font-extrabold font-mono border border-sky-300 shadow-sm">
+            ${display}
+            <button type="button" onclick="window.removeIssueTaskTag('${id}')" class="text-sky-500 hover:text-red-600 transition-colors ml-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        </span>`}).join('');
+};
+
+window.removeIssueReqTag = function (id) {
+    let vals = document.getElementById('issue_requirements').value.split(',').filter(Boolean);
+    vals = vals.filter(v => v !== String(id));
+    document.getElementById('issue_requirements').value = vals.join(',');
+    window.renderIssueReqTagsUI(vals);
+};
+
+window.removeIssueTaskTag = function (id) {
+    let vals = document.getElementById('issue_tasks').value.split(',').filter(Boolean);
+    vals = vals.filter(v => v !== String(id));
+    document.getElementById('issue_tasks').value = vals.join(',');
+    window.renderIssueTaskTagsUI(vals);
+};
+
+
+
+/**
+ * Verwandelt GitHub-Markdown in schicke HTML Code-Blöcke.
+ * Escaped den Text vorher automatisch zur Sicherheit.
+ */
+function formatIssueText(text) {
+    if (!text) return '<span class="text-slate-400 italic">Keine Angabe</span>';
+
+    // 1. Sicherheit: Nutzt deine bestehende esc() Funktion
+    let html = esc(text);
+
+    // 2. Mehrzeilige Code-Blöcke (```c ... ```) umwandeln -> Dunkles Theme
+
+    html = html.replace(/```([a-zA-Z0-9]*)\s*([\s\S]*?)```/g, function (match, lang, code) {
+        const langBadge = lang ? `<div class="text-[10px] text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-700 pb-1">${lang}</div>` : '';
+        return `<div class="bg-slate-900 text-slate-50 p-3 rounded-md my-3 overflow-x-auto shadow-inner border border-slate-700 font-mono text-xs text-left whitespace-pre">
+                    ${langBadge}<code>${code}</code>
+                </div>`;
+    });
+
+    // 3. Einzeiliger Inline-Code (`code`) umwandeln -> Helles Badge
+    html = html.replace(/`([^`\n]+)`/g, '<code class="bg-slate-100 text-rose-600 border border-slate-200 px-1.5 py-0.5 rounded font-mono text-xs">$1</code>');
+
+    return html;
+}
+
+
+/**
+ * Extrahiert die laufende Nummer aus einem Issue-Key.
+ *
+ * ISSUE-009 wird zu 9.
+ */
+function getIssueNumber(issueKey) {
+    const match = String(issueKey ?? '').match(/(\d+)$/);
+
+    return match
+        ? parseInt(match[1], 10)
+        : Number.MAX_SAFE_INTEGER;
+}
+
+/**
+ * Sortiert aktive Issues zuerst.
+ * Geschlossene und abgelehnte Issues stehen am Ende.
+ * Innerhalb der Gruppen wird numerisch sortiert.
+ */
+function sortIssues(issueList) {
+    return [...issueList].sort((issueA, issueB) => {
+        const archivedA =
+            issueA.status === 'closed' ||
+                issueA.status === 'rejected'
+                ? 1
+                : 0;
+
+        const archivedB =
+            issueB.status === 'closed' ||
+                issueB.status === 'rejected'
+                ? 1
+                : 0;
+
+        if (archivedA !== archivedB) {
+            return archivedA - archivedB;
+        }
+
+        const numberA = getIssueNumber(issueA.issue_key);
+        const numberB = getIssueNumber(issueB.issue_key);
+
+        if (numberA !== numberB) {
+            return numberA - numberB;
+        }
+
+        return Number(issueA.id || 0) - Number(issueB.id || 0);
+    });
+}
+
+/**
+ * Formatiert ein Datum für die Ausgabe.
+ */
+function formatDisplayDate(value) {
+    if (!value) {
+        return '';
+    }
+
+    const date = new Date(`${value}T00:00:00`);
+
+    if (Number.isNaN(date.getTime())) {
+        return String(value);
+    }
+
+    return date.toLocaleDateString('de-DE');
+}
+
+/**
+ * Liefert die CSS-Klassen einer Tabellenzeile.
+ */
+function getRowClasses(issue) {
+    switch (issue.status) {
+        case 'closed':
+            return [
+                'bg-slate-100',
+                'text-slate-400',
+                'opacity-75',
+                'hover:bg-slate-200'
+            ].join(' ');
+
+        case 'rejected':
+            return [
+                'bg-red-50/60',
+                'text-slate-500',
+                'hover:bg-red-100/70'
+            ].join(' ');
+
+        case 'approved':
+            return [
+                'bg-emerald-50/40',
+                'hover:bg-emerald-50'
+            ].join(' ');
+
+        case 'ready_for_test':
+            return [
+                'bg-blue-50/30',
+                'hover:bg-blue-50'
+            ].join(' ');
+
+        default:
+            return 'bg-white hover:bg-slate-50';
+    }
+}
+
+/**
+ * Liefert die CSS-Klassen des Titels.
+ */
+function getTitleClasses(issue) {
+    if (issue.status === 'closed') {
+        return [
+            'text-slate-500',
+            'line-through',
+            'decoration-slate-400'
+        ].join(' ');
+    }
+
+    if (issue.status === 'rejected') {
+        return [
+            'text-slate-600',
+            'line-through',
+            'decoration-red-400'
+        ].join(' ');
+    }
+
+    return 'text-slate-900';
+}
+
+/**
+ * Liefert die CSS-Klassen des Issue-Keys.
+ */
+function getKeyClasses(issue) {
+    if (issue.status === 'closed') {
+        return 'text-slate-400';
+    }
+
+    if (issue.status === 'rejected') {
+        return 'text-red-700';
+    }
+
+    if (issue.status === 'approved') {
+        return 'text-emerald-800';
+    }
+
+    return 'text-blue-950';
+}
+
+/**
+ * Liefert die CSS-Klassen des Status-Badges.
+ */
+function getStatusClasses(status) {
+    switch (status) {
+        case 'open':
+            return 'border-slate-300 bg-white text-slate-700';
+
+        case 'in_progress':
+            return 'border-indigo-300 bg-indigo-50 text-indigo-800';
+
+        case 'waiting_response':
+            return 'border-amber-300 bg-amber-50 text-amber-800';
+
+        case 'ready_for_test':
+            return 'border-blue-300 bg-blue-50 text-blue-800';
+
+        case 'approved':
+            return 'border-emerald-300 bg-emerald-100 text-emerald-800';
+
+        case 'closed':
+            return 'border-slate-300 bg-slate-200 text-slate-600';
+
+        case 'rejected':
+            return 'border-red-300 bg-red-100 text-red-700';
+
+        default:
+            return 'border-slate-300 bg-slate-100 text-slate-700';
+    }
+}
+
+/**
+ * Liefert die CSS-Klassen des Prioritäts-Badges.
+ */
+function getPriorityClasses(priority) {
+    switch (priority) {
+        case 'critical':
+            return 'border-red-300 bg-red-100 text-red-800';
+
+        case 'high':
+            return 'border-orange-300 bg-orange-100 text-orange-800';
+
+        case 'medium':
+            return 'border-amber-300 bg-amber-50 text-amber-800';
+
+        case 'low':
+            return 'border-slate-300 bg-slate-100 text-slate-600';
+
+        default:
+            return 'border-slate-300 bg-white text-slate-600';
+    }
+}
+
+/**
+ * Lädt Issues und dazugehörige Auswahldaten.
+ */
+export async function loadIssues() {
+    const tableBody = document.getElementById('issueTableBody');
+
+    if (!tableBody) {
+        return;
+    }
+
+    if (!currentProjectId) {
+        issues = [];
+        users = [];
+        requirements = [];
+        tasks = [];
+
+        tableBody.innerHTML = `
+            <tr>
+                <td
+                    colspan="8"
+                    class="p-8 text-center text-slate-400 italic">
+                    Bitte zuerst ein Projekt auswählen.
+                </td>
+            </tr>
+        `;
+
+        renderKpis();
+        return;
+    }
+
+    tableBody.innerHTML = `
+        <tr>
+            <td
+                colspan="8"
+                class="p-8 text-center text-slate-500 italic">
+                Issues werden geladen...
+            </td>
+        </tr>
+    `;
+
+    try {
+        const response = await fetch(
+            `../api/get_issues.php?project_id=${encodeURIComponent(currentProjectId)}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.error ||
+                'Issues konnten nicht geladen werden.'
+            );
+        }
+
+        issues = sortIssues(data.issues || []);
+        users = data.users || [];
+        requirements = data.requirements || [];
+        tasks = data.tasks || [];
+
+        fillLists();
+        render();
+    } catch (error) {
+        console.error('Fehler beim Laden der Issues:', error);
+
+        tableBody.innerHTML = `
+            <tr>
+                <td
+                    colspan="8"
+                    class="p-8 text-center font-semibold text-red-600">
+                    ${esc(error.message)}
+                </td>
+            </tr>
+        `;
+    }
+}
+
+/**
+ * Füllt Benutzer-, Requirement- und Task-Auswahlfelder.
+ */
+/**
+ * Füllt Benutzer-Auswahlfelder.
+ * (Anforderungen und Tasks laufen jetzt über den neuen Universal-Picker)
+ */
+function fillLists() {
+    const assigneeSelect = document.getElementById('issue_assignee');
+
+    if (assigneeSelect) {
+        assigneeSelect.innerHTML = `
+            <option value="">-- Niemand zugewiesen --</option>
+            ${users.map(user => `
+                <option value="${Number(user.id)}">
+                    ${esc(user.username)}
+                </option>
+            `).join('')}
+        `;
+    }
+}
+/**
+ * Rendert die Issue-Tabelle.
+ */
+function render() {
+    const tableBody =
+        document.getElementById('issueTableBody');
+
+    const searchInput =
+        document.getElementById('issueSearch');
+
+    const statusFilter =
+        document.getElementById('issueStatusFilter');
+
+    if (!tableBody) {
+        return;
+    }
+
+    const query = String(searchInput?.value || '')
+        .trim()
+        .toLowerCase();
+
+    const selectedStatus =
+        statusFilter?.value || '';
+
+    const filteredIssues = sortIssues(
+        issues.filter(issue => {
+            const matchesStatus =
+                !selectedStatus ||
+                issue.status === selectedStatus;
+
+            const searchableText = [
+                issue.issue_key,
+                issue.external_id,
+                issue.title,
+                issue.description,
+                issue.category,
+                issue.assignee_name,
+                issue.external_assignee,
+                statusLabels[issue.status],
+                priorityLabels[issue.priority],
+                typeLabels[issue.issue_type]
+            ]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+
+            const matchesSearch =
+                !query ||
+                searchableText.includes(query);
+
+            return matchesStatus && matchesSearch;
+        })
+    );
+
+    if (filteredIssues.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td
+                    colspan="8"
+                    class="p-8 text-center text-slate-400 italic">
+                    Keine Issues gefunden.
+                </td>
+            </tr>
+        `;
+
+        renderKpis();
+        renderResultCount(0);
+        return;
+    }
+
+    tableBody.innerHTML = filteredIssues.map(issue => {
+        const rowClasses = getRowClasses(issue);
+        const titleClasses = getTitleClasses(issue);
+        const keyClasses = getKeyClasses(issue);
+        const statusClasses = getStatusClasses(issue.status);
+        const priorityClasses = getPriorityClasses(issue.priority);
+
+        const iconEye = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>`;
+        const iconEdit = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>`;
+        const iconTrash = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
+
+
+        const requirementCount =
+            Number(issue.requirement_count || 0);
+
+        const taskCount =
+            Number(issue.task_count || 0);
+
+        const reportedDate =
+            formatDisplayDate(issue.reported_at);
+
+        const typeLabel =
+            typeLabels[issue.issue_type] ||
+            issue.issue_type ||
+            'Issue';
+
+        return `
+            <tr
+                class="border-b border-slate-200 transition-colors ${rowClasses}">
+
+                <td class="p-3 align-top">
+                    <div
+                        class="whitespace-nowrap font-mono text-sm font-extrabold ${keyClasses}">
+                        ${esc(issue.issue_key)}
+                    </div>
+
+                    <div class="mt-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                        ${esc(typeLabel)}
+                    </div>
+                </td>
+
+                <td class="p-3 align-top">
+                    <div class="font-bold leading-5 ${titleClasses}">
+                        ${esc(issue.title)}
+                    </div>
+
+                    ${reportedDate
+                ? `
+                                <div class="mt-1 text-[11px] text-slate-400">
+                                    Gemeldet am ${esc(reportedDate)}
+                                </div>
+                            `
+                : ''
+            }
+                </td>
+
+                <td class="min-w-[155px] p-3 align-top">
+                    <span
+                        class="inline-flex items-center whitespace-nowrap border px-2.5 py-1 text-xs font-bold ${statusClasses}">
+                        ${esc(statusLabels[issue.status] || issue.status)}
+                    </span>
+                </td>
+
+                <td class="p-3 align-top">
+                    <span
+                        class="inline-flex items-center whitespace-nowrap border px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide ${priorityClasses}">
+                        ${esc(priorityLabels[issue.priority] || issue.priority)}
+                    </span>
+                </td>
+
+                <td class="p-3 align-top text-sm">
+                    ${esc(issue.category || '-')}
+                </td>
+
+                <td class="p-3 align-top text-sm">
+                    ${esc(
+                issue.assignee_name ||
+                issue.external_assignee ||
+                '-'
+            )}
+                </td>
+
+                <td class="p-3 align-top text-xs whitespace-nowrap">
+                    <div class="font-semibold text-slate-700">
+                        ${requirementCount} Reqs
+                    </div>
+
+                    <div class="mt-1 text-slate-500">
+                        ${taskCount} Tasks
+                    </div>
+                </td>
+
+            
+        <td class="p-3 align-top text-right whitespace-nowrap">
+            <div class="flex justify-end gap-1.5">
+                <button
+                    type="button"
+                    onclick="window.viewIssueReport(${Number(issue.id)})"
+                    class="rounded border border-blue-200 bg-blue-50 p-1.5 text-blue-600 shadow-sm transition hover:bg-blue-600 hover:text-white"
+                    title="Bericht anzeigen">
+                    ${iconEye}
+                </button>
+
+                <button
+                    type="button"
+                    onclick="window.editIssue(${Number(issue.id)})"
+                    class="rounded border border-slate-200 bg-slate-50 p-1.5 text-slate-500 shadow-sm transition hover:bg-blue-600 hover:text-white"
+                    title="Bearbeiten">
+                    ${iconEdit}
+                </button>
+
+                <button
+                    type="button"
+                    onclick="window.deleteIssue(${Number(issue.id)})"
+                    class="rounded border border-slate-200 bg-slate-50 p-1.5 text-slate-500 shadow-sm transition hover:bg-red-600 hover:text-white"
+                    title="Löschen">
+                    ${iconTrash}
+                </button>
+            </div>
+        </td>
+            </tr>
+        `;
+    }).join('');
+
+    renderKpis();
+    renderResultCount(filteredIssues.length);
+}
+
+/**
+ * Rendert die KPI-Karten.
+ */
+function renderKpis() {
+    const container =
+        document.getElementById('issueKpis');
+
+    if (!container) {
+        return;
+    }
+
+    const counts = {};
+
+    issues.forEach(issue => {
+        counts[issue.status] =
+            (counts[issue.status] || 0) + 1;
+    });
+
+    const statusConfiguration = [
+        {
+            status: 'open',
+            border: 'border-l-slate-500',
+            number: 'text-slate-800'
+        },
+        {
+            status: 'in_progress',
+            border: 'border-l-indigo-500',
+            number: 'text-indigo-800'
+        },
+        {
+            status: 'waiting_response',
+            border: 'border-l-amber-500',
+            number: 'text-amber-700'
+        },
+        {
+            status: 'ready_for_test',
+            border: 'border-l-blue-500',
+            number: 'text-blue-800'
+        },
+        {
+            status: 'approved',
+            border: 'border-l-emerald-500',
+            number: 'text-emerald-700'
+        },
+        {
+            status: 'closed',
+            border: 'border-l-slate-400',
+            number: 'text-slate-500'
+        }
+    ];
+
+    container.innerHTML = statusConfiguration.map(entry => `
+        <button
+            type="button"
+            data-issue-status="${entry.status}"
+            class="min-w-0 border border-slate-300 border-l-4 ${entry.border} bg-white p-3 text-left transition hover:bg-slate-50">
+
+            <div
+                class="whitespace-nowrap text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                ${esc(statusLabels[entry.status])}
+            </div>
+
+            <div
+                class="mt-1 text-2xl font-extrabold ${entry.number}">
+                ${counts[entry.status] || 0}
+            </div>
+        </button>
+    `).join('');
+
+    container
+        .querySelectorAll('[data-issue-status]')
+        .forEach(button => {
+            button.addEventListener('click', () => {
+                const statusFilter =
+                    document.getElementById('issueStatusFilter');
+
+                if (!statusFilter) {
+                    return;
+                }
+
+                const clickedStatus =
+                    button.dataset.issueStatus;
+
+                statusFilter.value =
+                    statusFilter.value === clickedStatus
+                        ? ''
+                        : clickedStatus;
+
+                render();
+            });
+        });
+}
+
+/**
+ * Aktualisiert die Ergebnisanzahl.
+ */
+function renderResultCount(count) {
+    const resultCount =
+        document.getElementById('issueResultCount');
+
+    if (!resultCount) {
+        return;
+    }
+
+    resultCount.textContent =
+        `${count} von ${issues.length} Issues`;
+}
+
+/**
+ * Liefert die ausgewählten IDs einer Mehrfachauswahl.
+ */
+function selected(elementId) {
+    const element =
+        document.getElementById(elementId);
+
+    if (!element) {
+        return [];
+    }
+
+    return Array.from(element.selectedOptions)
+        .map(option => Number(option.value))
+        .filter(value =>
+            Number.isInteger(value) &&
+            value > 0
+        );
+}
+
+/**
+ * Öffnet das Issue-Formular.
+ */
+function openForm(issue = null, detail = null) {
+    const form = document.getElementById('issueForm');
+    if (!form) return;
+
+    form.reset();
+
+    // NEU: Suchfeld leeren und UI-Tags zurücksetzen
+    const reqSearch = document.getElementById('issueReqSearch');
+    if (reqSearch) reqSearch.value = '';
+
+    document.getElementById('issue_id').value = issue?.id || '';
+
+    const fields = [
+        'external_id', 'title', 'description', 'category',
+        'reported_at', 'due_date', 'external_response',
+        'internal_response', 'resolution'
+    ];
+
+    fields.forEach(fieldName => {
+        const element = document.getElementById(`issue_${fieldName}`);
+        if (element) {
+            element.value = issue?.[fieldName] || '';
+        }
+    });
+
+    document.getElementById('issue_type').value = issue?.issue_type || 'bug';
+    document.getElementById('issue_status').value = issue?.status || 'open';
+    document.getElementById('issue_priority').value = issue?.priority || 'medium';
+    document.getElementById('issue_assignee').value = issue?.assignee_user_id || '';
+
+    // --- NEUE TRACEABILITY LOGIK ---
+    const linkedRequirements = detail?.requirements || [];
+    const linkedTasks = detail?.tasks || [];
+
+    const reqIds = linkedRequirements.map(r => r.requirement_id);
+    const taskIds = linkedTasks.map(t => t.task_id);
+
+    // Werte ins versteckte Feld schreiben
+    const reqField = document.getElementById('issue_requirements');
+    const taskField = document.getElementById('issue_tasks');
+
+    if (reqField) reqField.value = reqIds.join(',');
+    if (taskField) taskField.value = taskIds.join(',');
+
+    // UI-Tags rendern
+    if (window.renderIssueReqTagsUI) window.renderIssueReqTagsUI(reqIds);
+    if (window.renderIssueTaskTagsUI) window.renderIssueTaskTagsUI(taskIds);
+
+    document.getElementById('issueModalTitle').textContent = issue ? `${issue.issue_key} bearbeiten` : 'Neues Issue';
+
+    // Modal zentriert öffnen
+    const modal = document.getElementById('issueModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+}
+
+/**
+ * Schließt das Issue-Formular.
+ */
+function closeIssueModal() {
+    document
+        .getElementById('issueModal')
+        ?.classList.add('hidden');
+}
+
+/**
+ * Schließt das Importfenster.
+ */
+function closeImportModal() {
+    document
+        .getElementById('issueImportModal')
+        ?.classList.add('hidden');
+}
+
+/**
+ * Initialisiert alle Events.
+ */
+export function initIssueEvents() {
+    bindIssuePickerEvents();
+
+    document
+        .getElementById('btnNewIssue')
+        ?.addEventListener('click', () => {
+            if (!currentProjectId) {
+                alert('Bitte zuerst ein Projekt wählen.');
+                return;
+            }
+
+            openForm();
+        });
+
+    document
+        .getElementById('issueCancel')
+        ?.addEventListener('click', closeIssueModal);
+
+    document
+        .getElementById('issueModalClose')
+        ?.addEventListener('click', closeIssueModal);
+
+    document
+        .getElementById('issueSearch')
+        ?.addEventListener('input', render);
+
+    document
+        .getElementById('issueStatusFilter')
+        ?.addEventListener('change', render);
+
+    document
+        .getElementById('issueForm')
+        ?.addEventListener('submit', save);
+
+    document
+        .getElementById('btnImportIssues')
+        ?.addEventListener('click', () => {
+            if (!currentProjectId) {
+                alert('Bitte zuerst ein Projekt wählen.');
+                return;
+            }
+
+            document
+                .getElementById('issueImportModal')
+                .classList.remove('hidden');
+        });
+
+    document
+        .getElementById('issueImportCancel')
+        ?.addEventListener('click', closeImportModal);
+
+    document
+        .getElementById('issueImportClose')
+        ?.addEventListener('click', closeImportModal);
+
+    document
+        .getElementById('issueExcelFile')
+        ?.addEventListener('change', readExcel);
+
+    document
+        .getElementById('issueImportConfirm')
+        ?.addEventListener('click', doImport);
+}
+
+/**
+ * Speichert ein Issue.
+ */
+async function save(event) {
+    event.preventDefault();
+
+    if (!currentProjectId) {
+        alert('Bitte zuerst ein Projekt wählen.');
+        return;
+    }
+
+    const submitButton =
+        event.submitter;
+
+    const payload = {
+        id:
+            document.getElementById('issue_id').value,
+
+        project_id:
+            currentProjectId,
+
+        external_id:
+            document.getElementById('issue_external_id').value,
+
+        issue_type:
+            document.getElementById('issue_type').value,
+
+        title:
+            document.getElementById('issue_title').value.trim(),
+
+        description:
+            document.getElementById('issue_description').value.trim(),
+
+        status:
+            document.getElementById('issue_status').value,
+
+        priority:
+            document.getElementById('issue_priority').value,
+
+        severity:
+            'medium',
+
+        category:
+            document.getElementById('issue_category').value.trim(),
+
+        assignee_user_id:
+            document.getElementById('issue_assignee').value,
+
+        reported_at:
+            document.getElementById('issue_reported_at').value,
+
+        due_date:
+            document.getElementById('issue_due_date').value,
+
+        external_response:
+            document.getElementById('issue_external_response').value.trim(),
+
+        internal_response:
+            document.getElementById('issue_internal_response').value.trim(),
+
+        resolution:
+            document.getElementById('issue_resolution').value.trim(),
+
+        requirement_ids: document.getElementById('issue_requirements').value.split(',').filter(Boolean).map(Number),
+        task_ids: document.getElementById('issue_tasks').value.split(',').filter(Boolean).map(Number)
+    };
+
+    if (!payload.title) {
+        alert('Bitte einen Titel eingeben.');
+        return;
+    }
+
+    const originalButtonText =
+        submitButton?.textContent || 'Issue speichern';
+
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Speichert...';
+    }
+
+    try {
+        const response =
+            await fetch('../api/set_issue.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+        const data =
+            await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.error ||
+                'Issue konnte nicht gespeichert werden.'
+            );
+        }
+
+        closeIssueModal();
+        await loadIssues();
+    } catch (error) {
+        console.error(
+            'Fehler beim Speichern des Issues:',
+            error
+        );
+
+        alert(`Fehler: ${error.message}`);
+    } finally {
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent = originalButtonText;
+        }
+    }
+}
+
+/**
+ * Öffnet ein bestehendes Issue.
+ */
+window.editIssue = async function (issueId) {
+    const issue = issues.find(item =>
+        Number(item.id) === Number(issueId)
+    );
+
+    if (!issue) {
+        alert('Issue wurde nicht gefunden.');
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `../api/get_issue.php?id=${encodeURIComponent(issueId)}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.error ||
+                'Issue konnte nicht geladen werden.'
+            );
+        }
+
+        openForm(issue, data);
+    } catch (error) {
+        console.error(
+            'Fehler beim Öffnen des Issues:',
+            error
+        );
+
+        alert(`Fehler: ${error.message}`);
+    }
+};
+
+/**
+ * Löscht ein Issue.
+ */
+window.deleteIssue = async function (issueId) {
+    const issue = issues.find(item =>
+        Number(item.id) === Number(issueId)
+    );
+
+    const issueLabel =
+        issue?.issue_key || `ID ${issueId}`;
+
+    if (!confirm(`${issueLabel} wirklich löschen?`)) {
+        return;
+    }
+
+    try {
+        const response =
+            await fetch('../api/delete_issue.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    id: Number(issueId),
+                    project_id: currentProjectId
+                })
+            });
+
+        const data =
+            await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.error ||
+                'Issue konnte nicht gelöscht werden.'
+            );
+        }
+
+        await loadIssues();
+    } catch (error) {
+        console.error(
+            'Fehler beim Löschen des Issues:',
+            error
+        );
+
+        alert(`Fehler: ${error.message}`);
+    }
+};
+
+
+
+
+
+
+/**
+ * Normalisiert Excel-Spaltenüberschriften.
+ */
+function normalizeHeader(value) {
+    return String(value ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/[._-]/g, ' ')
+        .replace(/\s+/g, ' ');
+}
+
+/**
+ * Formatiert ein Excel-Datum.
+ */
+function formatImportDate(value) {
+    if (
+        value instanceof Date &&
+        !Number.isNaN(value.getTime())
+    ) {
+        const day =
+            String(value.getDate()).padStart(2, '0');
+
+        const month =
+            String(value.getMonth() + 1).padStart(2, '0');
+
+        const year =
+            value.getFullYear();
+
+        return `${day}.${month}.${year}`;
+    }
+
+    return String(value ?? '').trim();
+}
+
+/**
+ * Liest eine Excel- oder CSV-Datei.
+ */
+async function readExcel(event) {
+    const file =
+        event.target.files[0];
+
+    if (!file) {
+        return;
+    }
+
+    if (!window.XLSX) {
+        alert(
+            'Die Excel-Bibliothek konnte nicht geladen werden.'
+        );
+        return;
+    }
+
+    const confirmButton =
+        document.getElementById('issueImportConfirm');
+
+    if (confirmButton) {
+        confirmButton.disabled = true;
+    }
+
+    try {
+        const buffer =
+            await file.arrayBuffer();
+
+        const workbook =
+            XLSX.read(buffer, {
+                type: 'array',
+                cellDates: true
+            });
+
+        let bestRows = [];
+        let selectedSheetName = '';
+
+        for (const sheetName of workbook.SheetNames) {
+            const rows =
+                XLSX.utils.sheet_to_json(
+                    workbook.Sheets[sheetName],
+                    {
+                        header: 1,
+                        defval: ''
+                    }
+                );
+
+            if (rows.length > bestRows.length) {
+                bestRows = rows;
+                selectedSheetName = sheetName;
+            }
+        }
+
+        let headerIndex = -1;
+
+        for (
+            let index = 0;
+            index < Math.min(bestRows.length, 30);
+            index++
+        ) {
+            const normalizedRow =
+                bestRows[index].map(normalizeHeader);
+
+            const hasIssueColumn =
+                normalizedRow.includes('fehler');
+
+            const hasStatusColumn =
+                normalizedRow.includes('status');
+
+            if (hasIssueColumn && hasStatusColumn) {
+                headerIndex = index;
+                break;
+            }
+        }
+
+        if (headerIndex < 0) {
+            throw new Error(
+                'Eine Kopfzeile mit STATUS und Fehler wurde nicht gefunden.'
+            );
+        }
+
+        const headers =
+            bestRows[headerIndex].map(normalizeHeader);
+
+        const findColumn = (...names) =>
+            headers.findIndex(header =>
+                names.includes(header)
+            );
+
+        const columns = {
+            id:
+                findColumn('#', 'nr', 'id'),
+
+            date:
+                findColumn('date', 'datum'),
+
+            status:
+                findColumn('status'),
+
+            title:
+                findColumn(
+                    'fehler',
+                    'meldung',
+                    'issue'
+                ),
+
+            externalResponse:
+                findColumn(
+                    'rückmeldung epsa',
+                    'rueckmeldung epsa'
+                ),
+
+            internalResponse:
+                findColumn(
+                    'spalte2',
+                    'interne rückmeldung',
+                    'rückmeldung intern'
+                ),
+
+            category:
+                findColumn(
+                    'category',
+                    'kategorie'
+                ),
+
+            assignee:
+                findColumn(
+                    'assignee',
+                    'zuweisung',
+                    'verantwortlich'
+                )
+        };
+
+        importRows = bestRows
+            .slice(headerIndex + 1)
+            .map((row, rowIndex) => ({
+                external_id:
+                    columns.id >= 0
+                        ? row[columns.id]
+                        : '',
+
+                reported_at:
+                    columns.date >= 0
+                        ? formatImportDate(row[columns.date])
+                        : '',
+
+                status:
+                    columns.status >= 0
+                        ? row[columns.status]
+                        : 'Open',
+
+                title:
+                    columns.title >= 0
+                        ? row[columns.title]
+                        : '',
+
+                external_response:
+                    columns.externalResponse >= 0
+                        ? row[columns.externalResponse]
+                        : '',
+
+                internal_response:
+                    columns.internalResponse >= 0
+                        ? row[columns.internalResponse]
+                        : '',
+
+                category:
+                    columns.category >= 0
+                        ? row[columns.category]
+                        : '',
+
+                assignee:
+                    columns.assignee >= 0
+                        ? row[columns.assignee]
+                        : '',
+
+                source_row:
+                    headerIndex + rowIndex + 2
+            }))
+            .filter(row =>
+                String(row.title).trim() !== ''
+            );
+
+        importMeta = {
+            filename: file.name,
+            sheet_name: selectedSheetName,
+            file_hash: await calculateSha256(buffer)
+        };
+
+        renderImportPreview();
+
+        if (confirmButton) {
+            confirmButton.disabled =
+                importRows.length === 0;
+        }
+    } catch (error) {
+        console.error(
+            'Fehler beim Lesen der Excel-Datei:',
+            error
+        );
+
+        alert(
+            `Excel-Datei konnte nicht gelesen werden: ${error.message}`
+        );
+
+        importRows = [];
+        importMeta = {};
+        renderImportPreview();
+    }
+}
+
+/**
+ * Rendert die Importvorschau.
+ */
+function renderImportPreview() {
+    const preview =
+        document.getElementById('issueImportPreview');
+
+    if (!preview) {
+        return;
+    }
+
+    if (importRows.length === 0) {
+        preview.innerHTML = `
+            <div class="flex min-h-[110px] items-center justify-center italic text-slate-400">
+                Keine importierbaren Zeilen gefunden.
+            </div>
+        `;
+        return;
+    }
+
+    preview.innerHTML = `
+        <div class="mb-3 flex items-center justify-between">
+            <div class="font-bold text-slate-800">
+                ${importRows.length} Einträge erkannt
+            </div>
+
+            <div class="text-xs text-slate-500">
+                Tabellenblatt:
+                ${esc(importMeta.sheet_name)}
+            </div>
+        </div>
+
+        <div class="border border-slate-300 bg-white">
+            ${importRows.slice(0, 8).map(row => `
+                <div class="grid grid-cols-[55px_135px_1fr] gap-3 border-b border-slate-200 p-2 last:border-b-0">
+                    <div class="font-mono font-bold text-blue-950">
+                        ${esc(row.external_id)}
+                    </div>
+
+                    <div class="whitespace-nowrap text-xs font-bold text-slate-500">
+                        ${esc(row.status)}
+                    </div>
+
+                    <div class="font-semibold text-slate-800">
+                        ${esc(row.title)}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+
+        ${importRows.length > 8
+            ? `
+                    <div class="mt-2 text-xs italic text-slate-500">
+                        Vorschau zeigt 8 von
+                        ${importRows.length} Einträgen.
+                    </div>
+                `
+            : ''
+        }
+    `;
+}
+
+/**
+ * Berechnet den Datei-Hash.
+ */
+async function calculateSha256(buffer) {
+    const hashBuffer =
+        await crypto.subtle.digest(
+            'SHA-256',
+            buffer
+        );
+
+    return Array.from(
+        new Uint8Array(hashBuffer)
+    )
+        .map(byte =>
+            byte.toString(16).padStart(2, '0')
+        )
+        .join('');
+}
+
+/**
+ * Importiert die vorbereiteten Excel-Daten.
+ */
+async function doImport() {
+    if (!currentProjectId) {
+        alert('Bitte zuerst ein Projekt wählen.');
+        return;
+    }
+
+    if (importRows.length === 0) {
+        alert(
+            'Es wurden keine importierbaren Einträge erkannt.'
+        );
+        return;
+    }
+
+    const confirmButton =
+        document.getElementById('issueImportConfirm');
+
+    if (confirmButton) {
+        confirmButton.disabled = true;
+        confirmButton.textContent = 'Import läuft...';
+    }
+
+    try {
+        const response =
+            await fetch('../api/import_issues.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    project_id: currentProjectId,
+                    rows: importRows,
+                    ...importMeta
+                })
+            });
+
+        const data =
+            await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.error ||
+                'Import fehlgeschlagen.'
+            );
+        }
+
+        alert(
+            `${data.imported} Issues importiert, ` +
+            `${data.skipped} Einträge übersprungen.`
+        );
+
+        closeImportModal();
+
+        const fileInput =
+            document.getElementById('issueExcelFile');
+
+        if (fileInput) {
+            fileInput.value = '';
+        }
+
+        importRows = [];
+        importMeta = {};
+
+        renderImportPreview();
+        await loadIssues();
+    } catch (error) {
+        console.error(
+            'Fehler beim Issue-Import:',
+            error
+        );
+
+        alert(`Import fehlgeschlagen: ${error.message}`);
+    } finally {
+        if (confirmButton) {
+            confirmButton.disabled =
+                importRows.length === 0;
+
+            confirmButton.textContent =
+                'Importieren';
+        }
+    }
+}
+
+/**
+ * Öffnet das Slide-Over-Panel für den Issue-Bericht.
+ */
+window.viewIssueReport = async function (issueId) {
+    const overlay = document.getElementById('issueReportOverlay');
+    const panel = document.getElementById('issueReportPanel');
+
+    if (!overlay || !panel) {
+        return;
+    }
+
+    overlay.classList.remove('hidden');
+    setTimeout(() => {
+        panel.classList.remove('translate-x-full');
+    }, 10);
+
+    document.getElementById('reportIssueKey').textContent = 'Lade...';
+    document.getElementById('reportIssueTitle').textContent = 'Lade Bericht...';
+    document.getElementById('issueReportBody').innerHTML = `
+        <div class="py-12 text-center text-slate-400 italic">
+            Bericht wird geladen...
+        </div>
+    `;
+
+    try {
+        const response = await fetch(
+            `../api/get_issue.php?id=${encodeURIComponent(issueId)}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.error ||
+                'Bericht konnte nicht geladen werden.'
+            );
+        }
+
+        const iss = data.issue || {};
+        const linkedRequirements = data.requirements || [];
+        const linkedTasks = data.tasks || [];
+
+        document.getElementById('reportIssueKey').textContent =
+            iss.issue_key || 'ISSUE';
+
+        document.getElementById('reportIssueTitle').textContent =
+            iss.title || 'Kein Titel';
+
+        let html = `
+            <div class="space-y-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3 text-xs">
+                    <div>
+                        <span class="text-slate-400 font-bold uppercase">Status:</span>
+                        <strong class="text-blue-950">${esc(statusLabels[iss.status] || iss.status)}</strong>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 font-bold uppercase">Typ:</span>
+                        <strong class="text-blue-950">${esc(typeLabels[iss.issue_type] || iss.issue_type)}</strong>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 font-bold uppercase">Priorität:</span>
+                        <strong class="text-blue-950">${esc(priorityLabels[iss.priority] || iss.priority)}</strong>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                        Kategorie & Zuständigkeit
+                    </div>
+                    <div class="font-semibold text-slate-800">
+                        ${esc(iss.category || '-')} · <span class="text-blue-900">Zuständig: ${esc(iss.assignee_name || iss.external_assignee || 'Niemand')}</span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                        Fehlerbeschreibung / Meldung
+                    </div>
+                    <div class="rounded border border-slate-200 bg-slate-50 p-3 text-slate-800 whitespace-pre-wrap leading-relaxed">
+                        ${formatIssueText(iss.description || 'Keine Beschreibung vorhanden.')}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if (iss.external_response || iss.internal_response || iss.resolution) {
+            html += `
+                <div class="space-y-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                    <h3 class="border-b border-slate-200 pb-2 text-xs font-extrabold uppercase tracking-wider text-blue-950">
+                        Kommunikation & Lösung
+                    </h3>
+
+                    ${iss.external_response
+                    ? `
+                            <div>
+                                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Externe Rückmeldung</div>
+                                <div class="rounded border border-slate-200 bg-slate-50 p-2.5 text-slate-700 whitespace-pre-wrap">${formatIssueText(iss.external_response)}</div>
+                            </div>
+                        `
+                    : ''
+                }
+
+                    ${iss.internal_response
+                    ? `
+                            <div>
+                                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Interne Rückmeldung</div>
+                                <div class="rounded border border-slate-200 bg-slate-50 p-2.5 text-slate-700 whitespace-pre-wrap">${formatIssueText(iss.internal_response)}</div>
+                            </div>
+                        `
+                    : ''
+                }
+
+                    ${iss.resolution
+                    ? `
+                            <div>
+                                <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">Lösung / Abschlussinformation</div>
+                                <div class="rounded border border-emerald-200 bg-emerald-50/50 p-2.5 font-medium text-emerald-950 whitespace-pre-wrap">${formatIssueText(iss.resolution)}</div>
+                            </div>
+                        `
+                    : ''
+                }
+                </div>
+            `;
+        }
+
+        html += `
+            <div class="space-y-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <h3 class="border-b border-slate-200 pb-2 text-xs font-extrabold uppercase tracking-wider text-blue-950">
+                    Traceability & Verknüpfungen
+                </h3>
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                            Betroffene Reqs (${linkedRequirements.length})
+                        </div>
+                        ${linkedRequirements.length > 0
+                ? linkedRequirements.map(r => `
+                                <div class="mb-1 rounded border border-slate-200 bg-slate-50 p-2 font-mono text-xs">
+                                    <strong class="text-blue-900">${esc(r.req_key)}</strong> — ${esc(r.title)}
+                                </div>
+                            `).join('')
+                : '<div class="text-xs text-slate-400 italic">Keine Anforderungen verknüpft</div>'
+            }
+                    </div>
+
+                    <div>
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                            Umsetzungs-Tasks (${linkedTasks.length})
+                        </div>
+                        ${linkedTasks.length > 0
+                ? linkedTasks.map(t => `
+                                <div class="mb-1 rounded border border-slate-200 bg-slate-50 p-2 text-xs">
+                                    <strong class="font-mono text-indigo-950">${esc(t.wbs_code || t.id)}</strong> — ${esc(t.title)}
+                                </div>
+                            `).join('')
+                : '<div class="text-xs text-slate-400 italic">Keine Tasks verknüpft</div>'
+            }
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('issueReportBody').innerHTML = html;
+
+    } catch (error) {
+        console.error('Fehler beim Laden des Berichts:', error);
+        document.getElementById('issueReportBody').innerHTML = `
+            <div class="p-4 font-bold text-red-600">
+                Fehler: ${esc(error.message)}
+            </div>
+        `;
+    }
+};
+
+/**
+ * Schließt das Issue-Report-Panel.
+ */
+window.closeIssueReportPanel = function () {
+    const overlay = document.getElementById('issueReportOverlay');
+    const panel = document.getElementById('issueReportPanel');
+
+    if (panel) {
+        panel.classList.add('translate-x-full');
+    }
+
+    setTimeout(() => {
+        if (overlay) {
+            overlay.classList.add('hidden');
+        }
+    }, 300);
+}; 
+
+============================================================
+FILE: dashboard\views\issues.php
+FULL PATH: C:\xampp\htdocs\captainslog-web\dashboard\views\issues.php
+============================================================
+<!-- dashboard/views/issues.php -->
+
+<div class="flex h-full flex-col overflow-hidden border border-slate-300 bg-white shadow-sm">
+
+  <!-- Kopfbereich -->
+  <div class="flex shrink-0 items-center justify-between border-b border-slate-300 bg-white px-5 py-4">
+
+    <div>
+      <p class="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+        Fehler · Abweichungen · Rückmeldungen
+      </p>
+
+      <h2 class="text-2xl font-extrabold text-blue-950">
+        Issues
+      </h2>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button id="btnImportIssues" type="button"
+        class="whitespace-nowrap border border-slate-300 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-700 transition hover:border-slate-400 hover:bg-slate-100">
+        Excel importieren
+      </button>
+
+      <button id="btnNewIssue" type="button"
+        class="whitespace-nowrap border border-blue-950 bg-blue-950 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-blue-900">
+        + Neues Issue
+      </button>
+    </div>
+  </div>
+
+  <!-- Kennzahlen -->
+  <div class="shrink-0 border-b border-slate-300 bg-[#f8fafc] px-5 py-4">
+    <div id="issueKpis" class="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+
+      <div class="border border-slate-300 bg-white p-3">
+        <div class="whitespace-nowrap text-[10px] font-bold uppercase text-slate-500">
+          Offen
+        </div>
+        <div class="mt-1 text-2xl font-extrabold text-blue-950">
+          0
+        </div>
+      </div>
+
+      <div class="border border-slate-300 bg-white p-3">
+        <div class="whitespace-nowrap text-[10px] font-bold uppercase text-slate-500">
+          In Bearbeitung
+        </div>
+        <div class="mt-1 text-2xl font-extrabold text-blue-950">
+          0
+        </div>
+      </div>
+
+      <div class="border border-slate-300 bg-white p-3">
+        <div class="whitespace-nowrap text-[10px] font-bold uppercase text-slate-500">
+          Wartet auf Antwort
+        </div>
+        <div class="mt-1 text-2xl font-extrabold text-blue-950">
+          0
+        </div>
+      </div>
+
+      <div class="border border-slate-300 bg-white p-3">
+        <div class="whitespace-nowrap text-[10px] font-bold uppercase text-slate-500">
+          Testbereit
+        </div>
+        <div class="mt-1 text-2xl font-extrabold text-blue-950">
+          0
+        </div>
+      </div>
+
+      <div class="border border-slate-300 bg-white p-3">
+        <div class="whitespace-nowrap text-[10px] font-bold uppercase text-slate-500">
+          Freigegeben
+        </div>
+        <div class="mt-1 text-2xl font-extrabold text-blue-950">
+          0
+        </div>
+      </div>
+
+      <div class="border border-slate-300 bg-white p-3">
+        <div class="whitespace-nowrap text-[10px] font-bold uppercase text-slate-500">
+          Geschlossen
+        </div>
+        <div class="mt-1 text-2xl font-extrabold text-blue-950">
+          0
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Suche und Filter -->
+  <div class="flex shrink-0 flex-col gap-2 border-b border-slate-300 bg-white px-5 py-3 md:flex-row">
+
+    <div class="relative flex-1">
+      <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none"
+        stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0z">
+        </path>
+      </svg>
+
+      <label for="issueSearch" class="sr-only">
+        Issues durchsuchen
+      </label>
+
+      <input id="issueSearch" type="search" autocomplete="off"
+        placeholder="Issue, Titel, Kategorie oder Zuständigkeit suchen"
+        class="h-10 w-full border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-950 focus:ring-2 focus:ring-blue-950/10">
+    </div>
+
+    <label for="issueStatusFilter" class="sr-only">
+      Status auswählen
+    </label>
+
+    <select id="issueStatusFilter"
+      class="h-10 min-w-[220px] border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-950 focus:ring-2 focus:ring-blue-950/10">
+
+      <option value="">Alle Status</option>
+      <option value="open">Offen</option>
+      <option value="in_progress">In Bearbeitung</option>
+      <option value="waiting_response">Wartet auf Antwort</option>
+      <option value="ready_for_test">Bereit zum Test</option>
+      <option value="approved">Freigegeben</option>
+      <option value="closed">Geschlossen</option>
+      <option value="rejected">Abgelehnt</option>
+    </select>
+  </div>
+
+  <!-- Tabelle -->
+  <div class="min-h-0 flex-1 overflow-auto bg-white">
+
+    <table class="w-full min-w-[1220px] border-collapse text-left text-sm">
+
+      <thead class="sticky top-0 z-10 border-b border-slate-300 bg-[#eef2f6] text-blue-950">
+        <tr>
+          <th class="w-[115px] whitespace-nowrap px-3 py-3 text-xs font-extrabold uppercase tracking-wide">
+            Key
+          </th>
+
+          <th class="min-w-[400px] px-3 py-3 text-xs font-extrabold uppercase tracking-wide">
+            Meldung
+          </th>
+
+          <th class="min-w-[155px] whitespace-nowrap px-3 py-3 text-xs font-extrabold uppercase tracking-wide">
+            Status
+          </th>
+
+          <th class="w-[110px] whitespace-nowrap px-3 py-3 text-xs font-extrabold uppercase tracking-wide">
+            Priorität
+          </th>
+
+          <th class="w-[140px] whitespace-nowrap px-3 py-3 text-xs font-extrabold uppercase tracking-wide">
+            Kategorie
+          </th>
+
+          <th class="w-[160px] whitespace-nowrap px-3 py-3 text-xs font-extrabold uppercase tracking-wide">
+            Zuständig
+          </th>
+
+          <th class="w-[105px] whitespace-nowrap px-3 py-3 text-xs font-extrabold uppercase tracking-wide">
+            Links
+          </th>
+
+          <th class="w-[125px] whitespace-nowrap px-3 py-3 text-right text-xs font-extrabold uppercase tracking-wide">
+            Aktionen
+          </th>
+        </tr>
+      </thead>
+
+      <tbody id="issueTableBody" class="divide-y divide-slate-200">
+
+        <tr>
+          <td colspan="8" class="p-8 text-center text-sm italic text-slate-400">
+            Bitte zuerst ein Projekt auswählen.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Fußleiste -->
+  <div
+    class="flex h-9 shrink-0 items-center justify-between border-t border-slate-300 bg-[#eef2f6] px-4 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+
+    <span id="issueResultCount">
+      0 Issues
+    </span>
+
+    <span>
+      Erledigte Issues werden am Listenende angezeigt
+    </span>
+  </div>
+</div>
+
+
+<!-- Issue-Formular -->
+<div id="issueModal"
+  class="fixed inset-0 z-[220] hidden items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+
+  <form id="issueForm"
+    class="mx-auto flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded-[5px] border border-slate-400 bg-white shadow-2xl">
+
+    <!-- Formularkopf -->
+    <div class="flex shrink-0 items-start justify-between border-b border-slate-300 bg-[#eef2f6] px-6 py-4">
+
+      <div>
+        <p class="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+          Fehler · Änderung · Rückmeldung
+        </p>
+
+        <h2 id="issueModalTitle" class="text-xl font-extrabold text-blue-950">
+          Issue bearbeiten
+        </h2>
+      </div>
+
+      <button id="issueModalClose" type="button"
+        class="border border-slate-300 bg-white p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+        aria-label="Fenster schließen">
+
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12">
+          </path>
+        </svg>
+      </button>
+    </div>
+
+    <input type="hidden" id="issue_id">
+
+    <!-- Formularinhalt -->
+    <div class="flex-1 overflow-y-auto p-6">
+
+      <!-- Allgemeine Angaben -->
+      <fieldset class="border border-slate-300">
+        <legend class="ml-3 px-2 text-[11px] font-extrabold uppercase tracking-wide text-blue-950">
+          Allgemeine Angaben
+        </legend>
+
+        <div class="grid grid-cols-1 gap-4 p-4 md:grid-cols-12">
+
+          <label class="block text-sm font-bold text-slate-700 md:col-span-3">
+            Externe Nummer
+
+            <input id="issue_external_id" type="text" placeholder="z.B. EPSA-012"
+              class="mt-1 w-full border border-slate-300 bg-white p-2 text-sm font-normal outline-none focus:border-blue-950 focus:ring-2 focus:ring-blue-950/10">
+          </label>
+
+          <label class="block text-sm font-bold text-slate-700 md:col-span-3">
+            Issue-Typ
+
+            <select id="issue_type"
+              class="mt-1 w-full border border-slate-300 bg-white p-2 text-sm font-normal outline-none focus:border-blue-950 focus:ring-2 focus:ring-blue-950/10">
+
+              <option value="bug">Fehler</option>
+              <option value="change_request">Change Request</option>
+              <option value="customer_feedback">Kundenrückmeldung</option>
+              <option value="question">Frage</option>
+              <option value="deviation">Abweichung</option>
+              <option value="improvement">Verbesserung</option>
+            </select>
+          </label>
+
+          <label class="block text-sm font-bold text-slate-700 md:col-span-3">
+            Status
+
+            <select id="issue_status"
+              class="mt-1 w-full border border-slate-300 bg-white p-2 text-sm font-normal outline-none focus:border-blue-950 focus:ring-2 focus:ring-blue-950/10">
+
+              <option value="open">Offen</option>
+              <option value="in_progress">In Bearbeitung</option>
+              <option value="waiting_response">Wartet auf Antwort</option>
+              <option value="ready_for_test">Bereit zum Test</option>
+              <option value="approved">Freigegeben</option>
+              <option value="closed">Geschlossen</option>
+              <option value="rejected">Abgelehnt</option>
+            </select>
+          </label>
+
+          <label class="block text-sm font-bold text-slate-700 md:col-span-3">
+            Priorität
+
+            <select id="issue_priority"
+              class="mt-1 w-full border border-slate-300 bg-white p-2 text-sm font-normal outline-none focus:border-blue-950 focus:ring-2 focus:ring-blue-950/10">
+
+              <option value="low">Niedrig</option>
+              <option value="medium" selected>Mittel</option>
+              <option value="high">Hoch</option>
+              <option value="critical">Kritisch</option>
+            </select>
+          </label>
+
+          <label class="block text-sm font-bold text-slate-700 md:col-span-12">
+            Titel / Kurzmeldung
+
+            <input id="issue_title" type="text" required maxlength="255" placeholder="Kurze und eindeutige Beschreibung"
+              class="mt-1 w-full border border-slate-400 bg-white p-2.5 text-base font-semibold text-slate-900 outline-none focus:border-blue-950 focus:ring-2 focus:ring-blue-950/10">
+          </label>
+
+          <label class="block text-sm font-bold text-slate-700 md:col-span-12">
+            Fehlerbeschreibung / Meldung
+
+            <textarea id="issue_description" rows="4"
+              placeholder="Was wurde festgestellt und unter welchen Bedingungen tritt das Problem auf?"
+              class="mt-1 w-full resize-y border border-slate-300 bg-white p-2.5 text-sm font-normal leading-6 outline-none focus:border-blue-950 focus:ring-2 focus:ring-blue-950/10"></textarea>
+          </label>
+        </div>
+      </fieldset>
+
+      <!-- Organisation -->
+      <fieldset class="mt-5 border border-slate-300">
+        <legend class="ml-3 px-2 text-[11px] font-extrabold uppercase tracking-wide text-blue-950">
+          Organisation und Termine
+        </legend>
+
+        <div class="grid grid-cols-1 gap-4 p-4 md:grid-cols-12">
+
+          <label class="block text-sm font-bold text-slate-700 md:col-span-4">
+            Kategorie / Bereich
+
+            <input id="issue_category" type="text" placeholder="z.B. Software, Elektronik, Display"
+              class="mt-1 w-full border border-slate-300 bg-white p-2 text-sm font-normal outline-none focus:border-blue-950 focus:ring-2 focus:ring-blue-950/10">
+          </label>
+
+          <label class="block text-sm font-bold text-slate-700 md:col-span-4">
+            Zuständig
+
+            <select id="issue_assignee"
+              class="mt-1 w-full border border-slate-300 bg-white p-2 text-sm font-normal outline-none focus:border-blue-950 focus:ring-2 focus:ring-blue-950/10">
+
+              <option value="">
+                -- Niemand zugewiesen --
+              </option>
+            </select>
+          </label>
+
+          <div class="grid grid-cols-2 gap-3 md:col-span-4">
+
+            <label class="block text-sm font-bold text-slate-700">
+              Meldedatum
+
+              <input id="issue_reported_at" type="date"
+                class="mt-1 w-full border border-slate-300 bg-white p-2 text-sm font-normal outline-none focus:border-blue-950 focus:ring-2 focus:ring-blue-950/10">
+            </label>
+
+            <label class="block text-sm font-bold text-slate-700">
+              Zieltermin
+
+              <input id="issue_due_date" type="date"
+                class="mt-1 w-full border border-slate-300 bg-white p-2 text-sm font-normal outline-none focus:border-blue-950 focus:ring-2 focus:ring-blue-950/10">
+            </label>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- Kommunikation -->
+      <fieldset class="mt-5 border border-slate-300">
+        <legend class="ml-3 px-2 text-[11px] font-extrabold uppercase tracking-wide text-blue-950">
+          Kommunikation und Bearbeitung
+        </legend>
+
+        <div class="grid grid-cols-1 gap-4 p-4 md:grid-cols-2">
+
+          <label class="block text-sm font-bold text-slate-700">
+            Externe Rückmeldung
+
+            <textarea id="issue_external_response" rows="5"
+              placeholder="Rückmeldung des Kunden, Auftraggebers oder Lieferanten"
+              class="mt-1 w-full resize-y border border-slate-300 bg-white p-2.5 text-sm font-normal leading-6 outline-none focus:border-blue-950 focus:ring-2 focus:ring-blue-950/10"></textarea>
+          </label>
+
+          <label class="block text-sm font-bold text-slate-700">
+            Interne Rückmeldung
+
+            <textarea id="issue_internal_response" rows="5"
+              placeholder="Interne Bewertung und aktueller Bearbeitungsstand"
+              class="mt-1 w-full resize-y border border-slate-300 bg-white p-2.5 text-sm font-normal leading-6 outline-none focus:border-blue-950 focus:ring-2 focus:ring-blue-950/10"></textarea>
+          </label>
+
+          <label class="block text-sm font-bold text-slate-700 md:col-span-2">
+            Lösung / Abschlussinformation
+
+            <textarea id="issue_resolution" rows="4"
+              placeholder="Wie wurde das Problem gelöst und wie wurde die Lösung geprüft?"
+              class="mt-1 w-full resize-y border border-slate-300 bg-white p-2.5 text-sm font-normal leading-6 outline-none focus:border-blue-950 focus:ring-2 focus:ring-blue-950/10"></textarea>
+          </label>
+        </div>
+      </fieldset>
+
+      <!-- Verknüpfungen -->
+      <fieldset class="mt-5 border border-slate-300">
+        <legend class="ml-3 px-2 text-[11px] font-extrabold uppercase tracking-wide text-blue-950">
+          Traceability und Verknüpfungen
+        </legend>
+
+        <!-- Verknüpfungen -->
+        <fieldset class="mt-5 border border-slate-300">
+          <legend class="ml-3 px-2 text-[11px] font-extrabold uppercase tracking-wide text-blue-950">
+            Traceability und Verknüpfungen
+          </legend>
+
+          <div class="grid grid-cols-1 gap-6 p-4 md:grid-cols-2">
+
+            <!-- Verknüpfte Anforderungen -->
+            <div class="relative transition-all">
+              <label class="block text-sm font-bold text-slate-700">Betroffene Anforderungen</label>
+              <p class="mb-2 mt-1 text-xs text-slate-500">Auswahl über den zentralen Anforderungs-Katalog.</p>
+
+              <div id="issue_selected_reqs_container"
+                class="mt-3 flex min-h-[54px] flex-wrap gap-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+                <span class="text-slate-500 text-sm font-medium italic mt-1">Keine ausgewählt...</span>
+              </div>
+
+              <button id="btnIssueReqPicker" type="button"
+                class="mt-3 w-full text-left px-4 py-3 bg-white hover:bg-indigo-50 font-bold text-sm text-indigo-900 border border-slate-300 rounded shadow-sm flex justify-between items-center transition">
+                <span>+ Anforderungen suchen & hinzufügen...</span>
+                <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                </svg>
+              </button>
+              <input id="issue_requirements" type="hidden">
+            </div>
+
+            <!-- Verknüpfte Tasks -->
+            <div class="relative transition-all">
+              <label class="block text-sm font-bold text-slate-700">Umsetzungsaufgaben</label>
+              <p class="mb-2 mt-1 text-xs text-slate-500">Aufgaben zur Untersuchung, Umsetzung und Prüfung.</p>
+
+              <div id="issue_selected_tasks_container"
+                class="mt-3 flex min-h-[54px] flex-wrap gap-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+                <span class="text-slate-500 text-sm font-medium italic mt-1">Keine ausgewählt...</span>
+              </div>
+
+              <button id="btnIssueTaskPicker" type="button"
+                class="mt-3 w-full text-left px-4 py-3 bg-white hover:bg-sky-50 font-bold text-sm text-sky-900 border border-slate-300 rounded shadow-sm flex justify-between items-center transition">
+                <span>+ Tasks suchen & hinzufügen...</span>
+                <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                </svg>
+              </button>
+              <input id="issue_tasks" type="hidden">
+            </div>
+
+          </div>
+        </fieldset>
+    </div>
+
+    <!-- Formularfuß -->
+    <div class="flex shrink-0 items-center justify-between border-t border-slate-300 bg-[#f8fafc] px-6 py-4">
+
+      <p class="hidden text-xs text-slate-500 md:block">
+        Pflichtfeld: Titel / Kurzmeldung
+      </p>
+
+      <div class="flex items-center gap-3">
+        <button id="issueCancel" type="button"
+          class="whitespace-nowrap border border-slate-300 bg-white px-5 py-2 text-xs font-bold uppercase tracking-wide text-slate-700 transition hover:bg-slate-100">
+          Abbrechen
+        </button>
+
+        <button type="submit"
+          class="whitespace-nowrap border border-blue-950 bg-blue-950 px-6 py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-blue-900 disabled:cursor-not-allowed disabled:bg-slate-400">
+          Issue speichern
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+
+<!-- =========================================================
+     ISSUE REPORT SLIDE-OVER PANEL ("Auge"-Ansicht)
+========================================================== -->
+<div id="issueReportOverlay"
+  class="fixed inset-0 z-[210] hidden cursor-pointer bg-slate-950/30 backdrop-blur-sm transition-opacity"
+  onclick="window.closeIssueReportPanel()">
+</div>
+
+<div id="issueReportPanel"
+  class="fixed right-0 top-0 z-[220] flex h-full w-full max-w-2xl translate-x-full transform flex-col border-l border-slate-300 bg-slate-50 shadow-2xl transition-transform duration-300">
+  <!-- Panel-Kopf -->
+  <div
+    class="flex shrink-0 items-start justify-between border-t-4 border-blue-600 bg-blue-950 p-6 text-white shadow-md">
+    <div>
+      <div id="reportIssueKey" class="mb-1 font-mono text-xs font-bold uppercase tracking-widest text-amber-400">
+        ISSUE-000
+      </div>
+
+      <h2 id="reportIssueTitle" class="text-xl font-extrabold leading-tight">
+        Lade Bericht...
+      </h2>
+    </div>
+
+    <button type="button" onclick="window.closeIssueReportPanel()"
+      class="rounded-md border border-white/20 bg-white/10 p-2 text-slate-200 transition hover:bg-white/20 hover:text-white"
+      title="Bericht schließen" aria-label="Bericht schließen">
+      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Panel-Inhalt -->
+  <div id="issueReportBody" class="flex-1 space-y-6 overflow-y-auto p-6 text-sm text-slate-700">
+    <!-- Wird dynamisch befüllt -->
+  </div>
+
+  <!-- Panel-Fuß -->
+  <div class="flex shrink-0 items-center justify-between border-t border-slate-300 bg-[#eef2f6] px-6 py-4">
+    <span class="text-xs font-bold uppercase tracking-wide text-slate-500">
+      Issue-Bericht
+    </span>
+
+    <button type="button" onclick="window.closeIssueReportPanel()"
+      class="rounded border border-slate-300 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wide text-slate-700 shadow-sm transition hover:bg-slate-100">
+      Schließen
+    </button>
+  </div>
+</div>
+
+
+
+<!-- Excel-Import -->
+<div id="issueImportModal"
+  class="fixed inset-0 z-[230] hidden items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+
+  <div class="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden border border-slate-400 bg-white shadow-2xl">
+
+    <!-- Importkopf -->
+    <div class="flex shrink-0 items-start justify-between border-b border-slate-300 bg-[#eef2f6] px-6 py-4">
+
+      <div>
+        <p class="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+          Datenübernahme
+        </p>
+
+        <h2 class="text-xl font-extrabold text-blue-950">
+          Excel-Fehlerliste importieren
+        </h2>
+      </div>
+
+      <button id="issueImportClose" type="button"
+        class="border border-slate-300 bg-white p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+        aria-label="Importfenster schließen">
+
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12">
+          </path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Importinhalt -->
+    <div class="flex-1 overflow-y-auto p-6">
+
+      <div class="border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
+        <p class="font-bold">
+          Unterstützte Excel-Spalten
+        </p>
+
+        <p class="mt-1 leading-6">
+          Erforderlich sind
+          <strong>STATUS</strong>
+          und
+          <strong>Fehler</strong>.
+
+          Zusätzlich können
+          <strong>#</strong>,
+          <strong>Date</strong>,
+          <strong>Rückmeldung EPSA</strong>,
+          <strong>interne Rückmeldung</strong>,
+          <strong>Kategorie</strong>
+          und
+          <strong>Zuweisung</strong>
+          übernommen werden.
+        </p>
+      </div>
+
+      <label for="issueExcelFile" class="mt-5 block text-sm font-bold text-slate-700">
+        Excel- oder CSV-Datei auswählen
+      </label>
+
+      <input id="issueExcelFile" type="file" accept=".xlsx,.xls,.csv"
+        class="mt-1 block w-full border border-slate-300 bg-white p-3 text-sm text-slate-700 file:mr-4 file:border-0 file:bg-blue-950 file:px-4 file:py-2 file:text-xs file:font-bold file:uppercase file:text-white hover:file:bg-blue-900">
+
+      <div class="mt-5">
+
+        <div class="mb-2 flex items-center justify-between">
+          <h3 class="text-sm font-extrabold uppercase tracking-wide text-blue-950">
+            Importvorschau
+          </h3>
+
+          <span class="text-xs text-slate-500">
+            Maximal 8 Einträge
+          </span>
+        </div>
+
+        <div id="issueImportPreview"
+          class="min-h-[150px] max-h-[360px] overflow-auto border border-slate-300 bg-[#f8fafc] p-4 text-sm text-slate-600">
+
+          <div class="flex min-h-[110px] items-center justify-center italic text-slate-400">
+            Noch keine Datei ausgewählt.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Importfuß -->
+    <div class="flex shrink-0 justify-end gap-3 border-t border-slate-300 bg-[#f8fafc] px-6 py-4">
+
+      <button id="issueImportCancel" type="button"
+        class="whitespace-nowrap border border-slate-300 bg-white px-5 py-2 text-xs font-bold uppercase tracking-wide text-slate-700 transition hover:bg-slate-100">
+        Abbrechen
+      </button>
+
+      <button id="issueImportConfirm" type="button" disabled
+        class="whitespace-nowrap border border-blue-950 bg-blue-950 px-6 py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-blue-900 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-300 disabled:text-slate-500">
+        Importieren
+      </button>
+    </div>
+  </div>
+
+
+</div>
+
+<!-- =========================================================
+     NEU MODAL: ELEMENT PICKER FÜR ISSUES
+========================================================== -->
+<div id="issuePickerModal" class="fixed inset-0 z-[300] hidden items-center justify-center bg-slate-950/40 backdrop-blur-sm transition-opacity">
+    <div class="flex flex-col w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-hidden m-4" style="max-h: 85vh;">
+        
+        <div class="flex justify-between items-center p-5 border-b border-slate-200 bg-slate-50 shrink-0">
+            <h2 id="issuePickerTitle" class="text-lg font-extrabold text-slate-800">Elemente auswählen</h2>
+            <button type="button" onclick="window.closeIssuePickerModal()" class="text-slate-400 hover:text-slate-700 transition">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <div class="border-b border-slate-200 bg-white p-4 shrink-0 shadow-sm z-10">
+            <div class="relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"></path></svg>
+                <input id="issuePickerSearch" type="search" autocomplete="off" placeholder="Einträge nach ID, Typ oder Titel durchsuchen..." class="w-full border border-slate-300 rounded-md py-2.5 pl-10 pr-4 text-sm font-semibold outline-none focus:border-blue-900 focus:ring-1 focus:ring-blue-900">
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 bg-slate-100" id="issuePickerContent">
+        </div>
+
+        <div class="p-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3 shrink-0">
+            <button type="button" onclick="window.closeIssuePickerModal()" class="px-4 py-2 font-bold text-slate-600 bg-white border border-slate-300 rounded shadow-sm hover:bg-slate-50 transition">Abbrechen</button>
+            <button type="button" id="btnIssuePickerApply" class="px-5 py-2 font-bold text-white bg-blue-900 rounded shadow hover:bg-blue-800 transition">Auswahl übernehmen</button>
+        </div>
+    </div>
+</div>
+
+<!-- Excel-Verarbeitung -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<!-- Excel-Verarbeitung -->
+https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.jsscript> 
+
+============================================================
+FILE: dashboard\js\app.js
+FULL PATH: C:\xampp\htdocs\captainslog-web\dashboard\js\app.js
+============================================================
+// dashboard/js/app.js
+
+import {
+    setCurrentProjectId,
+    currentProjectId
+} from './state.js';
+
+import { fetchProjects } from './api.js';
+
+import {
+    loadRequirements,
+    initRequirementEvents
+} from './requirements.js';
+
+import {
+    loadStakeholders,
+    initStakeholderEvents
+} from './stakeholders.js';
+
+import {
+    loadUseCases,
+    initUseCaseEvents
+} from './usecases.js';
+
+import {
+    loadUserStories,
+    initUserStoryEvents
+} from './userstories.js';
+
+import {
+    loadHistory,
+    initHistoryEvents
+} from './history.js';
+import { loadDashboard } from './dashboard.js';
+import { loadSBOM } from './sbom.js';
+
+import {
+    loadRisks,
+    initRiskEvents
+} from './risks.js';
+
+import {
+    loadProjectPlan,
+    initProjectPlanEvents
+} from './project_plan.js';
+
+import {
+    loadIsoData,
+    initIsoEvents
+} from './iso14001.js';
+
+import {
+    loadIssues,
+    initIssueEvents
+} from './issues.js';
+
+import {
+    loadAssets,
+    initAssetEvents
+} from './assets.js';
+
+import {
+    loadGoals,
+    initGoalEvents
+} from './goals.js';
+
+import {
+    loadProjectTeam,
+    initProjectTeamEvents
+} from './project_team.js';
+
+import { initReportsEvents } from './reports.js';
+
+
+
+
+
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        initializeModuleEvents();
+        initializeTabNavigation();
+
+        await initializeProjectDropdown();
+
+        initializeProjectSwitch();
+        initHistoryEvents();
+        initReportsEvents();
+
+        if (currentProjectId) {
+            const projectSelect =
+                document.getElementById('projectSelect');
+
+            if (projectSelect) {
+                projectSelect.value =
+                    String(currentProjectId);
+            }
+
+            await loadAllProjectData();
+        } else {
+            clearProjectViews();
+        }
+    } catch (error) {
+        console.error(
+            'Kritischer Fehler beim Start der Anwendung:',
+            error
+        );
+
+        hideLoadingOverlay();
+    }
+});
+
+
+function initializeModuleEvents() {
+    const initializers = [
+        initRequirementEvents,
+        initStakeholderEvents,
+        initUseCaseEvents,
+        initUserStoryEvents,
+        initRiskEvents,
+        initProjectPlanEvents,
+        initIsoEvents,
+        initIssueEvents,
+        initAssetEvents,
+        initGoalEvents,
+        initProjectTeamEvents,
+        initReportsEvents
+    ];
+
+    initializers.forEach(initializer => {
+        try {
+            initializer();
+        } catch (error) {
+            console.error(
+                `Fehler beim Initialisieren von ${initializer.name}:`,
+                error
+            );
+        }
+    });
+}
+
+
+async function loadAllProjectData() {
+    if (!currentProjectId) {
+        clearProjectViews();
+        return;
+    }
+
+    const modules = [
+        ['Projektteam', loadProjectTeam],
+        ['Dashboard', loadDashboard],
+        ['Anforderungen', loadRequirements],
+        ['Assets', loadAssets],
+        ['Ziele', loadGoals],
+        ['Projektplan', loadProjectPlan],
+        ['Issues', loadIssues],
+        ['Risiken', loadRisks],
+        ['Stakeholder', loadStakeholders],
+        ['Use Cases', loadUseCases],
+        ['User Stories', loadUserStories],
+        ['Historie', loadHistory],
+        ['SBOM', loadSBOM],
+        ['ISO 14001', loadIsoData]
+    ];
+
+
+    const results = await Promise.allSettled(
+        modules.map(([, loader]) => loader())
+    );
+
+    results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+            console.error(
+                `Fehler beim Laden von ${modules[index][0]}:`,
+                result.reason
+            );
+        }
+    });
+}
+
+
+async function initializeProjectDropdown() {
+    const select =
+        document.getElementById('projectSelect');
+
+    if (!select) {
+        console.error(
+            'Projekt-Dropdown #projectSelect wurde nicht gefunden.'
+        );
+
+        return;
+    }
+
+    try {
+        const projects =
+            await fetchProjects();
+
+        select.innerHTML = `
+            <option value="">
+                -- Projekt wählen --
+            </option>
+        `;
+
+        projects.forEach(project => {
+            const option =
+                document.createElement('option');
+
+            option.value =
+                String(project.id);
+
+            option.textContent =
+                project.name;
+
+            select.appendChild(option);
+        });
+
+        if (currentProjectId) {
+            select.value =
+                String(currentProjectId);
+        }
+    } catch (error) {
+        console.error(
+            'Fehler beim Laden der Projektliste:',
+            error
+        );
+    }
+}
+
+
+function initializeProjectSwitch() {
+    const select =
+        document.getElementById('projectSelect');
+
+    if (!select) {
+        return;
+    }
+
+    const modal =
+        document.getElementById('projectSwitchModal');
+
+    const projectName =
+        document.getElementById('modalProjectName');
+
+    const confirmButton =
+        document.getElementById('modalConfirmBtn');
+
+    const cancelButton =
+        document.getElementById('modalCancelBtn');
+
+    if (
+        !modal ||
+        !projectName ||
+        !confirmButton ||
+        !cancelButton
+    ) {
+        select.addEventListener(
+            'change',
+            event => {
+                switchProject(
+                    event.currentTarget.value
+                );
+            }
+        );
+
+        return;
+    }
+
+    let pendingProjectId = '';
+
+    select.addEventListener(
+        'change',
+        event => {
+            const selectedOption =
+                select.options[select.selectedIndex];
+
+            pendingProjectId =
+                event.currentTarget.value;
+
+            select.value =
+                currentProjectId
+                    ? String(currentProjectId)
+                    : '';
+
+            if (!pendingProjectId) {
+                return;
+            }
+
+            projectName.textContent =
+                `„${selectedOption?.textContent?.trim() || pendingProjectId}“`;
+
+            openFlexModal(modal);
+        }
+    );
+
+    confirmButton.addEventListener(
+        'click',
+        async () => {
+            const selectedProjectId =
+                pendingProjectId;
+
+            pendingProjectId = '';
+
+            closeFlexModal(modal);
+
+            if (selectedProjectId) {
+                await switchProject(
+                    selectedProjectId
+                );
+            }
+        }
+    );
+
+    cancelButton.addEventListener(
+        'click',
+        () => {
+            pendingProjectId = '';
+
+            select.value =
+                currentProjectId
+                    ? String(currentProjectId)
+                    : '';
+
+            closeFlexModal(modal);
+        }
+    );
+
+    modal.addEventListener(
+        'click',
+        event => {
+            if (event.target !== modal) {
+                return;
+            }
+
+            pendingProjectId = '';
+
+            select.value =
+                currentProjectId
+                    ? String(currentProjectId)
+                    : '';
+
+            closeFlexModal(modal);
+        }
+    );
+}
+
+
+async function switchProject(projectId) {
+    const select =
+        document.getElementById('projectSelect');
+
+    if (!projectId) {
+        setCurrentProjectId('');
+
+        if (select) {
+            select.value = '';
+        }
+
+        clearProjectViews();
+        return;
+    }
+
+    showLoadingOverlay();
+
+    try {
+        setCurrentProjectId(projectId);
+
+        if (select) {
+            select.value =
+                String(projectId);
+        }
+
+        await Promise.all([
+            loadAllProjectData(),
+
+            new Promise(resolve => {
+                setTimeout(resolve, 500);
+            })
+        ]);
+    } catch (error) {
+        console.error(
+            'Fehler beim Wechseln des Projekts:',
+            error
+        );
+    } finally {
+        hideLoadingOverlay();
+    }
+}
+
+
+function initializeTabNavigation() {
+    const panelLoaders = {
+        projectteam: loadProjectTeam,
+        dashboard: loadDashboard,
+        requirements: loadRequirements,
+        assets: loadAssets,
+        goals: loadGoals,
+        projectplan: loadProjectPlan,
+        issues: loadIssues,
+        risks: loadRisks,
+        stakeholders: loadStakeholders,
+        usecases: loadUseCases,
+        userstories: loadUserStories,
+        history: loadHistory,
+        sbom: loadSBOM,
+        iso14001: loadIsoData
+    };
+
+    document
+        .querySelectorAll('.tab')
+        .forEach(button => {
+            button.addEventListener(
+                'click',
+                async event => {
+                    const clickedTab =
+                        event.currentTarget;
+
+                    const panelName =
+                        clickedTab.dataset.panel;
+
+                    if (!panelName) {
+                        return;
+                    }
+
+                    const targetPanel =
+                        document.getElementById(panelName);
+
+                    if (!targetPanel) {
+                        console.error(
+                            `Panel mit ID "${panelName}" wurde nicht gefunden.`
+                        );
+
+                        return;
+                    }
+
+                    document
+                        .querySelectorAll('.tab')
+                        .forEach(tab => {
+                            tab.classList.remove(
+                                'active',
+                                'border-blue-900',
+                                'bg-blue-50',
+                                'text-blue-900',
+                                'font-bold'
+                            );
+
+                            tab.classList.add(
+                                'border-transparent',
+                                'text-slate-600',
+                                'font-semibold'
+                            );
+                        });
+
+                    clickedTab.classList.add(
+                        'active',
+                        'border-blue-900',
+                        'bg-blue-50',
+                        'text-blue-900',
+                        'font-bold'
+                    );
+
+                    clickedTab.classList.remove(
+                        'border-transparent',
+                        'text-slate-600',
+                        'font-semibold'
+                    );
+
+                    document
+                        .querySelectorAll('.panel')
+                        .forEach(panel => {
+                            panel.classList.remove('show');
+                        });
+
+                    targetPanel.classList.add('show');
+
+                    try {
+                        const loader =
+                            panelLoaders[panelName];
+
+                        if (loader) {
+                            await loader();
+                        }
+                    } catch (error) {
+                        console.error(
+                            `Fehler beim Laden des Panels "${panelName}":`,
+                            error
+                        );
+                    }
+                }
+            );
+        });
+}
+
+
+function openFlexModal(modal) {
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+
+function closeFlexModal(modal) {
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+
+function showLoadingOverlay() {
+    const loader =
+        document.getElementById('globalLoader');
+
+    if (loader) {
+        loader.classList.remove('hidden');
+        loader.classList.add('flex');
+    }
+}
+
+
+function hideLoadingOverlay() {
+    const loader =
+        document.getElementById('globalLoader');
+
+    if (loader) {
+        loader.classList.add('hidden');
+        loader.classList.remove('flex');
+    }
+}
+
+
+function setTableMessage(
+    elementId,
+    columnCount,
+    message
+) {
+    const element =
+        document.getElementById(elementId);
+
+    if (!element) {
+        return;
+    }
+
+    element.innerHTML = `
+        <tr>
+            <td
+                colspan="${columnCount}"
+                class="cl-empty-state">
+                ${message}
+            </td>
+        </tr>
+    `;
+}
+
+
+function clearProjectViews() {
+    const message =
+        'Bitte zuerst ein Projekt auswählen.';
+
+    const items =
+        document.getElementById('items');
+
+    const detail =
+        document.getElementById('detail');
+
+    const goals =
+        document.getElementById('goalCardContainer');
+
+    const history =
+        document.getElementById('historyContainer');
+
+    const sbom =
+        document.getElementById('sbomContainer');
+
+    if (items) {
+        items.innerHTML = `
+            <div class="cl-empty-state">
+                ${message}
+            </div>
+        `;
+    }
+
+    if (detail) {
+        detail.innerHTML = `
+            <div class="flex h-full items-center justify-center italic text-slate-400">
+                Anforderung auswählen
+            </div>
+        `;
+    }
+
+    if (goals) {
+        goals.innerHTML = `
+            <div class="cl-empty-state col-span-full">
+                ${message}
+            </div>
+        `;
+    }
+
+    if (history) {
+        history.innerHTML = `
+            <div class="cl-empty-state">
+                ${message}
+            </div>
+        `;
+    }
+
+    if (sbom) {
+        sbom.innerHTML = `
+            <div class="cl-empty-state">
+                ${message}
+            </div>
+        `;
+    }
+
+    setTableMessage(
+        'projectTeamTableBody',
+        7,
+        message
+    );
+
+    setTableMessage(
+        'assetTableBody',
+        6,
+        message
+    );
+
+    setTableMessage(
+        'issueTableBody',
+        8,
+        message
+    );
+
+    setTableMessage(
+        'taskTableBody',
+        7,
+        message
+    );
+
+    setTableMessage(
+        'riskTableBody',
+        12,
+        message
+    );
+
+    setTableMessage(
+        'stakeholderTableBody',
+        7,
+        message
+    );
+
+    setTableMessage(
+        'useCaseTableBody',
+        5,
+        message
+    );
+
+    setTableMessage(
+        'userStoryTableBody',
+        6,
+        message
+    );
+
+    setTableMessage(
+        'isoTableBody',
+        5,
+        message
+    );
+} 
+
+============================================================
+FILE: dashboard\js\state.js
+FULL PATH: C:\xampp\htdocs\captainslog-web\dashboard\js\state.js
+============================================================
+// dashboard/js/state.js
+export let currentProjectId = localStorage.getItem('lastProjectId') || null;
+export let currentRequirements = [];
+export let editingReqId = null;
+
+export function setCurrentProjectId(id) {
+    currentProjectId = id;
+    if (id) {
+        localStorage.setItem('lastProjectId', id);
+    } else {
+        localStorage.removeItem('lastProjectId');
+    }
+}
+
+export function setCurrentRequirements(reqs) { currentRequirements = reqs; }
+export function setEditingReqId(id) { editingReqId = id; } 
+
+============================================================
+FILE: dashboard\js\project_team.js
+FULL PATH: C:\xampp\htdocs\captainslog-web\dashboard\js\project_team.js
+============================================================
+import { currentProjectId } from './state.js';
+
+let team = [];
+let availableUsers = [];
+let roles = [];
+
+const esc = value => String(value ?? '').replace(/[&<>'"]/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+}[character]));
+
+export async function loadProjectTeam() {
+    const body = document.getElementById('projectTeamTableBody');
+    if (!body) return;
+
+    if (!currentProjectId) {
+        team = [];
+        body.innerHTML = '<tr><td colspan="7" class="p-8 text-center italic text-slate-400">Bitte zuerst ein Projekt auswählen.</td></tr>';
+        updateKpis();
+        return;
+    }
+
+    body.innerHTML = '<tr><td colspan="7" class="p-8 text-center italic text-slate-500">Projektteam wird geladen...</td></tr>';
+
+    try {
+        const response = await fetch(`../api/get_project_team.php?project_id=${encodeURIComponent(currentProjectId)}`);
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'Projektteam konnte nicht geladen werden.');
+
+        team = data.team || [];
+        availableUsers = data.available_users || [];
+        roles = data.roles || [];
+        fillRoleControls();
+        renderProjectTeam();
+    } catch (error) {
+        body.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-red-600">${esc(error.message)}</td></tr>`;
+    }
+}
+
+function fillRoleControls() {
+    const datalist = document.getElementById('projectRoleOptions');
+    const filter = document.getElementById('projectTeamRoleFilter');
+    if (datalist) datalist.innerHTML = roles.map(role => `<option value="${esc(role.role_name)}">${esc(role.description || '')}</option>`).join('');
+    if (filter) {
+        const selected = filter.value;
+        const names = [...new Set(team.map(member => member.project_role).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
+        filter.innerHTML = '<option value="">Alle Projektrollen</option>' + names.map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join('');
+        if (names.includes(selected)) filter.value = selected;
+    }
+}
+
+function renderProjectTeam() {
+    const body = document.getElementById('projectTeamTableBody');
+    const query = String(document.getElementById('projectTeamSearch')?.value || '').trim().toLowerCase();
+    const roleFilter = document.getElementById('projectTeamRoleFilter')?.value || '';
+
+    const filtered = team.filter(member => {
+        const matchesRole = !roleFilter || member.project_role === roleFilter;
+        const text = [member.username, member.project_role, member.expertise, member.availability, member.system_role].filter(Boolean).join(' ').toLowerCase();
+        return matchesRole && (!query || text.includes(query));
+    });
+
+    if (!filtered.length) {
+        body.innerHTML = '<tr><td colspan="7" class="p-8 text-center italic text-slate-400">Keine Projektmitglieder gefunden.</td></tr>';
+    } else {
+        body.innerHTML = filtered.map(member => {
+            const active = Number(member.is_active) === 1;
+            return `<tr class="border-b border-slate-200 ${active ? 'bg-white hover:bg-blue-50/40' : 'bg-slate-100 text-slate-400'}">
+                <td class="p-3 align-top"><div class="font-bold text-slate-900">${esc(member.username)}</div><div class="mt-1 text-[10px] uppercase text-slate-400">User-ID ${Number(member.user_id)}</div></td>
+                <td class="p-3 align-top"><span class="inline-flex border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-900">${esc(member.project_role || '-')}</span></td>
+                <td class="p-3 align-top">${esc(member.expertise || '-')}</td>
+                <td class="p-3 align-top">${esc(member.availability || '-')}</td>
+                <td class="p-3 align-top"><span class="text-xs font-bold uppercase text-slate-600">${esc(member.system_role)}</span></td>
+                <td class="p-3 align-top"><span class="inline-flex border px-2 py-1 text-xs font-bold ${active ? 'border-emerald-300 bg-emerald-100 text-emerald-800' : 'border-slate-300 bg-slate-200 text-slate-600'}">${active ? 'Aktiv' : 'Inaktiv'}</span></td>
+                <td class="p-3 align-top text-right whitespace-nowrap"><button type="button" onclick="window.editProjectMember(${Number(member.user_id)})" class="font-bold text-blue-700 hover:text-blue-950">Bearbeiten</button><button type="button" onclick="window.removeProjectMember(${Number(member.user_id)})" class="ml-3 font-bold text-red-600 hover:text-red-800">Entfernen</button></td>
+            </tr>`;
+        }).join('');
+    }
+
+    document.getElementById('projectTeamResultCount').textContent = `${filtered.length} von ${team.length} Mitgliedern`;
+    updateKpis();
+}
+
+function updateKpis() {
+    const total = team.length;
+    const active = team.filter(member => Number(member.is_active) === 1).length;
+    if (document.getElementById('teamMemberCount')) document.getElementById('teamMemberCount').textContent = total;
+    if (document.getElementById('teamActiveCount')) document.getElementById('teamActiveCount').textContent = active;
+}
+
+function openMemberModal(member = null) {
+    const form = document.getElementById('projectMemberForm');
+    form.reset();
+    document.getElementById('project_member_original_user_id').value = member?.user_id || '';
+    const userSelect = document.getElementById('project_member_user_id');
+
+    if (member) {
+        userSelect.innerHTML = `<option value="${Number(member.user_id)}">${esc(member.username)}</option>`;
+        userSelect.value = member.user_id;
+        userSelect.disabled = true;
+    } else {
+        userSelect.disabled = false;
+        userSelect.innerHTML = '<option value="">-- Nutzer auswählen --</option>' + availableUsers.map(user => `<option value="${Number(user.id)}">${esc(user.username)} (${esc(user.role)})</option>`).join('');
+    }
+
+    document.getElementById('project_member_role').value = member?.project_role || '';
+    document.getElementById('project_member_expertise').value = member?.expertise || '';
+    document.getElementById('project_member_availability').value = member?.availability || '';
+    document.getElementById('project_member_active').checked = member ? Number(member.is_active) === 1 : true;
+    document.getElementById('projectMemberModalTitle').textContent = member ? `${member.username} bearbeiten` : 'Projektmitglied zuweisen';
+    document.getElementById('projectMemberModal').classList.remove('hidden');
+}
+
+function closeMemberModal() {
+    document.getElementById('projectMemberModal')?.classList.add('hidden');
+}
+
+export function initProjectTeamEvents() {
+    document.getElementById('btnNewProjectMember')?.addEventListener('click', () => {
+        if (!currentProjectId) return alert('Bitte zuerst ein Projekt auswählen.');
+        if (!availableUsers.length) return alert('Alle vorhandenen Nutzer sind diesem Projekt bereits zugewiesen.');
+        openMemberModal();
+    });
+    document.getElementById('projectTeamSearch')?.addEventListener('input', renderProjectTeam);
+    document.getElementById('projectTeamRoleFilter')?.addEventListener('change', renderProjectTeam);
+    document.getElementById('projectMemberCancel')?.addEventListener('click', closeMemberModal);
+    document.getElementById('projectMemberModalClose')?.addEventListener('click', closeMemberModal);
+    document.getElementById('projectMemberForm')?.addEventListener('submit', saveProjectMember);
+}
+
+async function saveProjectMember(event) {
+    event.preventDefault();
+    const originalUserId = document.getElementById('project_member_original_user_id').value;
+    const payload = {
+        project_id: currentProjectId,
+        user_id: originalUserId || document.getElementById('project_member_user_id').value,
+        project_role: document.getElementById('project_member_role').value.trim(),
+        expertise: document.getElementById('project_member_expertise').value.trim(),
+        availability: document.getElementById('project_member_availability').value.trim(),
+        is_active: document.getElementById('project_member_active').checked
+    };
+
+    try {
+        const response = await fetch('../api/set_project_member.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'Projektmitglied konnte nicht gespeichert werden.');
+        closeMemberModal();
+        await loadProjectTeam();
+    } catch (error) {
+        alert(`Fehler: ${error.message}`);
+    }
+}
+
+window.editProjectMember = userId => {
+    const member = team.find(item => Number(item.user_id) === Number(userId));
+    if (member) openMemberModal(member);
+};
+
+window.removeProjectMember = async userId => {
+    const member = team.find(item => Number(item.user_id) === Number(userId));
+    if (!member || !confirm(`${member.username} wirklich aus dem Projektteam entfernen?`)) return;
+    try {
+        const response = await fetch('../api/remove_project_member.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ project_id: currentProjectId, user_id: userId }) });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'Mitglied konnte nicht entfernt werden.');
+        await loadProjectTeam();
+    } catch (error) {
+        alert(`Fehler: ${error.message}`);
+    }
+};
+ 
+
+============================================================
+FILE: api\get_tasks.php
+FULL PATH: C:\xampp\htdocs\captainslog-web\api\get_tasks.php
+============================================================
+<?php
+// api/get_tasks.php
+ini_set('display_errors', 0); error_reporting(E_ALL); session_start();
+require '../config/db.php'; header('Content-Type: application/json');
+
+$project_id = $_GET['project_id'] ?? null;
+if (!$project_id) { echo json_encode(['success' => false, 'error' => 'Keine project_id.']); exit; }
+
+try {
+    // 1. Aufgaben laden
+    $stmt = $pdo->prepare("SELECT * FROM project_tasks WHERE project_id = ? ORDER BY wbs_code ASC, id ASC");
+    $stmt->execute([$project_id]);
+    $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // 2. Templates laden
+    $stmtTpl = $pdo->query("SELECT * FROM task_templates ORDER BY category, title");
+    $templates = $stmtTpl->fetchAll(PDO::FETCH_ASSOC);
+
+    // 3. Requirements laden (für Fortschritt)
+    $stmtReq = $pdo->prepare("SELECT req_key, review_status FROM requirements WHERE project_id = ?");
+    $stmtReq->execute([$project_id]);
+    $req_map = [];
+    foreach($stmtReq->fetchAll(PDO::FETCH_ASSOC) as $r) $req_map[$r['req_key']] = $r['review_status'];
+
+// --- NEU: 4. Verknüpfte Issues laden (inkl. Verantwortliche) ---
+    $stmtIss = $pdo->prepare("
+        SELECT it.task_id, i.id as issue_id, i.status, u.username as issue_assignee 
+        FROM issue_tasks it
+        JOIN issues i ON it.issue_id = i.id
+        LEFT JOIN users u ON i.assignee_user_id = u.id
+        WHERE i.project_id = ?
+    ");
+    $stmtIss->execute([$project_id]);
+    $issue_map = [];
+    foreach($stmtIss->fetchAll(PDO::FETCH_ASSOC) as $iss) {
+        $tid = $iss['task_id'];
+        if(!isset($issue_map[$tid])) $issue_map[$tid] = [];
+        $issue_map[$tid][] = $iss;
+    }
+
+    // 5. Unteraufgaben (Checklisten) ihren Eltern zuordnen
+    $children_map = [];
+    foreach($tasks as $t) {
+        if ($t['parent_id']) {
+            if (!isset($children_map[$t['parent_id']])) $children_map[$t['parent_id']] = [];
+            $children_map[$t['parent_id']][] = $t;
+        }
+    }
+
+// 6. Fortschritt berechnen (Kombination aus Reqs, Issues & Checklisten)
+    foreach($tasks as &$t) {
+        $tid = $t['id'];
+        
+        // Die Issue-IDs als JSON-String an das Task-Array anhängen (fürs Frontend)
+        $linked_issues_data = $issue_map[$tid] ?? [];
+        $t['linked_issues'] = json_encode(array_column($linked_issues_data, 'issue_id'));
+
+        // Basis-Werte für Checkliste
+        $t['has_checklist'] = false;
+        $t['checklist_done'] = 0;
+        $t['checklist_total'] = 0;
+
+        if (isset($children_map[$tid])) {
+            $t['has_checklist'] = true;
+            $t['checklist_total'] = count($children_map[$tid]);
+            foreach($children_map[$tid] as $sub) {
+                if ($sub['progress_pct'] == 100) $t['checklist_done']++;
+            }
+        }
+
+        // Auto-Progress aus ALLEM berechnen (Topf-Prinzip)
+        if ($t['is_auto_progress'] == 1) {
+            $linked_reqs = json_decode($t['linked_reqs'], true) ?: [];
+            
+            $total_items = $t['checklist_total'] + count($linked_reqs) + count($linked_issues_data);
+
+            if ($total_items > 0) {
+                $done_items = $t['checklist_done'];
+                
+                // Requirements prüfen
+                foreach($linked_reqs as $key) {
+                    if (isset($req_map[trim($key)]) && $req_map[trim($key)] === 'Geprüft & Freigegeben') {
+                        $done_items++;
+                    }
+                }
+                
+                // Issues prüfen
+                foreach($linked_issues_data as $iss) {
+                    if (in_array($iss['status'], ['closed', 'approved', 'rejected'])) {
+                        $done_items++;
+                    }
+                }
+                
+                $t['progress_pct'] = round(($done_items / $total_items) * 100);
+            } else {
+                $t['progress_pct'] = 0;
+            }
+        }
+    }
+
+    echo json_encode(['success' => true, 'tasks' => $tasks, 'templates' => $templates]);
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+}
+?> 
+
+============================================================
+FILE: api\get_issues.php
+FULL PATH: C:\xampp\htdocs\captainslog-web\api\get_issues.php
+============================================================
+<?php
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+session_start();
+require '../config/db.php';
+header('Content-Type: application/json; charset=utf-8');
+try {
+    $project_id = $_GET['project_id'] ?? '';
+    if (!$project_id || !isset($_SESSION['user_id']))
+        throw new Exception('Nicht autorisiert oder Projekt fehlt.');
+    $access = $pdo->prepare('SELECT 1 FROM project_members WHERE project_id=? AND user_id=?');
+    $access->execute([$project_id, $_SESSION['user_id']]);
+    if (!$access->fetchColumn())
+        throw new Exception('Kein Projektzugriff.');
+    $stmt = $pdo->prepare("SELECT i.*, au.username AS assignee_name, ru.username AS reporter_name,
+        (SELECT COUNT(*) FROM issue_requirements ir WHERE ir.issue_id=i.id) AS requirement_count,
+        (SELECT COUNT(*) FROM issue_tasks it WHERE it.issue_id=i.id) AS task_count,
+        (SELECT COUNT(*) FROM issue_comments ic WHERE ic.issue_id=i.id) AS comment_count
+        FROM issues i
+        LEFT JOIN users au ON au.id=i.assignee_user_id
+        LEFT JOIN users ru ON ru.id=i.reporter_user_id
+        WHERE i.project_id=? ORDER BY FIELD(i.status,'open','in_progress','waiting_response','ready_for_test','approved','closed','rejected'), i.updated_at DESC");
+    $stmt->execute([$project_id]);
+    $issues = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $users = $pdo->prepare('SELECT u.id,u.username FROM users u JOIN project_members pm ON pm.user_id=u.id WHERE pm.project_id=? ORDER BY u.username');
+    $users->execute([$project_id]);
+    $reqs = $pdo->prepare('SELECT id,req_key,title,type FROM requirements WHERE project_id=? ORDER BY type,req_key');
+    $reqs->execute([$project_id]);
+    $tasks = $pdo->prepare('SELECT id,wbs_code,title FROM project_tasks WHERE project_id=? AND parent_id IS NULL ORDER BY wbs_code,id');
+    $tasks->execute([$project_id]);
+    echo json_encode(['success' => true, 'issues' => $issues, 'users' => $users->fetchAll(), 'requirements' => $reqs->fetchAll(), 'tasks' => $tasks->fetchAll()]);
+} catch (Throwable $e) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+}
+ 
+
+============================================================
+FILE: api\get_project_team.php
+FULL PATH: C:\xampp\htdocs\captainslog-web\api\get_project_team.php
+============================================================
+<?php
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
+session_start();
+require '../config/db.php';
+header('Content-Type: application/json; charset=utf-8');
+
+try {
+    $projectId = $_GET['project_id'] ?? '';
+    $userId = $_SESSION['user_id'] ?? 0;
+
+    if (!$projectId || !$userId) {
+        throw new Exception('Projekt oder Sitzung fehlt.');
+    }
+
+    $access = $pdo->prepare(
+        'SELECT 1 FROM project_members WHERE project_id = ? AND user_id = ? AND is_active = 1'
+    );
+    $access->execute([$projectId, $userId]);
+
+    if (!$access->fetchColumn() && ($_SESSION['role'] ?? '') !== 'admin') {
+        throw new Exception('Kein Zugriff auf dieses Projekt.');
+    }
+
+    $team = $pdo->prepare(
+        'SELECT
+            pm.project_id,
+            pm.user_id,
+            pm.project_role,
+            pm.expertise,
+            pm.availability,
+            pm.is_active,
+            pm.joined_at,
+            u.username,
+            u.role AS system_role
+         FROM project_members pm
+         JOIN users u ON u.id = pm.user_id
+         WHERE pm.project_id = ?
+         ORDER BY pm.is_active DESC,
+                  CASE WHEN pm.project_role = "Projektleitung" THEN 0 ELSE 1 END,
+                  u.username ASC'
+    );
+    $team->execute([$projectId]);
+
+    $users = $pdo->prepare(
+        'SELECT u.id, u.username, u.role
+         FROM users u
+         WHERE NOT EXISTS (
+             SELECT 1
+             FROM project_members pm
+             WHERE pm.project_id = ? AND pm.user_id = u.id
+         )
+         ORDER BY u.username ASC'
+    );
+    $users->execute([$projectId]);
+
+    $roles = $pdo->query(
+        'SELECT id, role_name, description
+         FROM project_roles
+         WHERE is_active = 1
+         ORDER BY role_name ASC'
+    );
+
+    echo json_encode([
+        'success' => true,
+        'team' => $team->fetchAll(PDO::FETCH_ASSOC),
+        'available_users' => $users->fetchAll(PDO::FETCH_ASSOC),
+        'roles' => $roles->fetchAll(PDO::FETCH_ASSOC)
+    ]);
+} catch (Throwable $error) {
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'error' => $error->getMessage()
+    ]);
+}
+ 
+
+============================================================
+EXPORT FINISHED
+============================================================

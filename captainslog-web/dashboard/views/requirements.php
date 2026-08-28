@@ -31,29 +31,37 @@
 
 
     <!-- =====================================================
-         FILTERLEISTE
+         SUCHE & FILTERLEISTE
     ====================================================== -->
-    <div class="shrink-0 border-b border-slate-200 bg-slate-50 px-5 py-3">
+    <div class="shrink-0 border-b border-slate-200 bg-slate-50 px-5 py-3 flex flex-col gap-4">
 
-        <div class="mb-2 flex items-center justify-between gap-4">
+        <!-- NEU: Volltextsuche -->
+        <div class="relative w-full">
+            <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none"
+                stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"></path>
+            </svg>
+            <input id="reqSearchInput" type="search" autocomplete="off"
+                placeholder="Anforderungen durchsuchen (ID, Titel, Beschreibung)..."
+                class="block w-full rounded-md border border-slate-300 bg-white py-2 pl-9 pr-3 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-950 focus:ring-2 focus:ring-blue-950/10">
+        </div>
 
+        <div class="flex items-center justify-between gap-4">
             <div>
                 <div class="text-xs font-extrabold uppercase tracking-wide text-blue-950">
                     Anforderungstypen
                 </div>
-
                 <div class="mt-0.5 text-[11px] text-slate-500">
                     Wähle aus, welche Elemente in der Baumstruktur angezeigt werden.
                 </div>
             </div>
 
             <div class="flex items-center gap-2">
-
                 <button id="selectAllFilters" type="button"
                     class="cl-button cl-button-secondary min-h-0 px-3 py-1.5 text-[10px]">
                     Alle auswählen
                 </button>
-
                 <button id="clearAllFilters" type="button"
                     class="cl-button cl-button-secondary min-h-0 px-3 py-1.5 text-[10px]">
                     Auswahl löschen
@@ -62,27 +70,14 @@
         </div>
 
         <div id="reqFilterCheckboxes" class="flex flex-wrap gap-2">
-
             <?php
-            $filterTypes = [
-                'USR',
-                'SYS',
-                'SEC',
-                'SRS',
-                'HRS',
-                'SWC',
-                'TC',
-                'TR'
-            ];
-
+            $filterTypes = ['USR', 'SYS', 'SEC', 'SRS', 'HRS', 'SWC', 'TC', 'TR'];
             foreach ($filterTypes as $type):
                 ?>
                 <label
                     class="inline-flex cursor-pointer items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 shadow-sm transition hover:border-blue-300 hover:bg-blue-50">
-
                     <input type="checkbox" value="<?= htmlspecialchars($type) ?>" checked
                         class="h-3.5 w-3.5 cursor-pointer rounded border-slate-300 text-blue-950 focus:ring-blue-900">
-
                     <span class="font-mono text-[11px] font-extrabold text-slate-700">
                         <?= htmlspecialchars($type) ?>
                     </span>

@@ -2,225 +2,187 @@
 import { currentProjectId } from './state.js';
 
 window.dashboardData = null;
-let currentStakeholders = [];
 
 export async function loadDashboard() {
     if (!currentProjectId) {
-        document.getElementById('kpiProjectProgress').textContent = '0%';
-        document.getElementById('kpiTotalReqs').textContent = '0';
-        document.getElementById('kpiApprovedReqs').textContent = '0';
-        document.getElementById('kpiSbomWarnings').textContent = '0';
-        document.getElementById('dashboardListContainer').innerHTML = '<p class="text-slate-500 text-sm">Bitte Projekt wählen.</p>';
+        document.getElementById('dashProjectTitle').textContent = 'Kein Projekt gewählt';
         return;
     }
 
+    if (window.showLoader) window.showLoader();
+
+    // Versuche den Projektnamen aus dem Dropdown zu lesen, ansonsten Standardtext
+    const projectSelect = document.getElementById('projectSelect'); // Oder wie deine ID heißt
+    if (projectSelect && projectSelect.options[projectSelect.selectedIndex]) {
+        document.getElementById('dashProjectTitle').textContent = projectSelect.options[projectSelect.selectedIndex].text;
+    } else {
+        document.getElementById('dashProjectTitle').textContent = 'Projektübersicht';
+    }
+
     try {
-        const res = await fetch(`../api/get_dashboard_kpis.php?project_id=${currentProjectId}`);
-        const data = await res.json();
+        const [kpiRes, healthLoaded] = await Promise.all([
+            fetch(`../api/get_dashboard_kpis.php?project_id=${currentProjectId}`),
+            loadHealthDiagnostics()
+        ]);
+        
+        const data = await kpiRes.json();
         
         if (data.success) {
             window.dashboardData = data.kpis;
-            currentStakeholders = data.stakeholders || [];
             
-            // KPIs setzen
             document.getElementById('kpiProjectProgress').textContent = data.project_progress + '%';
             document.getElementById('kpiTotalReqs').textContent = data.kpis.total.count;
             document.getElementById('kpiApprovedReqs').textContent = data.kpis.approved.count;
             document.getElementById('kpiSbomWarnings').textContent = data.sbom_warnings;
 
-            // Matrizen zeichnen
-            drawMiniRiskMap(data.kpis.risks.items);
-            renderMiniStakeholderList(currentStakeholders);
-
-            // Standardmäßig die Liste "Wartet auf Überprüfung" laden (wenn vorhanden)
-            if(data.kpis.waiting.count > 0) {
-                window.renderDashboardList('waiting', data.kpis.waiting.items);
-            } else {
-                window.renderDashboardList('total', data.kpis.total.items);
-            }
+            renderMiniRiskList(data.kpis.risks.items);
+            renderMiniStakeholderList(data.stakeholders || []);
         }
     } catch (err) {
-        console.error("Fehler beim Laden des Dashboards:", err);
+        console.error("Dashboard Ladefehler:", err);
+    } finally {
+        if (window.hideLoader) window.hideLoader();
     }
 }
 
-// Zeichnet die Risiko-Matrix
-function drawMiniRiskMap(risks) {
-    const map = document.getElementById('dashRiskMap');
-    if (!map) return;
-    map.innerHTML = '';
+// ============================================================================
+// HELLES TERMINAL LOGIC (Health Check)
+// ============================================================================
+async function loadHealthDiagnostics() {
+    const container = document.getElementById('healthCheckContent');
+    const badge = document.getElementById('healthCheckBadge');
+    if (!container || !currentProjectId) return;
+
+    container.innerHTML = '<div class="p-4 text-slate-400 animate-pulse">> Scanne Projekt auf Inkonsistenzen...</div>';
+
+    try {
+        const res = await fetch(`../api/get_health_diagnostics.php?project_id=${currentProjectId}`);
+        const data = await res.json();
+
+        if (data.success && data.warnings.length > 0) {
+            badge.innerHTML = `<span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded border border-rose-200">${data.warnings.length} Fehler</span>`;
+            
+            container.innerHTML = data.warnings.map(w => {
+                const isCrit = w.severity === 'critical';
+                const color = isCrit ? 'text-rose-600' : 'text-amber-600';
+                const prefix = isCrit ? '[CRIT]' : '[WARN]';
+                
+                // Klickbar machen und Styling anpassen
+                return `
+                <div onclick="window.resolveHealthWarning('${w.type}', '${w.id}')" class="flex gap-4 p-3 border-b border-slate-200 hover:bg-blue-50 cursor-pointer transition-colors group">
+                    <span class="${color} font-bold shrink-0">${prefix}</span>
+                    <span class="text-slate-700 group-hover:text-blue-700 transition-colors">${w.message}</span>
+                </div>`;
+            }).join('');
+        } else {
+            badge.innerHTML = '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded border border-emerald-200">OK</span>';
+            container.innerHTML = `<div class="p-4 text-emerald-600">> Alle Prüfungen bestanden. Keine Anomalien gefunden.</div>`;
+        }
+    } catch (e) {
+        container.innerHTML = `<div class="p-4 text-rose-500">> [FATAL] Diagnose-Server nicht erreichbar.</div>`;
+    }
+}
+
+// Navigiert zum entsprechenden Reiter und öffnet das Element
+window.resolveHealthWarning = function(type, id) {
+    if (type === 'issue') {
+        document.querySelector('[data-panel="issues"]')?.click();
+        setTimeout(() => { if (window.editIssue) window.editIssue(id); }, 100);
+    } else if (type === 'task') {
+        document.querySelector('[data-panel="projectplan"]')?.click();
+        setTimeout(() => { if (window.editTask) window.editTask(id); }, 100);
+    } else if (type === 'requirement') {
+        // Da die ID hier der req_key als String ist, springen wir zumindest in den Reiter
+        document.querySelector('[data-panel="requirements"]')?.click();
+        // Optional: Wenn du ein Suchfeld hast, könntest du hier den key eintragen
+        const searchInput = document.getElementById('reqSearchInput');
+        if (searchInput) {
+            searchInput.value = id;
+            searchInput.dispatchEvent(new Event('input'));
+        }
+    }
+};
+
+// ============================================================================
+// KOMPAKTE LISTEN (Bleiben wie zuvor, nur Schriften minimal größer)
+// ============================================================================
+
+function renderMiniRiskList(risks) {
+    const list = document.getElementById('dashRiskList');
+    if (!list) return;
     
-    // Nur aktive Risiken
     const activeRisks = risks.filter(r => r.review_status !== 'Archiviert');
-    
-    activeRisks.forEach((risk) => {
-        let attrs = {};
-        try { attrs = JSON.parse(risk.attributes || '{}'); } catch(e) {}
-        const w = parseInt(attrs.w) || 1;
-        const e = parseInt(attrs.e) || 1;
-        
-        const xPos = ((w - 1) * 20) + 10;
-        const yPos = 100 - (((e - 1) * 20) + 10);
-        
-        // Etwas zufälliger Offset bei  Überlappung
-        const offset = (Math.random() - 0.5) * 10; 
+    if (activeRisks.length === 0) {
+        list.innerHTML = '<div class="text-sm text-slate-400 italic">Keine aktiven Risiken.</div>';
+        return;
+    }
 
-        map.innerHTML += `
-            <div onclick="window.openReqFromDashboard(${risk.id})" class="absolute transform -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-blue-900 text-white rounded-full flex items-center justify-center text-[8px] font-bold shadow border border-white cursor-pointer hover:scale-150 transition-transform z-10" 
-                 style="left: calc(${xPos}% + ${offset}px); top: calc(${yPos}% + ${offset}px);"
-                 title="${risk.req_key}: ${risk.title}">
-                R
-            </div>
-        `;
+    const sortedRisks = activeRisks.sort((a, b) => {
+        let aW=1, aE=1, bW=1, bE=1;
+        try { const pa = JSON.parse(a.attributes||'{}'); aW=pa.w||1; aE=pa.e||1; } catch(e){}
+        try { const pb = JSON.parse(b.attributes||'{}'); bW=pb.w||1; bE=pb.e||1; } catch(e){}
+        return (bW*bE) - (aW*aE);
     });
+
+    list.innerHTML = sortedRisks.map(risk => {
+        let score = 1;
+        try { const p = JSON.parse(risk.attributes||'{}'); score = (p.w||1)*(p.e||1); } catch(e){}
+        
+        let color = 'bg-slate-200 text-slate-700';
+        if(score >= 15) color = 'bg-rose-600 text-white';
+        else if(score >= 8) color = 'bg-amber-500 text-white';
+        else if(score >= 4) color = 'bg-emerald-500 text-white';
+
+        return `
+            <div onclick="window.openReqFromDashboard(${risk.id})" class="flex items-center gap-3 p-2 border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition">
+                <span class="${color} text-xs font-bold w-6 h-6 flex items-center justify-center shrink-0 rounded">${score}</span>
+                <div class="flex flex-col truncate">
+                    <span class="text-sm text-slate-800 truncate font-semibold">${risk.title}</span>
+                    <span class="text-xs font-mono text-slate-500">${risk.req_key}</span>
+                </div>
+            </div>`;
+    }).join('');
 }
 
-// Hilfsfunktion: Erkennt die Wichtigkeit anhand der Rolle/Position
 function getStakeholderRank(s) {
-    const text = ((s.role || '') + ' ' + (s.position || '')).toLowerCase();
-    
-    // Rang 1: Projektleitung
-    if (text.includes('projektleiter') || text.includes('pl') || text.includes('manager')) return 1;
-    // Rang 2: Kunde / Auftraggeber
-    if (text.includes('kunde') || text.includes('auftraggeber') || text.includes('client')) return 2;
-    // Rang 3: Interne Mitarbeiter / Team
-    if (text.includes('mitarbeiter') || text.includes('entwickler') || text.includes('intern') || text.includes('team')) return 3;
-    
-    // Rang 4: Alle anderen
-    return 4; 
+    const t = ((s.role || '') + ' ' + (s.position || '')).toLowerCase();
+    if (t.includes('leiter') || t.includes('manager')) return 1;
+    if (t.includes('kunde') || t.includes('auftrag')) return 2;
+    return 3; 
 }
 
-// Zeichnet die sortierte Stakeholder-Liste
 function renderMiniStakeholderList(stakeholders) {
     const list = document.getElementById('dashStakeholderList');
     if (!list) return;
-
-    if (!stakeholders || stakeholders.length === 0) {
-        list.innerHTML = '<div class="text-xs text-slate-500 italic p-2">Keine Stakeholder vorhanden.</div>';
+    if (stakeholders.length === 0) {
+        list.innerHTML = '<div class="text-sm text-slate-400 italic">Keine Einträge.</div>';
         return;
     }
 
-    // Sortieren: Erst nach Rang (1-4), dann alphabetisch nach Name
     const sorted = [...stakeholders].sort((a, b) => {
-        const rankA = getStakeholderRank(a);
-        const rankB = getStakeholderRank(b);
-        if (rankA === rankB) return a.name.localeCompare(b.name);
-        return rankA - rankB;
+        const rA = getStakeholderRank(a), rB = getStakeholderRank(b);
+        if (rA === rB) return a.name.localeCompare(b.name);
+        return rA - rB;
     });
 
-    let html = '';
-    sorted.forEach(s => {
-        // Initialen generieren (z.B. "Max Mustermann" -> "MM")
-        const initials = s.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-        const roleText = s.role || s.position || 'Stakeholder';
-
-        html += `
-            <div onclick="window.jumpToStakeholder(${s.id})" class="flex items-center gap-3 p-2 hover:bg-blue-50 rounded-md cursor-pointer transition border border-transparent hover:border-blue-100">
-                <div class="w-9 h-9 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center text-xs font-extrabold shrink-0 shadow-sm border border-blue-200">
-                    ${initials}
-                </div>
-                <div class="flex flex-col truncate">
-                    <span class="text-sm font-bold text-slate-800 truncate">${s.name}</span>
-                    <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider truncate">${roleText}</span>
-                </div>
+    list.innerHTML = sorted.map(s => `
+        <div onclick="window.jumpToStakeholder(${s.id})" class="flex justify-between items-center p-2 border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition">
+            <div class="flex flex-col truncate">
+                <span class="text-sm font-bold text-slate-800">${s.name}</span>
+                <span class="text-xs text-slate-500 uppercase">${s.role || 'Stakeholder'}</span>
             </div>
-        `;
-    });
-    list.innerHTML = html;
+            <span class="text-xs text-blue-600 font-bold bg-blue-50 border border-blue-200 px-2 py-1 rounded">Profil</span>
+        </div>`).join('');
 }
 
-// Hilfsfunktion: Springt zum Stakeholder-Tab und öffnet das Modal
 window.jumpToStakeholder = function(id) {
     const tab = document.querySelector('[data-panel="stakeholders"]');
     if (tab) tab.click();
-    
-    // Kleines Timeout, damit der Tab in Ruhe laden kann
-    setTimeout(() => {
-        if(window.editStakeholder) window.editStakeholder(id);
-    }, 100);
-}
-
-// Die bestehende List-Rendering Funktion für die Detailansicht
-window.renderDashboardList = function (type, items) {
-    const container = document.getElementById('dashboardListContainer');
-    if (!container) return;
-
-    if (!items || !Array.isArray(items) || items.length === 0) {
-        container.innerHTML = '<p class="text-sm text-slate-500 italic p-4 border bg-slate-50 rounded">Keine Einträge in dieser Kategorie.</p>';
-        return;
-    }
-
-    items.forEach(item => {
-        try { item.parsedParents = JSON.parse(item.parents || '[]'); } catch (e) { item.parsedParents = []; }
-        if (!Array.isArray(item.parsedParents)) item.parsedParents = [];
-    });
-
-    let html = '';
-
-    // KOMPAKTE LISTE (Risiken, Wartend etc.)
-    if (type !== 'total') {
-        html = '<div class="space-y-2">';
-        items.forEach(item => {
-            const isDone = item.review_status === 'Geprüft & Freigegeben';
-            const statusColor = isDone ? 'text-emerald-700 bg-emerald-50' : 'text-slate-600 bg-white';
-            
-            html += `
-                <div onclick="window.openReqFromDashboard(${item.id})" class="p-3 border border-slate-200 rounded-md ${statusColor} hover:shadow-md cursor-pointer flex flex-col transition">
-                    <div class="flex justify-between items-start w-full">
-                        <div class="flex items-center gap-2 text-sm">
-                            <span class="font-bold font-mono text-blue-900 bg-white border border-slate-200 px-1.5 py-0.5 rounded shadow-sm">${item.req_key}</span>
-                            <span class="text-slate-800 font-bold">${item.title}</span>
-                        </div>
-                        <span class="text-[10px] bg-white border border-slate-200 px-2 py-1 rounded font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap ml-2">${item.review_status || 'Neu'}</span>
-                    </div>
-                </div>
-            `;
-        });
-        html += '</div>';
-    } 
-    // BAUMSTRUKTUR (Total)
-    else {
-        html = '<div class="border rounded-md bg-white overflow-hidden">';
-        const rendered = new Set();
-
-        function renderNode(req, level) {
-            if (rendered.has(req.req_key)) return '';
-            rendered.add(req.req_key);
-            
-            const indentRem = level * 1.5;
-            const bgClass = level % 2 === 0 ? 'bg-white' : 'bg-slate-50/50';
-            const children = items.filter(r => r.parsedParents.includes(req.req_key));
-            const icon = children.length > 0 ? `<span class="text-slate-400 text-xs w-4 inline-block">▶</span>` : `<span class="w-4 inline-block"></span>`;
-            
-            let nodeHtml = `
-                <div onclick="window.openReqFromDashboard(${req.id})" class="flex items-center justify-between p-2 border-b border-slate-100 hover:bg-blue-50 cursor-pointer text-sm transition ${bgClass}" style="padding-left: calc(1rem + ${indentRem}rem)">
-                    <div class="flex items-center gap-2 truncate">
-                        ${icon}
-                        <span class="font-bold font-mono text-blue-900">${req.req_key}</span>
-                        <span class="text-slate-700 truncate">${req.title}</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded text-slate-600 whitespace-nowrap">${req.review_status || 'Neu'}</span>
-                    </div>
-                </div>
-            `;
-            children.forEach(child => { nodeHtml += renderNode(child, level + 1); });
-            return nodeHtml;
-        }
-
-        const roots = items.filter(req => req.parsedParents.length === 0 || !req.parsedParents.some(pk => items.find(r => r.req_key === pk)));
-        roots.forEach(root => { html += renderNode(root, 0); });
-        items.forEach(req => { if (!rendered.has(req.req_key)) html += renderNode(req, 0); });
-        
-        html += '</div>';
-    }
-    container.innerHTML = html;
+    setTimeout(() => { if(window.editStakeholder) window.editStakeholder(id); }, 100);
 }
 
 window.openReqFromDashboard = function (id) {
     const tab = document.querySelector('[data-panel="requirements"]');
     if (tab) tab.click();
-    setTimeout(() => {
-        if (window.showRequirementDetailById) window.showRequirementDetailById(id);
-    }, 50);
+    setTimeout(() => { if (window.showRequirementDetailById) window.showRequirementDetailById(id); }, 50);
 };

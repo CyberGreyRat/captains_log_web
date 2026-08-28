@@ -199,7 +199,7 @@
   class="fixed inset-0 z-[220] hidden items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
 
   <form id="issueForm"
-    class="flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden border border-slate-400 bg-white shadow-2xl">
+    class="mx-auto flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded-[5px] border border-slate-400 bg-white shadow-2xl">
 
     <!-- Formularkopf -->
     <div class="flex shrink-0 items-start justify-between border-b border-slate-300 bg-[#eef2f6] px-6 py-4">
@@ -389,38 +389,27 @@
 
       <!-- Verknüpfungen -->
       <fieldset class="mt-5 border border-slate-300">
-        <legend class="ml-3 px-2 text-[11px] font-extrabold uppercase tracking-wide text-blue-950">
-          Traceability und Verknüpfungen
-        </legend>
-
-        <div class="grid grid-cols-1 gap-5 p-4 md:grid-cols-2">
-
+        <legend class="ml-3 px-2 text-[11px] font-extrabold uppercase tracking-wide text-blue-950">Traceability und Verknüpfungen</legend>
+        <div class="grid grid-cols-1 gap-6 p-4 md:grid-cols-2">
           <div>
-            <label for="issue_requirements" class="block text-sm font-bold text-slate-700">
-              Betroffene Anforderungen
-            </label>
-
-            <p class="mb-2 mt-1 text-xs text-slate-500">
-              Mehrfachauswahl mit Strg oder Shift.
-            </p>
-
-            <select id="issue_requirements" multiple
-              class="h-44 w-full border border-slate-300 bg-white p-2 text-sm outline-none focus:border-blue-950 focus:ring-2 focus:ring-blue-950/10">
-            </select>
+            <label for="issueReqSearch" class="block text-sm font-bold text-slate-700">Betroffene Anforderungen</label>
+            <p class="mt-1 text-xs text-slate-500">Suchen und direkt per Checkbox auswählen.</p>
+            <input id="issueReqSearch" type="search" autocomplete="off" placeholder="ID, Typ oder Titel suchen..."
+              class="mt-3 w-full rounded border border-slate-300 p-2 text-sm outline-none focus:border-blue-950">
+            <div id="issueReqCheckboxList" class="mt-2 max-h-56 overflow-y-auto overscroll-contain rounded border border-slate-300 bg-white">
+              <div class="p-4 text-sm italic text-slate-400">Anforderungen werden geladen...</div>
+            </div>
+            <input id="issue_requirements" type="hidden">
           </div>
-
           <div>
-            <label for="issue_tasks" class="block text-sm font-bold text-slate-700">
-              Umsetzungsaufgaben
-            </label>
-
-            <p class="mb-2 mt-1 text-xs text-slate-500">
-              Aufgaben zur Untersuchung, Umsetzung und Prüfung.
-            </p>
-
-            <select id="issue_tasks" multiple
-              class="h-44 w-full border border-slate-300 bg-white p-2 text-sm outline-none focus:border-blue-950 focus:ring-2 focus:ring-blue-950/10">
-            </select>
+            <label for="issueTaskSearch" class="block text-sm font-bold text-slate-700">Umsetzungsaufgaben</label>
+            <p class="mt-1 text-xs text-slate-500">Suchen und direkt per Checkbox auswählen.</p>
+            <input id="issueTaskSearch" type="search" autocomplete="off" placeholder="WBS, Kategorie oder Titel suchen..."
+              class="mt-3 w-full rounded border border-slate-300 p-2 text-sm outline-none focus:border-blue-950">
+            <div id="issueTaskCheckboxList" class="mt-2 max-h-56 overflow-y-auto overscroll-contain rounded border border-slate-300 bg-white">
+              <div class="p-4 text-sm italic text-slate-400">Aufgaben werden geladen...</div>
+            </div>
+            <input id="issue_tasks" type="hidden">
           </div>
         </div>
       </fieldset>
@@ -458,9 +447,10 @@
 </div>
 
 <div id="issueReportPanel"
-class="fixed right-0 top-0 z-[220] flex h-full w-full max-w-2xl translate-x-full transform flex-col border-l border-slate-300 bg-slate-50 shadow-2xl transition-transform duration-300">
+  class="fixed right-0 top-0 z-[220] flex h-full w-full max-w-2xl translate-x-full transform flex-col border-l border-slate-300 bg-slate-50 shadow-2xl transition-transform duration-300">
   <!-- Panel-Kopf -->
-  <div class="flex shrink-0 items-start justify-between border-t-4 border-blue-600 bg-blue-950 p-6 text-white shadow-md">
+  <div
+    class="flex shrink-0 items-start justify-between border-t-4 border-blue-600 bg-blue-950 p-6 text-white shadow-md">
     <div>
       <div id="reportIssueKey" class="mb-1 font-mono text-xs font-bold uppercase tracking-widest text-amber-400">
         ISSUE-000
@@ -601,9 +591,10 @@ class="fixed right-0 top-0 z-[220] flex h-full w-full max-w-2xl translate-x-full
     </div>
   </div>
 
-  
+
 </div>
 
-
 <!-- Excel-Verarbeitung -->
-https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.jsscript>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+

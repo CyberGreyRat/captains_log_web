@@ -1,8 +1,8 @@
 import { currentProjectId } from './state.js';
 
-let reportData = {tasks: [], issues: [], settings: {}};
+let reportData = { tasks: [], issues: [], settings: {} };
 const byId = id => document.getElementById(id);
-const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 
 const contentOptions = {
     status_report: [
@@ -120,7 +120,7 @@ async function saveLayout(event) {
     try {
         let response = await fetch('../api/save_report_settings.php', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 project_id: currentProjectId,
                 header_text: byId('reportHeader').value,
@@ -138,7 +138,7 @@ async function saveLayout(event) {
             const formData = new FormData();
             formData.append('project_id', currentProjectId);
             formData.append('logo', logo);
-            response = await fetch('../api/upload_report_logo.php', {method: 'POST', body: formData});
+            response = await fetch('../api/upload_report_logo.php', { method: 'POST', body: formData });
             result = await response.json();
             if (!response.ok || !result.success) throw new Error(result.error || 'Logo-Upload fehlgeschlagen.');
         }
@@ -176,12 +176,27 @@ async function exportReport(event) {
     try {
         const response = await fetch('../api/export_generator.php', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
         if (!response.ok) throw new Error(await response.text());
+        const contentType = response.headers.get('Content-Type') || '';
+
+        if (!contentType.includes('application/pdf')) {
+            const errorText = await response.text();
+
+            throw new Error(
+                errorText || 'Der Server hat keine PDF-Datei zurückgegeben.'
+            );
+        }
+
         const blob = await response.blob();
-        if (blob.size < 1000) throw new Error('Die erzeugte Datei ist unvollständig.');
+
+        if (blob.size < 1000) {
+            throw new Error(
+                `Die erzeugte PDF-Datei ist ungewöhnlich klein (${blob.size} Byte).`
+            );
+        }
         const disposition = response.headers.get('Content-Disposition') || '';
         const filename = disposition.match(/filename="([^"]+)"/i)?.[1] || `Captain_Log_Export.${payload.format}`;
         const url = URL.createObjectURL(blob);

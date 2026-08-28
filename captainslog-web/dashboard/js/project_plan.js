@@ -157,230 +157,109 @@ function generateAutoId() {
     document.getElementById('task_wbs').value = String(mainTasks.length + 1);
 }
 
-// =========================================================================
-// NEU: ZENTRALE PICKER LOGIK ("Windows Explorer" Style)
-// =========================================================================
 
-let currentPickerMode = ''; // 'req' oder 'issue'
+
+// =========================================================================
+// INLINE-AUSWAHLLISTEN IM AUFGABENFORMULAR
+// =========================================================================
+function planEsc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[char]));
+}
+
+function csvValues(id) {
+    return (document.getElementById(id)?.value || '').split(',')
+        .map(value => value.trim()).filter(Boolean);
+}
 
 async function fetchRequirementsForMenu() {
     if (!currentProjectId) return;
-    try {
-        const res = await fetch(`../api/get_requirements.php?project_id=${currentProjectId}`);
-        const data = await res.json();
-        if (data.success) allRequirements = data.requirements;
-    } catch (e) { console.error(e); }
+    const response = await fetch(`../api/get_requirements.php?project_id=${encodeURIComponent(currentProjectId)}`);
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.error || 'Anforderungen konnten nicht geladen werden.');
+    allRequirements = data.requirements || data.items || [];
+    renderTaskRequirementList();
 }
 
 async function fetchIssuesForMenu() {
     if (!currentProjectId) return;
-    try {
-        const res = await fetch(`../api/get_issues.php?project_id=${currentProjectId}`);
-        const data = await res.json();
-        if (data.success) allIssues = data.issues || [];
-    } catch (e) { console.error(e); }
+    const response = await fetch(`../api/get_issues.php?project_id=${encodeURIComponent(currentProjectId)}`);
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.error || 'Issues konnten nicht geladen werden.');
+    allIssues = data.issues || [];
+    renderTaskIssueList();
 }
 
-window.openReqPicker = function () {
-    currentPickerMode = 'req';
-    document.getElementById('pickerTitle').textContent = 'Anforderungen (Requirements) auswählen';
-
-    const currentVals = document.getElementById('task_linked_reqs').value.split(',').filter(x => x);
-    let html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
-
-    const grouped = {};
-    allRequirements.forEach(req => {
-        if (!grouped[req.type]) grouped[req.type] = [];
-        grouped[req.type].push(req);
-    });
-
-    for (const type in grouped) {
-        html += `
-            <div class="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden flex flex-col">
-                <div class="bg-blue-950 text-white px-4 py-2 text-sm font-extrabold uppercase tracking-wider sticky top-0 z-10">${type}</div>
-                <div class="max-h-64 overflow-y-auto p-2 space-y-1">
-        `;
-        grouped[type].forEach(req => {
-            const isChecked = currentVals.includes(req.req_key) ? 'checked' : '';
-            html += `
-                <label class="flex items-start gap-3 p-2.5 hover:bg-blue-50 rounded-md cursor-pointer transition border border-transparent hover:border-blue-100">
-                    <input type="checkbox" value="${req.req_key}" class="picker-cb mt-0.5 w-4 h-4 text-blue-700 rounded border-slate-300" ${isChecked}>
-                    <div class="flex flex-col">
-                        <span class="text-xs font-extrabold text-slate-900 font-mono">${req.req_key}</span>
-                        <span class="text-xs text-slate-600 leading-tight mt-0.5">${req.title}</span>
-                    </div>
-                </label>
-            `;
-        });
-        html += `</div></div>`;
-    }
-    html += '</div>';
-
-    document.getElementById('pickerContent').innerHTML = html;
-    document.getElementById('modalPicker').classList.remove('hidden');
-    document.getElementById('modalPicker').style.display = 'flex'; // Tailwind Fix
-};
-
-// NEU: Team-Mitglieder für die Datalist laden (ROBUSTE VERSION)
 async function fetchTeamMembers() {
     if (!currentProjectId) return;
-    try {
-        const res = await fetch(`../api/get_project_team.php?project_id=${currentProjectId}`);
-        const data = await res.json();
-        const datalist = document.getElementById('teamMembersList');
-
-        // Fängt beide Varianten ab, je nachdem wie dein API-Skript das Array nennt
-        const teamArray = data.team || data.members || [];
-
-        if (datalist) {
-            datalist.innerHTML = '';
-            teamArray.forEach(m => {
-                // Laut deiner Datenbankstruktur hast du "username" in der users-Tabelle
-                const displayName = m.username || m.name || `User-ID: ${m.user_id}`;
-                datalist.innerHTML += `<option value="${displayName}"></option>`;
-            });
-        }
-    } catch (e) {
-        console.error("Fehler beim Laden des Teams:", e);
-    }
+    const response = await fetch(`../api/get_project_team.php?project_id=${encodeURIComponent(currentProjectId)}`);
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.error || 'Projektteam konnte nicht geladen werden.');
+    const datalist = document.getElementById('teamMembersList');
+    if (datalist) datalist.innerHTML = (data.team || []).map(member =>
+        `<option value="${planEsc(member.username || '')}"></option>`).join('');
 }
 
-window.openIssuePicker = function () {
-    currentPickerMode = 'issue';
-    document.getElementById('pickerTitle').textContent = 'Issues (Bugs, Change Requests) auswählen';
-
-    const currentVals = document.getElementById('task_linked_issues').value.split(',').filter(x => x);
-    let html = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">';
-
-    const grouped = {};
-
-    // NEU: Issues sauber nach ihrer Nummer im Key (z.B. ISSUE-012) sortieren
-    const sortedIssues = [...allIssues].sort((a, b) => {
-        const numA = parseInt((a.issue_key || '').replace(/\D/g, '')) || 0;
-        const numB = parseInt((b.issue_key || '').replace(/\D/g, '')) || 0;
-        return numA - numB;
-    });
-
-    sortedIssues.forEach(iss => {
-        // FILTER ENTFERNT: Geschlossene Issues werden jetzt auch angezeigt!
-        const type = iss.issue_type || 'bug';
-        if (!grouped[type]) grouped[type] = [];
-        grouped[type].push(iss);
-    });
-
-    if (Object.keys(grouped).length === 0) {
-        html = '<div class="p-6 text-center text-slate-500 italic bg-white rounded border border-slate-200">Keine Issues im Projekt vorhanden.</div>';
-    }
-
-    for (const type in grouped) {
-        html += `
-            <div class="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden flex flex-col">
-                <div class="bg-rose-950 text-white px-4 py-2 text-sm font-extrabold uppercase tracking-wider sticky top-0 z-10">${type}</div>
-                <div class="max-h-64 overflow-y-auto p-2 space-y-1">
-        `;
-        grouped[type].forEach(iss => {
-            const isChecked = currentVals.includes(String(iss.id)) ? 'checked' : '';
-
-            // NEU: Wenn ein Issue geschlossen ist, machen wir es leicht transparent und geben ihm ein Label
-            const isClosed = (iss.status === 'closed' || iss.status === 'approved' || iss.status === 'rejected');
-            const statusBadge = isClosed ? `<span class="ml-2 text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5 rounded uppercase">${iss.status}</span>` : '';
-            const opacityClass = isClosed ? 'opacity-60 grayscale' : '';
-
-            html += `
-                <label class="flex items-start gap-3 p-2.5 hover:bg-rose-50 rounded-md cursor-pointer transition border border-transparent hover:border-rose-100 ${opacityClass}">
-                    <input type="checkbox" value="${iss.id}" class="picker-cb mt-0.5 w-4 h-4 text-rose-700 rounded border-slate-300" ${isChecked}>
-                    <div class="flex flex-col">
-                        <span class="text-xs font-extrabold text-slate-900 font-mono">${iss.issue_key} ${statusBadge}</span>
-                        <span class="text-xs text-slate-600 leading-tight mt-0.5">${iss.title}</span>
-                    </div>
-                </label>
-            `;
-        });
-        html += `</div></div>`;
-    }
-    html += '</div>';
-
-    document.getElementById('pickerContent').innerHTML = html;
-    document.getElementById('modalPicker').classList.remove('hidden');
-    document.getElementById('modalPicker').style.display = 'flex';
-};
-
-// UI RE-RENDER HILFSFUNKTIONEN
-function renderReqTagsUI(vals) {
-    const container = document.getElementById('task_selected_reqs_container');
-    if (!container) return;
-    if (vals.length === 0) {
-        container.innerHTML = '<span class="text-slate-500 text-sm font-medium italic mt-1">Keine ausgewählt...</span>';
-        return;
-    }
-    container.innerHTML = vals.map(key => `
-        <span class="inline-flex items-center gap-1 bg-indigo-100 text-indigo-950 px-2.5 py-1 rounded text-xs font-extrabold font-mono border border-indigo-300 shadow-sm">
-            ${key}
-            <button type="button" onclick="window.removeReqTag('${key}')" class="text-indigo-500 hover:text-red-600 transition-colors ml-1">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-        </span>
-    `).join('');
+function renderTaskRequirementList() {
+    const list = document.getElementById('taskReqCheckboxList');
+    if (!list) return;
+    const selected = csvValues('task_linked_reqs');
+    const query = (document.getElementById('taskReqSearch')?.value || '').trim().toLowerCase();
+    const rows = allRequirements.filter(item => !query ||
+        [item.req_key, item.type, item.title, item.description].filter(Boolean).join(' ').toLowerCase().includes(query));
+    list.innerHTML = rows.length ? rows.map(item => `
+        <label class="flex cursor-pointer items-start gap-3 border-b border-slate-200 px-3 py-2.5 last:border-b-0 hover:bg-indigo-50">
+            <input type="checkbox" class="task-req-cb mt-0.5 h-4 w-4" value="${planEsc(item.req_key)}"
+                ${selected.includes(String(item.req_key)) ? 'checked' : ''}>
+            <span class="min-w-0 text-xs"><strong class="font-mono text-indigo-950">${planEsc(item.req_key)}</strong>
+                <span class="ml-2 text-[10px] font-bold uppercase text-slate-400">${planEsc(item.type || '')}</span>
+                <span class="mt-0.5 block truncate text-slate-700" title="${planEsc(item.title || '')}">${planEsc(item.title || '')}</span></span>
+        </label>`).join('') : '<div class="p-4 text-sm italic text-slate-400">Keine passenden Anforderungen.</div>';
 }
 
-function renderIssueTagsUI(ids) {
-    const container = document.getElementById('task_selected_issues_container');
-    if (!container) return;
-    if (ids.length === 0) {
-        container.innerHTML = '<span class="text-slate-500 text-sm font-medium italic mt-1">Keine ausgewählt...</span>';
-        return;
-    }
-    container.innerHTML = ids.map(id => {
-        const iss = allIssues.find(i => i.id == id);
-        const key = iss ? iss.issue_key : id;
-        return `
-        <span class="inline-flex items-center gap-1 bg-rose-100 text-rose-950 px-2.5 py-1 rounded text-xs font-extrabold font-mono border border-rose-300 shadow-sm">
-            ${key}
-            <button type="button" onclick="window.removeIssueTag('${id}')" class="text-rose-500 hover:text-red-600 transition-colors ml-1">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-        </span>
-        `;
-    }).join('');
+function renderTaskIssueList() {
+    const list = document.getElementById('taskIssueCheckboxList');
+    if (!list) return;
+    const selected = csvValues('task_linked_issues');
+    const query = (document.getElementById('taskIssueSearch')?.value || '').trim().toLowerCase();
+    const rows = allIssues.filter(item => !query ||
+        [item.issue_key, item.issue_type, item.status, item.title, item.category].filter(Boolean).join(' ').toLowerCase().includes(query));
+    list.innerHTML = rows.length ? rows.map(item => `
+        <label class="flex cursor-pointer items-start gap-3 border-b border-slate-200 px-3 py-2.5 last:border-b-0 hover:bg-rose-50">
+            <input type="checkbox" class="task-issue-cb mt-0.5 h-4 w-4" value="${Number(item.id)}"
+                ${selected.includes(String(item.id)) ? 'checked' : ''}>
+            <span class="min-w-0 text-xs"><strong class="font-mono text-rose-950">${planEsc(item.issue_key)}</strong>
+                <span class="ml-2 text-[10px] font-bold uppercase text-slate-400">${planEsc(item.status || '')}</span>
+                <span class="mt-0.5 block truncate text-slate-700" title="${planEsc(item.title || '')}">${planEsc(item.title || '')}</span></span>
+        </label>`).join('') : '<div class="p-4 text-sm italic text-slate-400">Keine passenden Issues.</div>';
 }
 
-window.removeReqTag = function (key) {
-    let vals = document.getElementById('task_linked_reqs').value.split(',').filter(x => x);
-    vals = vals.filter(v => v !== key);
-    document.getElementById('task_linked_reqs').value = vals.join(',');
-    renderReqTagsUI(vals);
-};
+function syncTaskRequirementSelection() {
+    const values = [...document.querySelectorAll('#taskReqCheckboxList .task-req-cb:checked')].map(cb => cb.value);
+    document.getElementById('task_linked_reqs').value = values.join(',');
+}
 
-window.removeIssueTag = function (id) {
-    let vals = document.getElementById('task_linked_issues').value.split(',').filter(x => x);
-    vals = vals.filter(v => v !== String(id));
-    document.getElementById('task_linked_issues').value = vals.join(',');
-    renderIssueTagsUI(vals);
-};
-
-// EVENT FÜR DEN "ÜBERNEHMEN" BUTTON IM PICKER
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('btnPickerApply').addEventListener('click', () => {
-        const checkboxes = Array.from(document.querySelectorAll('#pickerContent .picker-cb:checked'));
-        const vals = checkboxes.map(cb => cb.value);
-
-        if (currentPickerMode === 'req') {
-            document.getElementById('task_linked_reqs').value = vals.join(',');
-            renderReqTagsUI(vals);
-        } else if (currentPickerMode === 'issue') {
-            document.getElementById('task_linked_issues').value = vals.join(',');
-            renderIssueTagsUI(vals);
-        }
-
-        document.getElementById('modalPicker').classList.add('hidden');
-        document.getElementById('modalPicker').style.display = '';
-    });
-});
+function syncTaskIssueSelection() {
+    const values = [...document.querySelectorAll('#taskIssueCheckboxList .task-issue-cb:checked')].map(cb => cb.value);
+    document.getElementById('task_linked_issues').value = values.join(',');
+}
 
 // =========================================================================
 // INIT EVENTS
 // =========================================================================
 export function initProjectPlanEvents() {
+    document.getElementById('taskReqSearch')?.addEventListener('input', renderTaskRequirementList);
+    document.getElementById('taskIssueSearch')?.addEventListener('input', renderTaskIssueList);
+    document.getElementById('taskReqCheckboxList')?.addEventListener('change', event => {
+        if (event.target.matches('.task-req-cb')) syncTaskRequirementSelection();
+    });
+    document.getElementById('taskIssueCheckboxList')?.addEventListener('change', event => {
+        if (event.target.matches('.task-issue-cb')) syncTaskIssueSelection();
+    });
+    document.getElementById('taskSearchInput')?.addEventListener('input', renderFilteredTasks);
+    document.getElementById('taskCategoryFilter')?.addEventListener('change', renderFilteredTasks);
+
     const btnNew = document.getElementById('btnNewTask');
     const form = document.getElementById('formTask');
     const autoToggle = document.getElementById('task_is_auto');
@@ -406,10 +285,10 @@ export function initProjectPlanEvents() {
             }
 
             document.getElementById('task_linked_reqs').value = '';
-            renderReqTagsUI([]);
+            renderTaskRequirementList();
 
             document.getElementById('task_linked_issues').value = '';
-            renderIssueTagsUI([]);
+            renderTaskIssueList();
 
             generateAutoId();
 
@@ -523,11 +402,11 @@ window.editTask = function (id) {
     // Verknüpfte Elemente laden und rendern
     const reqs = JSON.parse(task.linked_reqs || '[]');
     document.getElementById('task_linked_reqs').value = reqs.join(',');
-    renderReqTagsUI(reqs);
+    renderTaskRequirementList();
 
     const issues = JSON.parse(task.linked_issues || '[]');
     document.getElementById('task_linked_issues').value = issues.join(',');
-    renderIssueTagsUI(issues);
+    renderTaskIssueList();
 
     document.getElementById('task_is_auto').dispatchEvent(new Event('change'));
     document.getElementById('taskModalTitle').textContent = 'Aufgabe bearbeiten (ID: ' + (task.wbs_code || 'Neu') + ')';
@@ -746,5 +625,4 @@ function renderFilteredTasks() {
 }
 // Event Listener für die Live-Filterung registrieren (in initProjectPlanEvents einfügen):
 // Live-Filter Event Listener registrieren
-document.getElementById('taskSearchInput')?.addEventListener('input', renderFilteredTasks);
-document.getElementById('taskCategoryFilter')?.addEventListener('change', renderFilteredTasks);
+
