@@ -54,6 +54,33 @@ const typeLabels = {
     improvement: 'Verbesserung'
 };
 
+
+/**
+ * Verwandelt GitHub-Markdown in schicke HTML Code-Blöcke.
+ * Escaped den Text vorher automatisch zur Sicherheit.
+ */
+function formatIssueText(text) {
+    if (!text) return '<span class="text-slate-400 italic">Keine Angabe</span>';
+    
+    // 1. Sicherheit: Nutzt deine bestehende esc() Funktion
+    let html = esc(text);
+    
+    // 2. Mehrzeilige Code-Blöcke (```c ... ```) umwandeln -> Dunkles Theme
+
+    html = html.replace(/```([a-zA-Z0-9]*)\s*([\s\S]*?)```/g, function(match, lang, code) {
+        const langBadge = lang ? `<div class="text-[10px] text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-700 pb-1">${lang}</div>` : '';
+        return `<div class="bg-slate-900 text-slate-50 p-3 rounded-md my-3 overflow-x-auto shadow-inner border border-slate-700 font-mono text-xs text-left whitespace-pre">
+                    ${langBadge}<code>${code}</code>
+                </div>`;
+    });
+    
+    // 3. Einzeiliger Inline-Code (`code`) umwandeln -> Helles Badge
+    html = html.replace(/`([^`\n]+)`/g, '<code class="bg-slate-100 text-rose-600 border border-slate-200 px-1.5 py-0.5 rounded font-mono text-xs">$1</code>');
+    
+    return html;
+}
+
+
 /**
  * Extrahiert die laufende Nummer aus einem Issue-Key.
  *
@@ -1571,7 +1598,7 @@ window.viewIssueReport = async function (issueId) {
                         Fehlerbeschreibung / Meldung
                     </div>
                     <div class="rounded border border-slate-200 bg-slate-50 p-3 text-slate-800 whitespace-pre-wrap leading-relaxed">
-                        ${esc(iss.description || 'Keine Beschreibung vorhanden.')}
+                        ${formatIssueText(iss.description || 'Keine Beschreibung vorhanden.')}
                     </div>
                 </div>
             </div>
@@ -1588,7 +1615,7 @@ window.viewIssueReport = async function (issueId) {
                     ? `
                             <div>
                                 <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Externe Rückmeldung</div>
-                                <div class="rounded border border-slate-200 bg-slate-50 p-2.5 text-slate-700 whitespace-pre-wrap">${esc(iss.external_response)}</div>
+                                <div class="rounded border border-slate-200 bg-slate-50 p-2.5 text-slate-700 whitespace-pre-wrap">${formatIssueText(iss.external_response)}</div>
                             </div>
                         `
                     : ''
@@ -1598,7 +1625,7 @@ window.viewIssueReport = async function (issueId) {
                     ? `
                             <div>
                                 <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Interne Rückmeldung</div>
-                                <div class="rounded border border-slate-200 bg-slate-50 p-2.5 text-slate-700 whitespace-pre-wrap">${esc(iss.internal_response)}</div>
+                                <div class="rounded border border-slate-200 bg-slate-50 p-2.5 text-slate-700 whitespace-pre-wrap">${formatIssueText(iss.internal_response)}</div>
                             </div>
                         `
                     : ''
@@ -1608,7 +1635,7 @@ window.viewIssueReport = async function (issueId) {
                     ? `
                             <div>
                                 <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-1">Lösung / Abschlussinformation</div>
-                                <div class="rounded border border-emerald-200 bg-emerald-50/50 p-2.5 font-medium text-emerald-950 whitespace-pre-wrap">${esc(iss.resolution)}</div>
+                                <div class="rounded border border-emerald-200 bg-emerald-50/50 p-2.5 font-medium text-emerald-950 whitespace-pre-wrap">${formatIssueText(iss.resolution)}</div>
                             </div>
                         `
                     : ''
