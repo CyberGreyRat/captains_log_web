@@ -1,0 +1,3 @@
+<?php
+require_once __DIR__.'/attachment_common.php';
+try{$uid=att_user();$d=json_decode(file_get_contents('php://input'),true)?:[];$project=att_clean($d['project_id']??'',50);att_access($pdo,$project,$uid);$id=(int)($d['id']??0);$q=$pdo->prepare('SELECT * FROM project_attachments WHERE id=? AND project_id=?');$q->execute([$id,$project]);$row=$q->fetch();if(!$row)throw new Exception('Anhang nicht gefunden.');$pdo->prepare('DELETE FROM project_attachments WHERE id=? AND project_id=?')->execute([$id,$project]);if($row['storage_type']==='upload'&&!empty($row['stored_filename'])){@unlink(att_dir($project).'/'.basename($row['stored_filename']));}att_json(['success'=>true]);}catch(Throwable $e){att_json(['success'=>false,'error'=>$e->getMessage()],400);}

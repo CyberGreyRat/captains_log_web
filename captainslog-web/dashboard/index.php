@@ -126,6 +126,13 @@ require_once __DIR__ . '/header.php';
             data-panel="iso14001">
             ISO 14001
         </button>
+
+        <button type="button"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
+            data-panel="attachments">
+            📎 Anhänge
+        </button>
+
         <button type="button"
             class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
             data-panel="reports">
@@ -193,6 +200,10 @@ require_once __DIR__ . '/header.php';
 
     <section id="iso14001" class="panel h-full min-h-0 w-full">
         <?php include __DIR__ . '/views/iso14001.php'; ?>
+    </section>
+
+    <section id="attachments" class="panel">
+        <?php require __DIR__ . '/views/attachments.php'; ?>
     </section>
 
     <section id="reports" class="panel h-full min-h-0 w-full">

@@ -71,6 +71,11 @@ import {
 
 import { initReportsEvents } from './reports.js';
 
+import {
+    loadAttachments,
+    initAttachmentEvents
+} from './attachments.js';
+
 
 
 
@@ -85,6 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         initializeProjectSwitch();
         initHistoryEvents();
         initReportsEvents();
+        
 
         if (currentProjectId) {
             const projectSelect =
@@ -123,7 +129,8 @@ function initializeModuleEvents() {
         initAssetEvents,
         initGoalEvents,
         initProjectTeamEvents,
-        initReportsEvents
+        initReportsEvents,
+        initAttachmentEvents
     ];
 
     initializers.forEach(initializer => {
@@ -159,7 +166,8 @@ async function loadAllProjectData() {
         ['User Stories', loadUserStories],
         ['Historie', loadHistory],
         ['SBOM', loadSBOM],
-        ['ISO 14001', loadIsoData]
+        ['ISO 14001', loadIsoData],
+        ['Anhänge', loadAttachments]
     ];
 
 
@@ -401,7 +409,8 @@ function initializeTabNavigation() {
         userstories: loadUserStories,
         history: loadHistory,
         sbom: loadSBOM,
-        iso14001: loadIsoData
+        iso14001: loadIsoData,
+        attachments: loadAttachments,
     };
 
     document

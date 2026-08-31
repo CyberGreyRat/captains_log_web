@@ -2,6 +2,23 @@
 import { currentProjectId } from './state.js';
 import { renderHistory } from './history.js';
 
+
+// =============================================================================
+// MODULVERSION UND GEMEINSAME HILFSFUNKTIONEN
+// =============================================================================
+const REQUIREMENTS_MODULE_VERSION = '2026-08-28.2';
+console.info(`[Captain's Log] requirements.js ${REQUIREMENTS_MODULE_VERSION} geladen`);
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[character]));
+}
+
 let loadedRequirements = [];
 let globalStakeholders = [];
 
@@ -725,4 +742,31 @@ window.hardDeleteRequirement = async function (id, key) {
         console.error(e);
         alert("Netzwerkfehler beim Löschen.");
     }
+};
+
+
+// =============================================================================
+// ANHÄNGE: FORMULAR MIT DER AKTUELLEN ANFORDERUNG ÖFFNEN
+// =============================================================================
+window.openRequirementAttachment = function (requirementId) {
+    const requirement = loadedRequirements.find(
+        item => Number(item.id) === Number(requirementId)
+    );
+
+    if (!requirement) {
+        alert('Anforderung wurde nicht gefunden.');
+        return;
+    }
+
+    if (typeof window.openAttachmentModal !== 'function') {
+        alert('Das Anhangsmodul wurde nicht geladen.');
+        return;
+    }
+
+    window.openAttachmentModal(
+        'requirement',
+        Number(requirement.id),
+        requirement.req_key || '',
+        requirement.title || ''
+    );
 };
