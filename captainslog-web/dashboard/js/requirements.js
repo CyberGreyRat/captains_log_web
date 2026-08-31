@@ -520,12 +520,52 @@ function showRequirementDetail(req) {
         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Begründung (Rationale)</h3>
         <div class="bg-slate-50 border p-3 text-sm text-slate-700 whitespace-pre-wrap mb-6">${req.rationale || '-'}</div>
         
+        <section id="requirementLinkedRisks" class="mb-6">
+            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Verknüpfte Risiken</h3>
+            <div class="bg-slate-50 border p-3 text-sm italic text-slate-400">Risiken werden geladen...</div>
+        </section>
+
         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Prüfungen & Kriterien</h3>
         <div class="bg-slate-50 border p-4">${criteriaHtml}</div>
     `;
 
+    renderLinkedRisks(req.id);
     renderHistory(req.req_key);
 }
+
+// =============================================================================
+// RISIKO-TRACEABILITY: VERKNÜPFTE RISIKEN IN DER ANFORDERUNG ANZEIGEN
+// =============================================================================
+async function renderLinkedRisks(requirementId) {
+    const container = document.querySelector('#requirementLinkedRisks > div');
+    if (!container || !currentProjectId) return;
+    try {
+        const response = await fetch(`../api/get_requirement_risks.php?project_id=${encodeURIComponent(currentProjectId)}&requirement_id=${Number(requirementId)}`);
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'Risiken konnten nicht geladen werden.');
+        if (!data.risks.length) {
+            container.className = 'border border-slate-200 bg-slate-50 p-3 text-sm italic text-slate-400';
+            container.textContent = 'Keine Risiken mit dieser Anforderung verknüpft.';
+            return;
+        }
+        container.className = 'space-y-2';
+        container.innerHTML = data.risks.map(risk => `
+            <button type="button" onclick="window.openRiskFromRequirement(${Number(risk.id)})"
+                class="flex w-full items-center justify-between gap-3 border border-amber-200 bg-amber-50 p-3 text-left hover:bg-amber-100">
+                <span class="min-w-0"><strong class="font-mono text-xs text-amber-900">${escapeHtml(risk.req_key)}</strong>
+                <span class="ml-2 text-sm font-bold text-slate-800">${escapeHtml(risk.title)}</span></span>
+                <span class="shrink-0 text-xs font-bold text-amber-900">R ${Number(risk.risk_score)} · ${escapeHtml(risk.workflow_status)}</span>
+            </button>`).join('');
+    } catch (error) {
+        container.className = 'border border-red-200 bg-red-50 p-3 text-sm text-red-700';
+        container.textContent = error.message;
+    }
+}
+
+window.openRiskFromRequirement = function (riskId) {
+    document.querySelector('[data-panel="risks"], [data-target="risks"]')?.click();
+    window.setTimeout(() => window.editRisk?.(Number(riskId)), 150);
+};
 
 export function initRequirementEvents() {
     const filterContainer = document.getElementById('reqFilterCheckboxes');
