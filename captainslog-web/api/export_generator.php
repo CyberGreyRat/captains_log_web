@@ -49,11 +49,7 @@ function ex_tokens(string $text, array $tokens): string
 }
 function ex_group(array $requirement): string
 {
-    return match (strtoupper(report_v($requirement, 'type', 'SYS'))) {
-        'HRS' => 'Elektronik / Hardware', 'SRS', 'SWC' => 'Software', 'USR' => 'Nutzeranforderungen',
-        'SEC' => 'Security', 'TC', 'TR' => 'Verifikation und Test', 'RISK' => 'Risiken', 'ENV' => 'Umwelt',
-        default => 'Systemanforderungen'
-    };
+    return ex_type_title(report_v($requirement, 'type', 'SYS'));
 }
 function ex_rich_text(string $text): string
 {
@@ -101,6 +97,98 @@ function ex_issue_toc_label(string $issueKey, string $title): string
         . report_h($issueKey)
         . '&lt;/strong&gt; '
         . report_h(ex_toc_title($title));
+}
+
+
+/** Feste, fachliche Reihenfolge für das Pflichtenheft. */
+function ex_type_order(string $type): int
+{
+    $order = ['USR'=>10,'SYS'=>20,'HRS'=>30,'SRS'=>40,'SWC'=>50,'SEC'=>60,'TC'=>70,'TR'=>80,'ENV'=>90,'AST'=>100,'GOAL'=>110,'RISK'=>900];
+    return $order[strtoupper($type)] ?? 500;
+}
+function ex_type_title(string $type): string
+{
+    return match (strtoupper($type)) {
+        'USR'=>'Benutzeranforderungen (USR)', 'SYS'=>'Systemanforderungen (SYS)',
+        'HRS'=>'Hardwareanforderungen (HRS)', 'SRS'=>'Softwareanforderungen (SRS)',
+        'SWC'=>'Softwarekomponenten (SWC)', 'SEC'=>'Security-Anforderungen (SEC)',
+        'TC'=>'Testfälle (TC)', 'TR'=>'Testergebnisse (TR)', 'ENV'=>'Umweltanforderungen (ENV)',
+        'AST'=>'Assets (AST)', 'GOAL'=>'Projektziele (GOAL)', default=>'Weitere Anforderungen'
+    };
+}
+function ex_attrs(array $row): array
+{
+    $raw=$row['attributes'] ?? [];
+    if (is_array($raw)) return $raw;
+    $decoded=json_decode((string)$raw,true);
+    return is_array($decoded)?$decoded:[];
+}
+/** Zerlegt Kriterien und verbindet sie mit criteria_states. */
+function ex_criteria(array $requirement): array
+{
+    $lines=array_values(array_filter(array_map(static fn($v)=>trim((string)preg_replace('/^-\\s*/u','',$v)),preg_split('/\\R/u',report_v($requirement,'acceptance_criteria'))?:[]),static fn($v)=>$v!==''));
+    $states=ex_attrs($requirement)['criteria_states'] ?? [];
+    if (is_string($states)) $states=json_decode($states,true)?:[];
+    $items=[];$done=0;
+    foreach($lines as $index=>$line){$state=$states[$index]??$states[(string)$index]??[];$checked=!empty($state['checked']);if($checked)$done++;$items[]=['text'=>$line,'checked'=>$checked,'by'=>$state['by']??'','date'=>$state['date']??'','note'=>$state['note']??''];}
+    return ['items'=>$items,'done'=>$done,'total'=>count($items),'percent'=>count($items)?(int)round($done/count($items)*100):0];
+}
+/** Rendert Kriterien im Pflichtenheft nur als Soll-Vorgaben. */
+function ex_criteria_definition_html(array $requirement): string
+{
+    $criteria = ex_criteria($requirement);
+    if (!$criteria['total']) return '<div class="criteria-empty">Keine Akzeptanzkriterien definiert.</div>';
+    $html = '<ul class="criteria-definition">';
+    foreach ($criteria['items'] as $item) $html .= '<li>' . report_h($item['text']) . '</li>';
+    return $html . '</ul>';
+}
+
+function ex_criteria_html(array $requirement): string
+{
+    $c=ex_criteria($requirement); if(!$c['total'])return '<div class="criteria-empty">Keine Akzeptanzkriterien definiert.</div>';
+    $html='<div class="criteria-summary"><strong>'.$c['done'].' von '.$c['total'].' Kriterien erfüllt</strong><span>'.$c['percent'].' %</span></div><div class="criteria-track"><div style="width:'.$c['percent'].'%"></div></div><table class="criteria-table">';
+    foreach($c['items'] as $item){$meta=$item['checked']&&($item['by']||$item['date']||$item['note'])?'<small>'.report_h(trim(($item['by']?'Geprüft von '.$item['by'].' ':'').($item['date']?'am '.$item['date'].' ':'').$item['note'])).'</small>':'';$html.='<tr><td class="criteria-mark '.($item['checked']?'done':'open').'">'.($item['checked']?'✓':'○').'</td><td>'.report_h($item['text']).$meta.'</td></tr>';}
+    return $html.'</table>';
+}
+function ex_risk_data(PDO $pdo,string $projectId): array
+{
+    $q=$pdo->prepare("SELECT * FROM requirements WHERE project_id=? AND type='RISK' AND review_status<>'Archiviert' ORDER BY COALESCE(serial_number,id),id");$q->execute([$projectId]);$risks=$q->fetchAll(PDO::FETCH_ASSOC);
+    $linkReq=$pdo->prepare("SELECT l.risk_id,l.link_group,r.req_key,r.title FROM risk_requirement_links l JOIN requirements r ON r.id=l.requirement_id JOIN requirements risk ON risk.id=l.risk_id WHERE risk.project_id=? ORDER BY l.risk_id,l.link_group,r.req_key");$linkReq->execute([$projectId]);$links=[];foreach($linkReq->fetchAll(PDO::FETCH_ASSOC) as $x)$links[(int)$x['risk_id']][$x['link_group']][]=$x;
+    foreach($risks as &$risk)$risk['risk_links']=$links[(int)$risk['id']]??[];unset($risk);return $risks;
+}
+function ex_tree_html(array $requirements): string
+{
+    // Fachliche Übersicht statt eines irreführenden technischen Dateibaums:
+    // Jede USR bildet einen Themenblock. Erreichbare Nachfolger werden nach
+    // Anforderungsebene gruppiert. Dadurch sehen SRS nicht wie direkte Kinder
+    // der USR aus, wenn zwischen den Ebenen fachlich SYS/HRS liegen.
+    $byKey=[];$children=[];
+    foreach($requirements as $row)$byKey[report_v($row,'req_key')]=$row;
+    foreach($requirements as $row){
+        foreach(json_decode(report_v($row,'parents','[]'),true)?:[] as $parentKey){
+            if(isset($byKey[$parentKey]))$children[$parentKey][]=report_v($row,'req_key');
+        }
+    }
+    $usr=array_values(array_filter($requirements,static fn($r)=>strtoupper(report_v($r,'type'))==='USR'));
+    usort($usr,static fn($a,$b)=>strcmp(report_v($a,'req_key'),report_v($b,'req_key')));
+    $globallyShown=[];$html='';
+    foreach($usr as $root){
+        $rootKey=report_v($root,'req_key');$reachable=[];$queue=$children[$rootKey]??[];$seen=[];
+        while($queue){$key=array_shift($queue);if(isset($seen[$key])||!isset($byKey[$key]))continue;$seen[$key]=true;$reachable[]=$byKey[$key];foreach($children[$key]??[] as $next)$queue[]=$next;}
+        $html.='<section class="tree-topic"><div class="tree-root"><strong>'.report_h($rootKey).'</strong><span>'.report_h(report_v($root,'title')).'</span><small>'.report_h(report_v($root,'review_status','Neu')).'</small></div>';
+        $levels=['SYS'=>'Systemanforderungen','HRS'=>'Hardwareanforderungen','SRS'=>'Softwareanforderungen','SWC'=>'Softwarekomponenten','SEC'=>'Security-Anforderungen','TC'=>'Testfälle','TR'=>'Testergebnisse'];
+        foreach($levels as $type=>$label){
+            $items=array_values(array_filter($reachable,static fn($r)=>strtoupper(report_v($r,'type'))===$type));
+            if(!$items)continue;
+            $html.='<div class="tree-level"><div class="tree-level-title">├─ '.$label.'</div>';
+            foreach($items as $index=>$item){$key=report_v($item,'req_key');$globallyShown[$key]=true;$last=$index===array_key_last($items);$html.='<div class="tree-item"><span class="tree-lines">│&nbsp;&nbsp;'.($last?'└─':'├─').'</span><strong>'.report_h($key).'</strong><span>'.report_h(report_v($item,'title')).'</span><small>'.report_h(report_v($item,'review_status','Neu')).'</small></div>';}
+            $html.='</div>';
+        }
+        $html.='</section>';$globallyShown[$rootKey]=true;
+    }
+    $unassigned=array_values(array_filter($requirements,static fn($r)=>!isset($globallyShown[report_v($r,'req_key')])));
+    if($unassigned){$html.='<section class="tree-topic"><div class="tree-root"><strong>Weitere Anforderungen</strong><span>Keine eindeutige Zuordnung zu einer Benutzeranforderung</span></div>';$groups=[];foreach($unassigned as $r)$groups[strtoupper(report_v($r,'type','SYS'))][]=$r;uksort($groups,static fn($a,$b)=>ex_type_order($a)<=>ex_type_order($b));foreach($groups as $type=>$items){$html.='<div class="tree-level"><div class="tree-level-title">├─ '.report_h(ex_type_title($type)).'</div>';foreach($items as $i=>$item)$html.='<div class="tree-item"><span class="tree-lines">│&nbsp;&nbsp;'.($i===array_key_last($items)?'└─':'├─').'</span><strong>'.report_h(report_v($item,'req_key')).'</strong><span>'.report_h(report_v($item,'title')).'</span><small>'.report_h(report_v($item,'review_status','Neu')).'</small></div>';$html.='</div>';}$html.='</section>';}
+    return $html?:'<p>Keine Anforderungen vorhanden.</p>';
 }
 
 function ex_settings(PDO $pdo, string $projectId): array
@@ -478,6 +566,8 @@ tr {
     font-weight: bold !important;
     font-style: normal !important;
 }
+.criteria-definition { margin: 0; padding-left: 5mm; } .criteria-definition li { margin: 0 0 1.5mm; padding-left: 1mm; line-height: 1.35; }
+.context-card { margin: 0 0 5mm; padding: 3mm; border: .6pt solid #aab4c0; page-break-inside: avoid; } .context-block { margin-top: 3mm; line-height: 1.35; } .context-block > strong { display: block; margin-bottom: 1.2mm; color: #17365d; } .story-sentence { padding: 3mm; border-left: 2pt solid #17365d; background: #eef3f8; line-height: 1.45; } .context-empty { color: #777; font-style: italic; } 
 CSS;
 }
 
@@ -554,176 +644,65 @@ function ex_issue_html(PDO $pdo, array $project, array $settings, array $data): 
 }
 function ex_status_html(PDO $pdo, array $project, array $settings, array $data): array
 {
-    $ids = array_values(array_unique(array_filter(array_map('intval', $data['selected_ids'] ?? []))));
-    if (!$ids)
-        throw new RuntimeException('Keine Aufgaben ausgewählt.');
-    $q = $pdo->prepare('SELECT * FROM project_tasks WHERE project_id=? AND parent_id IS NULL AND id IN (' . ex_marks($ids) . ') ORDER BY wbs_code,id');
-    $q->execute(array_merge([report_v($project, 'id')], $ids));
-    $tasks = $q->fetchAll(PDO::FETCH_ASSOC);
-    [$accent, $company, $header, $footer, $logo] = ex_layout($project, $settings, 'Meilenstein- und Aufgaben-Protokoll');
-    $body = '<div class="cover"><h1>Meilenstein- und Aufgaben-Protokoll</h1><div class="project">' . report_h(report_v($project, 'name')) . '</div><table class="document-data"><tr><th>Stand</th><td>' . date('d.m.Y') . '</td></tr><tr><th>Berichtsart</th><td>Aufgaben-Protokoll</td></tr><tr><th>Klassifizierung</th><td>' . report_h(report_v($settings, 'classification', 'Vertraulich')) . '</td></tr></table></div><tocpagebreak links="on" toc-preHTML="&lt;div class=&quot;toc-title&quot;&gt;Inhaltsverzeichnis&lt;/div&gt;" /><h1>Meilenstein- und Aufgaben-Protokoll</h1><div class="meta"><strong>Projekt:</strong> ' . report_h(report_v($project, 'name')) . ' &nbsp; <strong>Stand:</strong> ' . date('d.m.Y H:i') . '</div>';
-    foreach ($tasks as $task) {
-        $id = (int) $task['id'];
-        $q = $pdo->prepare('SELECT * FROM project_tasks WHERE parent_id=? ORDER BY id');
-        $q->execute([$id]);
-        $subs = $q->fetchAll(PDO::FETCH_ASSOC);
-        $keys = json_decode(report_v($task, 'linked_reqs', '[]'), true) ?: [];
-        $reqs = [];
-        if ($keys) {
-            $q = $pdo->prepare('SELECT * FROM requirements WHERE project_id=? AND req_key IN (' . ex_marks($keys) . ') ORDER BY req_key');
-            $q->execute(array_merge([report_v($project, 'id')], $keys));
-            $reqs = $q->fetchAll(PDO::FETCH_ASSOC);
-        }
-        $q = $pdo->prepare('SELECT i.*,u.username FROM issue_tasks x JOIN issues i ON i.id=x.issue_id LEFT JOIN users u ON u.id=i.assignee_user_id WHERE x.task_id=? ORDER BY i.issue_key');
-        $q->execute([$id]);
-        $issues = $q->fetchAll(PDO::FETCH_ASSOC);
-        $doneSubs = count(array_filter($subs, 'ex_done'));
-        $doneReq = count(array_filter($reqs, fn($r) => report_v($r, 'review_status') === 'Geprüft & Freigegeben'));
-        $doneIssues = count(array_filter($issues, 'ex_done'));
-        $progress = (int) $task['progress_pct'];
-        $body .= '<section class="card task-card"><div class="category">' . report_h(report_v($task, 'category', 'Aufgabe')) . '</div><tocentry content="' . report_h(report_v($task, 'wbs_code', '-') . ' ' . ex_toc_title(report_v($task, 'title'))) . '" level="1" /><h2><span class="key">' . report_h(report_v($task, 'wbs_code', '-')) . '</span>&nbsp;&nbsp;&nbsp;&nbsp;' . report_h(report_v($task, 'title')) . '</h2>';
-        $taskFacts = [['Kategorie', report_v($task, 'category', '-')]];
-        if (ex_selected($data, 'assignee'))
-            $taskFacts[] = ['Zuständig', report_v($task, 'assignee', 'Nicht zugewiesen')];
-        if (ex_selected($data, 'dates'))
-            $taskFacts[] = ['Zeitraum', report_v($task, 'start_date', '-') . ' bis ' . report_v($task, 'end_date', '-')];
-        $taskFacts[] = ['Fortschritt', $progress . ' %'];
-        $body .= '<table class="facts">';
-        foreach ($taskFacts as $fact)
-            $body .= '<tr><th>' . report_h($fact[0]) . '</th><td>' . report_h($fact[1]) . '</td></tr>';
-        $body .= '</table>';
-        if (ex_selected($data, 'description')) {
-            $description = ex_clean_description(report_v($task, 'description'));
-            if ($description !== '')
-                $body .= '<p>' . ex_rich_text($description) . '</p>';
-        }
-        if (ex_selected($data, 'summary'))
-            $body .= '<div class="summary"><strong>' . $progress . '%</strong> · ' . $doneSubs . '/' . count($subs) . ' Check &amp; ' . $doneReq . '/' . count($reqs) . ' Reqs &amp; ' . $doneIssues . '/' . count($issues) . ' Issues erledigt</div>';
-        if (ex_selected($data, 'progress'))
-            $body .= '<div class="track"><div style="width:' . max(0, min(100, $progress)) . '%"></div></div>';
-        if (ex_selected($data, 'checklist')) {
-            $body .= '<h3>Unteraufgaben / Checkliste</h3><table class="check-table">';
-            foreach ($subs as $sub) {
-                $done = ex_done($sub);
-                $body .= '<tr><td class="check-cell"><span class="checkbox ' . ($done ? 'done' : '') . '">' . ($done ? '✓' : '') . '</span></td><td class="title-cell">' . report_h(report_v($sub, 'title')) . '</td><td class="percent-cell">' . (int) $sub['progress_pct'] . '%</td></tr>';
-            }
-            $body .= '</table>';
-        }
-        if (ex_selected($data, 'requirements')) {
-            $body .= '<h3>Verknüpfte Anforderungen</h3>';
-            foreach ($reqs as $r)
-                $body .= '<div class="trace"><span class="key">' . report_h(report_v($r, 'req_key')) . '</span>&nbsp;&nbsp;&nbsp;&nbsp;' . report_h(report_v($r, 'title')) . '<small>' . report_h(report_v($r, 'review_status')) . (report_v($r, 'source_reference') !== '' ? ' · Quelle ' . report_h(report_v($r, 'source_reference')) : '') . '</small></div>';
-        }
-        if (ex_selected($data, 'issues')) {
-            $body .= '<h3>Verknüpfte Issues</h3>';
-            foreach ($issues as $i)
-                $body .= '<div class="trace"><span class="key">' . report_h(report_v($i, 'issue_key')) . '</span>&nbsp;&nbsp;&nbsp;&nbsp;' . report_h(report_v($i, 'title')) . '<small>' . report_h(report_v($i, 'status')) . ' · ' . report_h(report_v($i, 'username', 'Nicht zugewiesen')) . '</small></div>';
-        }
-        if (ex_selected($data, 'effort'))
-            $body .= '<div class="box internal"><strong>Interner Aufwand:</strong> ' . report_h(report_v($task, 'effort_mt', '0')) . ' MT</div>';
-        if (ex_selected($data, 'internal_details'))
-            $body .= '<div class="box internal"><strong>Interne Details:</strong> Leistung ' . report_h(report_v($task, 'performance_pct', '100')) . '% · Auto-Fortschritt ' . (!empty($task['is_auto_progress']) ? 'Ja' : 'Nein') . '</div>';
-        $body .= '</section>';
+    $ids=array_values(array_unique(array_filter(array_map('intval',$data['selected_ids']??[]))));if(!$ids)throw new RuntimeException('Keine Aufgaben ausgewählt.');
+    $q=$pdo->prepare('SELECT * FROM project_tasks WHERE project_id=? AND parent_id IS NULL AND id IN ('.ex_marks($ids).') ORDER BY wbs_code,id');$q->execute(array_merge([report_v($project,'id')],$ids));$tasks=$q->fetchAll(PDO::FETCH_ASSOC);
+    [$accent,$company,$header,$footer,$logo]=ex_layout($project,$settings,'Meilenstein- und Aufgaben-Protokoll');
+    $body='<div class="cover"><h1>Meilenstein- und Aufgaben-Protokoll</h1><div class="project">'.report_h(report_v($project,'name')).'</div><table class="document-data"><tr><th>Stand</th><td>'.date('d.m.Y').'</td></tr><tr><th>Berichtsart</th><td>Separates Aufgaben-Protokoll</td></tr></table></div><pagebreak/><h1>Aufgaben-Protokoll</h1>';
+    foreach($tasks as $task){$id=(int)$task['id'];$q=$pdo->prepare('SELECT * FROM project_tasks WHERE parent_id=? ORDER BY id');$q->execute([$id]);$subs=$q->fetchAll(PDO::FETCH_ASSOC);$keys=json_decode(report_v($task,'linked_reqs','[]'),true)?:[];$reqs=[];if($keys){$q=$pdo->prepare('SELECT * FROM requirements WHERE project_id=? AND req_key IN ('.ex_marks($keys).') ORDER BY req_key');$q->execute(array_merge([report_v($project,'id')],$keys));$reqs=$q->fetchAll(PDO::FETCH_ASSOC);} $q=$pdo->prepare('SELECT i.*,u.username FROM issue_tasks x JOIN issues i ON i.id=x.issue_id LEFT JOIN users u ON u.id=i.assignee_user_id WHERE x.task_id=? ORDER BY i.issue_key');$q->execute([$id]);$issues=$q->fetchAll(PDO::FETCH_ASSOC);
+        $body.='<section class="card task-card"><div class="category">'.report_h(report_v($task,'category','Aufgabe')).'</div><h2>'.report_h(report_v($task,'wbs_code','-')).' · '.report_h(report_v($task,'title')).'</h2><table class="facts"><tr><th>Zuständig</th><td>'.report_h(report_v($task,'assignee','Nicht zugewiesen')).'</td><th>Fortschritt</th><td>'.(int)$task['progress_pct'].' %</td></tr><tr><th>Zeitraum</th><td colspan="3">'.report_h(report_v($task,'start_date','-').' bis '.report_v($task,'end_date','-')).'</td></tr></table>';
+        if(ex_selected($data,'description')&&ex_clean_description(report_v($task,'description'))!=='')$body.='<div class="box"><strong>Beschreibung</strong>'.ex_rich_text(ex_clean_description(report_v($task,'description'))).'</div>';
+        if(ex_selected($data,'progress'))$body.='<div class="track"><div style="width:'.max(0,min(100,(int)$task['progress_pct'])).'%"></div></div>';
+        if(ex_selected($data,'checklist')&&$subs){$body.='<h3>Unteraufgaben / Checkliste</h3><table class="check-table">';foreach($subs as $sub)$body.='<tr><td class="check-cell">'.(ex_done($sub)?'✓':'○').'</td><td class="title-cell">'.report_h(report_v($sub,'title')).'</td><td class="percent-cell">'.(int)$sub['progress_pct'].' %</td></tr>';$body.='</table>';}
+        if(ex_selected($data,'requirements')){$body.='<h3 class="requirement-heading">Verknüpfte Anforderungen</h3>';if(!$reqs)$body.='<p class="criteria-empty">Keine Anforderungen verknüpft.</p>';foreach($reqs as $r){$c=ex_criteria($r);$body.='<article class="requirement-card"><h3><span class="key">'.report_h(report_v($r,'req_key')).'</span> '.report_h(report_v($r,'title')).'</h3><div class="requirement-meta">Typ: '.report_h(report_v($r,'type')).' · Status: '.report_h(report_v($r,'review_status')).' · Kriterien: '.$c['done'].'/'.$c['total'].'</div>'.ex_criteria_html($r).'</article>';}}
+        if(ex_selected($data,'issues')&&$issues){$body.='<h3>Verknüpfte Issues</h3>';foreach($issues as $i)$body.='<div class="trace"><strong>'.report_h(report_v($i,'issue_key')).'</strong> '.report_h(report_v($i,'title')).'<small>'.report_h(report_v($i,'status')).' · '.report_h(report_v($i,'username','Nicht zugewiesen')).'</small></div>';}
+        $body.='</section>';
     }
-    return [ex_html_frame($body, $header, $footer, $logo, $accent), 'status_report'];
+    return [ex_html_frame($body,$header,$footer,$logo,$accent),'status_report'];
 }
+function ex_context_data(PDO $pdo, string $projectId): array
+{
+    $q=$pdo->prepare("SELECT * FROM requirements WHERE project_id=? AND type='GOAL' AND review_status<>'Archiviert' ORDER BY COALESCE(serial_number,id),id");$q->execute([$projectId]);$goals=$q->fetchAll(PDO::FETCH_ASSOC);
+    $q=$pdo->prepare('SELECT * FROM user_stories WHERE project_id=? ORDER BY us_key,id');$q->execute([$projectId]);$stories=$q->fetchAll(PDO::FETCH_ASSOC);
+    $q=$pdo->prepare('SELECT * FROM use_cases WHERE project_id=? ORDER BY uc_key,id');$q->execute([$projectId]);$cases=$q->fetchAll(PDO::FETCH_ASSOC);
+    return ['goals'=>$goals,'stories'=>$stories,'cases'=>$cases];
+}
+function ex_goal_html(array $g): string
+{
+    $a=ex_attrs($g);$h='<article class="context-card"><h3><span class="key">'.report_h(report_v($g,'req_key')).'</span> '.report_h(report_v($g,'title')).'</h3><div class="context-block"><strong>Zielbeschreibung</strong>'.ex_rich_text(report_v($g,'description',report_v($g,'title'))).'</div>';
+    $benefit=(string)($a['benefit']??report_v($g,'rationale'));if(trim($benefit)!=='')$h.='<div class="context-block"><strong>Begründung / Nutzen</strong>'.ex_rich_text($benefit).'</div>';
+    $criteria=(string)($a['success_criteria']??report_v($g,'acceptance_criteria'));if(trim($criteria)!=='')$h.='<div class="context-block"><strong>Erfolgskriterien</strong>'.ex_rich_text($criteria).'</div>';return $h.'</article>';
+}
+function ex_story_html(array $x): string
+{
+    $h='<article class="context-card"><h3><span class="key">'.report_h(report_v($x,'us_key')).'</span> '.report_h(report_v($x,'title')).'</h3><div class="story-sentence"><strong>Als</strong> '.report_h(report_v($x,'us_role','-')).' <strong>möchte ich</strong> '.report_h(report_v($x,'us_action','-')).', <strong>so dass</strong> '.report_h(report_v($x,'us_benefit','-')).'.</div>';$c=trim(report_v($x,'acceptance_criteria'));if($c!==''){$h.='<div class="context-block"><strong>Akzeptanzkriterien als Soll-Vorgaben</strong><ul class="criteria-definition">';foreach(preg_split('/\\R/u',$c)?:[] as $line){$line=trim((string)preg_replace('/^-\\s*/u','',$line));if($line!=='')$h.='<li>'.report_h($line).'</li>';}$h.='</ul></div>';}return $h.'</article>';
+}
+function ex_case_html(array $x): string
+{
+    $h='<article class="context-card"><h3><span class="key">'.report_h(report_v($x,'uc_key')).'</span> '.report_h(report_v($x,'title')).'</h3><table class="facts"><tr><th>Primärer Akteur</th><td>'.report_h(report_v($x,'primary_actor','-')).'</td></tr></table>';foreach([['Vorbedingungen','preconditions'],['Erfolgreicher Standardablauf','main_scenario'],['Alternative Abläufe und Fehlerfälle','alt_scenario']] as $part){$text=report_v($x,$part[1]);if(trim($text)!=='')$h.='<div class="context-block"><strong>'.report_h($part[0]).'</strong>'.ex_rich_text($text).'</div>';}return $h.'</article>';
+}
+
 function ex_spec_html(PDO $pdo, array $project, array $settings): array
 {
-    $q = $pdo->prepare('SELECT * FROM requirements WHERE project_id=? ORDER BY type,COALESCE(serial_number,id),id');
-    $q->execute([report_v($project, 'id')]);
-    $reqs = $q->fetchAll(PDO::FETCH_ASSOC);
-    [$accent, $company, $header, $footer, $logo] = ex_layout($project, $settings, 'Pflichtenheft');
-    $groups = [];
-    foreach ($reqs as $r)
-        $groups[ex_group($r)][] = $r;
-    $body = '<div style="text-align:center;padding-top:45mm"><h1 style="border:0;letter-spacing:5px">P f l i c h t e n h e f t</h1><p>für das Projekt</p><h1 style="border:0">' . report_h(report_v($project, 'name')) . '</h1></div><pagebreak><h1>1. Einführung</h1><p>' . nl2br(report_h(report_v($project, 'description'))) . '</p><h1>2. Pflichten und Anforderungen</h1>';
-    $n = 1;
-    foreach ($groups as $name => $items) {
-        $body .= '<h2>2.' . $n++ . ' ' . report_h($name) . '</h2><table class="spec"><thead><tr><th class="id">ID</th><th class="description">Spezifikation</th><th class="evidence">Nachweis</th><th class="reference">Verweis</th><th class="notes">Bemerkung</th></tr></thead><tbody>';
-        foreach ($items as $r) {
-            $spec = report_v($r, 'title');
-            if (report_v($r, 'description') !== '' && report_v($r, 'description') !== $spec)
-                $spec .= "\n" . report_v($r, 'description');
-            $parents = json_decode(report_v($r, 'parents', '[]'), true) ?: [];
-            $children = json_decode(report_v($r, 'children', '[]'), true) ?: [];
-            $refs = [];
-            if ($parents)
-                $refs[] = 'Parents: ' . implode(', ', $parents);
-            if ($children)
-                $refs[] = 'Children: ' . implode(', ', $children);
-            $notes = ['Typ: ' . report_v($r, 'type'), 'Status: ' . report_v($r, 'review_status')];
-            if (report_v($r, 'source_reference') !== '')
-                $notes[] = 'Quelle-ID: ' . report_v($r, 'source_reference');
-            if (report_v($r, 'source_document') !== '')
-                $notes[] = 'Dokument: ' . report_v($r, 'source_document');
-            if (report_v($r, 'source_page') !== '')
-                $notes[] = 'Seite: ' . report_v($r, 'source_page');
-            $body .= '<tr><td>' . report_h(report_v($r, 'req_key')) . '</td><td>' . nl2br(report_h($spec)) . '</td><td>' . nl2br(report_h(report_v($r, 'acceptance_criteria', '-'))) . '</td><td>' . nl2br(report_h(implode("\n", $refs))) . '</td><td>' . nl2br(report_h(implode("\n", $notes))) . '</td></tr>';
-        }
-        $body .= '</tbody></table>';
-    }
-    return [ex_html_frame($body, $header, $footer, $logo, $accent), 'specification'];
+    $q=$pdo->prepare("SELECT * FROM requirements WHERE project_id=? AND type<>'RISK' ORDER BY COALESCE(serial_number,id),id");$q->execute([report_v($project,'id')]);$reqs=$q->fetchAll(PDO::FETCH_ASSOC);usort($reqs,static fn($a,$b)=>ex_type_order(report_v($a,'type'))<=>ex_type_order(report_v($b,'type')) ?: ((int)($a['serial_number']??$a['id'])<=>(int)($b['serial_number']??$b['id'])));
+    $risks=ex_risk_data($pdo,report_v($project,'id'));$contextData=ex_context_data($pdo,report_v($project,'id'));[$accent,$company,$header,$footer,$logo]=ex_layout($project,$settings,'Pflichtenheft');
+    $projectDescription=trim(report_v($project,'description'));
+    $body='<div class="cover"><h1>P f l i c h t e n h e f t</h1><div class="project">'.report_h(report_v($project,'name')).'</div></div><pagebreak/><tocpagebreak links="on" toc-preHTML="&lt;div class=\'toc-title\'&gt;Inhaltsverzeichnis&lt;/div&gt;"/>';
+    $body.='<h1>1. Einführung</h1><h2>1.1 Zweck des Dokuments</h2><p>Dieses Pflichtenheft beschreibt die Benutzer-, System-, Hardware- und Softwareanforderungen des Projekts sowie deren Verifikation und risikobezogene Rückverfolgbarkeit.</p><h2>1.2 Projektbeschreibung</h2><p>'.($projectDescription!==''?nl2br(report_h($projectDescription)):'Für das Projekt wurde noch keine Projektbeschreibung hinterlegt.').'</p><h2>1.3 Dokumentstruktur</h2><p>Die Anforderungen sind nach Anforderungstyp gegliedert. Die vorgelagerte Übersicht fasst die gepflegten Beziehungen fachlich nach Ebenen zusammen. Risiken und Verifikation werden in eigenen Abschnitten dargestellt.</p><h2>1.4 Geltungsbereich</h2><p>Der Geltungsbereich ergibt sich aus der Projektbeschreibung und den im Projekt enthaltenen Anforderungen.</p>';
+    $body.='<h1>2. Fachlicher Kontext</h1><h2>2.1 Projektziele</h2>';if($contextData['goals'])foreach($contextData['goals'] as $x)$body.=ex_goal_html($x);else $body.='<p class="context-empty">Keine Projektziele hinterlegt.</p>';$body.='<h2>2.2 User Stories</h2>';if($contextData['stories'])foreach($contextData['stories'] as $x)$body.=ex_story_html($x);else $body.='<p class="context-empty">Keine User Stories hinterlegt.</p>';$body.='<h2>2.3 Use Cases</h2>';if($contextData['cases'])foreach($contextData['cases'] as $x)$body.=ex_case_html($x);else $body.='<p class="context-empty">Keine Use Cases hinterlegt.</p>';$body.='<h1>3. Anforderungsübersicht und Traceability</h1><p>Die Übersicht gruppiert die erreichbaren Anforderungen je Benutzeranforderung nach fachlicher Ebene.</p><div class="requirement-tree">'.ex_tree_html($reqs).'</div>';$groups=[];foreach($reqs as $r)$groups[report_v($r,'type','SYS')][]=$r;$chapter=4;
+    foreach($groups as $type=>$items){$body.='<h1>'.$chapter++.'. '.report_h(ex_type_title($type)).'</h1>';foreach($items as $r){$parents=json_decode(report_v($r,'parents','[]'),true)?:[];$children=json_decode(report_v($r,'children','[]'),true)?:[];$description=report_v($r,'description',report_v($r,'title'));$body.='<article class="requirement-card"><h2><span class="key">'.report_h(report_v($r,'req_key')).'</span> '.report_h(report_v($r,'title')).'</h2><table class="facts"><tr><th>Typ</th><td>'.report_h(report_v($r,'type')).'</td><th>Status</th><td>'.report_h(report_v($r,'review_status')).'</td></tr><tr><th>Parents</th><td>'.report_h($parents?implode(', ',$parents):'-').'</td><th>Children</th><td>'.report_h($children?implode(', ',$children):'-').'</td></tr></table><div class="requirement-section"><div class="requirement-section-title">Spezifikation</div><div class="requirement-section-content">'.ex_rich_text($description).'</div></div><div class="requirement-section"><div class="requirement-section-title">Akzeptanzkriterien</div><div class="requirement-section-content">'.ex_criteria_definition_html($r).'</div></div></article>';}}
+    $body.='<h1>'.$chapter++.'. Risikomanagement</h1><p>Die folgenden Abschnitte dokumentieren die aktiven Risiken, ihre Bewertung, Ursachen, möglichen Systemfehlverhalten, Auswirkungen, Maßnahmen und Verknüpfungen.</p>';
+    $body.='<h2>Risikoübersicht</h2><table class="spec"><tr><th>ID</th><th>Risiko</th><th>Initial</th><th>Restrisiko</th><th>Status</th></tr>';foreach($risks as $risk){$a=ex_attrs($risk);$body.='<tr><td class="key">'.report_h(report_v($risk,'req_key')).'</td><td>'.report_h(report_v($risk,'title')).'</td><td>W '.(int)($a['w']??1).' · A '.(int)($a['e']??1).' · R '.(int)($a['risk_score']??((int)($a['w']??1)*(int)($a['e']??1))).'</td><td>W '.(int)($a['residual_w']??$a['w']??1).' · A '.(int)($a['residual_e']??$a['e']??1).' · R '.(int)($a['residual_score']??1).'</td><td>'.report_h($a['workflow_status']??'open').'</td></tr>';}$body.='</table>';
+    foreach($risks as $risk){$a=ex_attrs($risk);$control=$risk['risk_links']['control']??[];$verification=$risk['risk_links']['verification']??[];$body.='<article class="requirement-card"><h2><span class="key">'.report_h(report_v($risk,'req_key')).'</span> '.report_h(report_v($risk,'title')).'</h2><div class="requirement-section"><div class="requirement-section-title">Ursache / Softwarefehler</div><div class="requirement-section-content">'.nl2br(report_h($a['cause']??'-')).'</div></div><div class="requirement-section"><div class="requirement-section-title">Systemfehlverhalten</div><div class="requirement-section-content">'.nl2br(report_h($a['malfunction']??'-')).'</div></div><div class="requirement-section"><div class="requirement-section-title">Auswirkung</div><div class="requirement-section-content">'.nl2br(report_h($a['effect']??'-')).'</div></div><div class="requirement-section"><div class="requirement-section-title">Maßnahme</div><div class="requirement-section-content">'.nl2br(report_h($a['mitigation_plan']??'-')).'</div></div><div class="trace"><strong>Kontrollierende Anforderungen:</strong> '.report_h($control?implode(', ',array_column($control,'req_key')):'-').'</div><div class="trace"><strong>Verifikation:</strong> '.report_h($verification?implode(', ',array_column($verification,'req_key')):'-').'</div></article>';}
+    return [ex_html_frame($body,$header,$footer,$logo,$accent),'specification'];
 }
 function ex_spec_docx(PDO $pdo, array $project, array $settings, array $data, string $path): void
 {
-    [$accent, $company, $header, $footer, $logo] = ex_layout($project, $settings, 'Pflichtenheft');
-    $accent = ltrim($accent, '#');
-    $q = $pdo->prepare('SELECT * FROM requirements WHERE project_id=? ORDER BY type,COALESCE(serial_number,id),id');
-    $q->execute([report_v($project, 'id')]);
-    $reqs = $q->fetchAll(PDO::FETCH_ASSOC);
-    $word = new PhpWord();
-    $word->setDefaultFontName('Arial');
-    $word->setDefaultFontSize(9);
-    $section = $word->addSection(['marginTop' => 1350, 'marginBottom' => 1200, 'marginLeft' => 1000, 'marginRight' => 1000]);
-    $head = $section->addHeader();
-    $table = $head->addTable(['width' => 100 * 50, 'unit' => 'pct', 'cellMargin' => 120, 'borderBottomSize' => 6, 'borderBottomColor' => $accent]);
-    $table->addRow(650);
-    $logoCell = $table->addCell(1800);
-    $logoPath = report_v($settings, 'logo_path') !== '' ? realpath(__DIR__ . '/../' . report_v($settings, 'logo_path')) : false;
-    if ($logoPath && is_file($logoPath))
-        $logoCell->addImage($logoPath, ['height' => 32]);
-    else
-        $logoCell->addText($company, ['bold' => true, 'size' => 7]);
-    $textCell = $table->addCell(7200);
-    $textCell->addText($header, ['size' => 8, 'bold' => true, 'color' => $accent], ['alignment' => Jc::END]);
-    $foot = $section->addFooter();
-    $run = $foot->addTextRun(['alignment' => Jc::CENTER]);
-    $parts = preg_split('/(\{page\}|\{pages\})/', $footer, -1, PREG_SPLIT_DELIM_CAPTURE);
-    foreach ($parts as $part) {
-        if ($part === '{page}')
-            $run->addField('PAGE');
-        elseif ($part === '{pages}')
-            $run->addField('NUMPAGES');
-        else
-            $run->addText($part, ['size' => 7, 'color' => '666666']);
-    }
-    $section->addTextBreak(4);
-    $section->addText('P f l i c h t e n h e f t', ['size' => 24, 'bold' => true, 'color' => $accent], ['alignment' => Jc::CENTER]);
-    $section->addText('für das Projekt', ['size' => 13], ['alignment' => Jc::CENTER]);
-    $section->addText(report_v($project, 'name'), ['size' => 20, 'bold' => true, 'color' => $accent], ['alignment' => Jc::CENTER]);
-    $section->addPageBreak();
-    $section->addText('Pflichten und Anforderungen', ['size' => 18, 'bold' => true, 'color' => $accent]);
-    $groups = [];
-    foreach ($reqs as $r)
-        $groups[ex_group($r)][] = $r;
-    foreach ($groups as $name => $items) {
-        $section->addText($name, ['size' => 14, 'bold' => true, 'color' => $accent]);
-        $t = $section->addTable(['borderSize' => 5, 'borderColor' => '8FAADC', 'cellMargin' => 70, 'layout' => 'fixed']);
-        $row = $t->addRow(null, ['tblHeader' => true]);
-        foreach (['ID', 'Spezifikation', 'Nachweis', 'Verweis', 'Bemerkung'] as $caption)
-            $row->addCell()->addText($caption, ['bold' => true, 'size' => 8]);
-        foreach ($items as $r) {
-            $row = $t->addRow(null, ['cantSplit' => true]);
-            $spec = report_v($r, 'title') . (report_v($r, 'description') !== '' && report_v($r, 'description') !== report_v($r, 'title') ? "\n" . report_v($r, 'description') : '');
-            $parents = json_decode(report_v($r, 'parents', '[]'), true) ?: [];
-            $children = json_decode(report_v($r, 'children', '[]'), true) ?: [];
-            $refs = implode("\n", array_filter([$parents ? 'Parents: ' . implode(', ', $parents) : '', $children ? 'Children: ' . implode(', ', $children) : '']));
-            $notes = implode("\n", array_filter(['Typ: ' . report_v($r, 'type'), 'Status: ' . report_v($r, 'review_status'), report_v($r, 'source_reference') !== '' ? 'Quelle-ID: ' . report_v($r, 'source_reference') : '', report_v($r, 'source_document') !== '' ? 'Dokument: ' . report_v($r, 'source_document') : '']));
-            foreach ([[report_v($r, 'req_key'), 7], [$spec, 8], [report_v($r, 'acceptance_criteria', '-'), 7], [$refs, 7], [$notes, 7]] as [$text, $size])
-                $row->addCell()->addText($text !== '' ? $text : '-', ['size' => $size]);
-        }
-    }
-    IOFactory::createWriter($word, 'Word2007')->save($path);
+    [$accent,$company,$header,$footer,$logo]=ex_layout($project,$settings,'Pflichtenheft');$accent=ltrim($accent,'#');
+    $q=$pdo->prepare("SELECT * FROM requirements WHERE project_id=? AND type<>'RISK' ORDER BY COALESCE(serial_number,id),id");$q->execute([report_v($project,'id')]);$reqs=$q->fetchAll(PDO::FETCH_ASSOC);usort($reqs,static fn($a,$b)=>ex_type_order(report_v($a,'type'))<=>ex_type_order(report_v($b,'type')) ?: ((int)($a['serial_number']??$a['id'])<=>(int)($b['serial_number']??$b['id'])));$risks=ex_risk_data($pdo,report_v($project,'id'));$contextData=ex_context_data($pdo,report_v($project,'id'));
+    $word=new PhpWord();$word->setDefaultFontName('Arial');$word->setDefaultFontSize(9);$section=$word->addSection(['marginTop'=>1350,'marginBottom'=>1200,'marginLeft'=>1000,'marginRight'=>1000]);$section->addTextBreak(4);$section->addText('P f l i c h t e n h e f t',['size'=>24,'bold'=>true,'color'=>$accent],['alignment'=>Jc::CENTER]);$section->addText(report_v($project,'name'),['size'=>20,'bold'=>true,'color'=>$accent],['alignment'=>Jc::CENTER]);$section->addPageBreak();$section->addText('Inhaltsverzeichnis',['size'=>18,'bold'=>true,'color'=>$accent]);$section->addTOC(['name'=>'Arial','size'=>9],['tabLeader'=>'dot']);$section->addPageBreak();$section->addTitle('1. Einführung',1);$section->addText(report_v($project,'description','-'));$section->addTitle('2. Fachlicher Kontext',1);$section->addTitle('2.1 Projektziele',2);if(!$contextData['goals'])$section->addText('Keine Projektziele hinterlegt.',['italic'=>true]);foreach($contextData['goals'] as $x){$section->addTitle(report_v($x,'req_key').' · '.report_v($x,'title'),3);$section->addText(report_v($x,'description','-'));}$section->addTitle('2.2 User Stories',2);if(!$contextData['stories'])$section->addText('Keine User Stories hinterlegt.',['italic'=>true]);foreach($contextData['stories'] as $x){$section->addTitle(report_v($x,'us_key').' · '.report_v($x,'title'),3);$section->addText('Als '.report_v($x,'us_role','-').' möchte ich '.report_v($x,'us_action','-').', so dass '.report_v($x,'us_benefit','-').'.');}$section->addTitle('2.3 Use Cases',2);if(!$contextData['cases'])$section->addText('Keine Use Cases hinterlegt.',['italic'=>true]);foreach($contextData['cases'] as $x){$section->addTitle(report_v($x,'uc_key').' · '.report_v($x,'title'),3);$section->addText('Primärer Akteur: '.report_v($x,'primary_actor','-'),['bold'=>true]);foreach([['Vorbedingungen','preconditions'],['Erfolgreicher Standardablauf','main_scenario'],['Alternative Abläufe und Fehlerfälle','alt_scenario']] as $part){if(trim(report_v($x,$part[1]))!==''){$section->addText($part[0],['bold'=>true]);$section->addText(report_v($x,$part[1]));}}}$section->addTitle('3. Anforderungsübersicht',1);$byKey=[];$child=[];$hasParent=[];foreach($reqs as $r)$byKey[report_v($r,'req_key')]=$r;foreach($reqs as $r)foreach(json_decode(report_v($r,'parents','[]'),true)?:[] as $p)if(isset($byKey[$p])){$child[$p][]=$r;$hasParent[report_v($r,'req_key')]=true;}$rendered=[];$render=function($r,$level)use(&$render,&$rendered,$child,$section){$key=report_v($r,'req_key');if(isset($rendered[$key]))return;$rendered[$key]=true;$section->addText(str_repeat('   ',$level).($level?'└─ ':'').$key.' · '.report_v($r,'title').' ['.report_v($r,'type').']',['size'=>8]);foreach($child[$key]??[] as $c)$render($c,$level+1);};foreach($reqs as $r)if(empty($hasParent[report_v($r,'req_key')]))$render($r,0);
+    $groups=[];foreach($reqs as $r)$groups[report_v($r,'type','SYS')][]=$r;$chapter=4;foreach($groups as $type=>$items){$section->addTitle($chapter++.'. '.ex_type_title($type),1);foreach($items as $r){$section->addTitle(report_v($r,'req_key').' · '.report_v($r,'title'),2);$section->addText('Status: '.report_v($r,'review_status').' | Typ: '.report_v($r,'type'),['size'=>8,'color'=>'666666']);$section->addText(report_v($r,'description',report_v($r,'title')));$c=ex_criteria($r);$section->addText('Akzeptanzkriterien',['bold'=>true,'size'=>9]);if(!$c['total']){$section->addText('Keine Akzeptanzkriterien definiert.',['italic'=>true,'size'=>8,'color'=>'666666']);}else{foreach($c['items'] as $item)$section->addListItem($item['text'],0,['size'=>8]);}}}
+    $section->addTitle($chapter++.'. Risikomanagement',1);$section->addTitle('Risikoübersicht',2);$t=$section->addTable(['borderSize'=>5,'borderColor'=>'8FAADC','cellMargin'=>70]);$row=$t->addRow();foreach(['ID','Risiko','Initial','Restrisiko','Status'] as $h)$row->addCell()->addText($h,['bold'=>true]);foreach($risks as $risk){$a=ex_attrs($risk);$row=$t->addRow();foreach([report_v($risk,'req_key'),report_v($risk,'title'),'W '.($a['w']??1).' / A '.($a['e']??1).' / R '.($a['risk_score']??1),'W '.($a['residual_w']??1).' / A '.($a['residual_e']??1).' / R '.($a['residual_score']??1),$a['workflow_status']??'open'] as $v)$row->addCell()->addText((string)$v,['size'=>8]);}
+    IOFactory::createWriter($word,'Word2007')->save($path);
 }
 
 try {
