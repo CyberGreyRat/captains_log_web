@@ -506,87 +506,73 @@
      MODAL: AKZEPTANZKRITERIUM VERIFIZIEREN
 ========================================================== -->
 <div id="verifyModal" class="cl-modal-overlay hidden z-[230]">
-
-    <form id="verifyForm" class="cl-modal max-w-md">
-
-        <!-- Modal-Kopf -->
+    <form id="verifyForm" class="cl-modal max-w-3xl" enctype="multipart/form-data">
         <div class="cl-modal-header">
-
             <div>
-                <p class="cl-panel-eyebrow">
-                    Verification
-                </p>
-
-                <h2 class="cl-modal-title">
-                    Kriterium prüfen
-                </h2>
+                <p class="cl-panel-eyebrow">Verification</p>
+                <h2 class="cl-modal-title">Kriterium durch Test nachweisen</h2>
             </div>
-
-            <button type="button" onclick="document.getElementById('verifyModal').classList.add('hidden')"
-                class="cl-button cl-button-secondary min-h-0 px-2.5 py-2" title="Fenster schließen"
-                aria-label="Fenster schließen">
-
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12">
-                    </path>
-                </svg>
-            </button>
         </div>
-
-
-        <!-- Modal-Inhalt -->
-        <div class="cl-modal-body space-y-5">
-
-            <input id="verify_req_id" type="hidden">
-
-            <input id="verify_crit_idx" type="hidden">
-
-            <div>
-                <div class="mb-2 text-xs font-extrabold uppercase tracking-wide text-blue-950">
-                    Zu prüfendes Kriterium
-                </div>
-
-                <p id="verify_crit_text"
-                    class="rounded-md border border-blue-200 bg-blue-50 p-4 text-sm font-semibold leading-6 text-slate-800">
-                </p>
+        <div class="p-5 space-y-3 max-h-[75vh] overflow-y-auto">
+            <input id="verify_req_id" type="hidden"><input id="verify_crit_idx" type="hidden">
+            <p id="verify_crit_text" class="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm font-semibold"></p>
+            <div class="grid grid-cols-2 gap-3">
+                <label class="cl-label col-span-2">Testfall<select id="verify_test_case" class="cl-input" required>
+                        <option value="">Testfall wählen</option>
+                    </select></label>
+                <label class="cl-label">Testtitel<input id="verify_title" class="cl-input" required></label>
+                <label class="cl-label">Ergebnis<select id="verify_result" class="cl-input" required>
+                        <option value="passed">Bestanden</option>
+                        <option value="failed">Fehlgeschlagen</option>
+                        <option value="blocked">Blockiert</option>
+                    </select></label>
+                <label class="cl-label col-span-2">Testbeschreibung<textarea id="verify_description" class="cl-textarea"
+                        required></textarea></label>
+                <label class="cl-label">Erwartetes Ergebnis<textarea id="verify_expected" class="cl-textarea"
+                        required></textarea></label>
+                <label class="cl-label">Tatsächliches Ergebnis<textarea id="verify_actual" class="cl-textarea"
+                        required></textarea></label>
+                <label class="cl-label">Softwareversion<input id="verify_software" class="cl-input" required></label>
+                <label class="cl-label">Hardware-Revision<input id="verify_hardware" class="cl-input" required></label>
+                <label class="cl-label">Testaufbau<input id="verify_setup" class="cl-input"
+                        placeholder="z.B. Kundentestmodul"></label>
+                <label class="cl-label">Ausgeführt am<input id="verify_executed_at" type="datetime-local"
+                        class="cl-input" required></label>
+                <label class="cl-label col-span-2">Einschränkung<textarea id="verify_limitation" class="cl-textarea"
+                        placeholder="z.B. Pegel und Druck gemeinsam stimuliert"></textarea></label>
+                <label class="cl-label col-span-2">Nachweise: Konsolenlog, Bilder oder PDF<input id="verify_files"
+                        type="file" multiple accept=".txt,.log,.csv,.json,.pdf,.png,.jpg,.jpeg,.webp"
+                        class="cl-input"></label>
             </div>
-
-            <label class="cl-label">
-                Notiz / Link zum Testprotokoll
-
-                <textarea id="verify_note" required rows="4" placeholder="z.B. Test T-045 erfolgreich durchgeführt..."
-                    class="cl-textarea"></textarea>
-
-                <span class="cl-help">
-                    Hinterlege einen nachvollziehbaren Verifikationsnachweis,
-                    eine Test-ID oder einen Link zum Prüfprotokoll.
-                </span>
-            </label>
         </div>
-
-
-        <!-- Modal-Fuß -->
-        <div class="cl-modal-footer">
-
-            <button type="button" onclick="document.getElementById('verifyModal').classList.add('hidden')"
-                class="cl-button cl-button-secondary">
-                Abbrechen
-            </button>
-
-            <button type="submit" class="cl-button cl-button-success">
-
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7">
-                    </path>
-                </svg>
-
-                Als geprüft markieren
-            </button>
-        </div>
+        <div class="cl-modal-footer"><button type="button"
+                onclick="document.getElementById('verifyModal').classList.add('hidden')"
+                class="cl-button cl-button-secondary">Abbrechen</button><button type="submit"
+                class="cl-button cl-button-success">Test speichern</button></div>
     </form>
 </div>
+
+
+<div id="reqAttachmentModal" class="cl-modal-overlay hidden z-[240]">
+    <form id="reqAttachmentForm" class="cl-modal max-w-lg" enctype="multipart/form-data">
+        <div class="cl-modal-header">
+            <h2 class="cl-modal-title">Bild oder Zeichnung anhängen</h2>
+        </div>
+        <div class="cl-modal-body space-y-3"><input id="req_att_req_id" type="hidden"><input id="req_att_req_key"
+                type="hidden"><input id="req_att_req_title" type="hidden">
+            <label class="cl-label">Titel<input id="req_att_title" class="cl-input" required></label>
+            <label class="cl-label">Beschreibung<textarea id="req_att_description"
+                    class="cl-textarea"></textarea></label>
+            <label class="cl-label">Datei<input id="req_att_file" type="file"
+                    accept="image/png,image/jpeg,image/webp,application/pdf" class="cl-input" required></label>
+        </div>
+        <div class="cl-modal-footer"><button type="button"
+                onclick="document.getElementById('reqAttachmentModal').classList.add('hidden')"
+                class="cl-button cl-button-secondary">Abbrechen</button><button
+                class="cl-button cl-button-success">Hochladen</button></div>
+    </form>
+</div>
+<script type="module" src="js/requirement_evidence.js?v=1"></script>
 
 <script type="module" src="js/requirements_import.js?v=general-1"></script>
 <script type="module" src="js/acceptance_criteria_suggestions.js?v=2"></script>

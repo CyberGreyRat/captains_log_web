@@ -288,7 +288,7 @@ window.renderTreeList = function () {
     listContainer.innerHTML = '';
 
     let targetReqs = [];
-   if (window.activeTypeFilters.length === 0) {
+    if (window.activeTypeFilters.length === 0) {
         listContainer.innerHTML = '<div class="p-4 text-sm text-slate-500 italic text-center">Bitte Filter oben auswählen.</div>';
         return;
     } else {
@@ -298,9 +298,9 @@ window.renderTreeList = function () {
         targetReqs = loadedRequirements.filter(r => {
             // 1. Ist der Typ in den Checkboxen aktiv?
             const typeMatch = window.activeTypeFilters.includes(r.type);
-            
+
             // 2. Passt der Suchtext zu ID, Titel oder Beschreibung?
-            const searchMatch = !searchQuery || 
+            const searchMatch = !searchQuery ||
                 (r.req_key && r.req_key.toLowerCase().includes(searchQuery)) ||
                 (r.title && r.title.toLowerCase().includes(searchQuery)) ||
                 (r.description && r.description.toLowerCase().includes(searchQuery));
@@ -375,7 +375,7 @@ window.showRequirementDetailById = function (id) {
     if (req) showRequirementDetail(req);
 };
 
-window.triggerVerify = function (reqId, idx, checkbox) {
+window.triggerVerify = async function (reqId, idx, checkbox) {
     if (!checkbox.checked) return;
     checkbox.checked = false;
 
@@ -385,7 +385,12 @@ window.triggerVerify = function (reqId, idx, checkbox) {
     document.getElementById('verify_req_id').value = reqId;
     document.getElementById('verify_crit_idx').value = idx;
     document.getElementById('verify_crit_text').textContent = textNode;
-    document.getElementById('verify_note').value = '';
+    document.getElementById('verify_title').value = 'Test: ' + textNode.trim();
+    document.getElementById('verify_description').value = '';
+    document.getElementById('verify_expected').value = textNode.trim();
+    document.getElementById('verify_actual').value = '';
+    document.getElementById('verify_executed_at').value = new Date().toISOString().slice(0, 16);
+    try { const r = await fetch('../api/get_test_cases.php?project_id=' + encodeURIComponent(currentProjectId)); const d = await r.json(); const sel = document.getElementById('verify_test_case'); sel.innerHTML = '<option value="">Testfall wählen</option>' + ((d.test_cases || []).map(t => `<option value="${t.id}">${escapeHtml(t.req_key)} - ${escapeHtml(t.title)}</option>`).join('')); } catch (e) { console.error(e); }
     document.getElementById('verifyModal').classList.remove('hidden');
 };
 
@@ -445,6 +450,7 @@ function showRequirementDetail(req) {
             }
         });
         criteriaHtml += '</ul>';
+        criteriaHtml += `<div class="mt-4 flex justify-end"><button type="button" class="cl-button cl-button-secondary" onclick="window.openRequirementAttachment(${req.id}, '${String(req.req_key || '').replace(/'/g, "\'")}', '${String(req.title || '').replace(/'/g, "\'")}')">Bild / Zeichnung anhängen</button></div><div id="reqAttachmentList-${req.id}" class="mt-3"></div>`;
     }
 
     const parentLinks = req.parsedParents.map(pk => `<span class="bg-blue-100 text-blue-800 px-1.5 py-0.5 text-[10px] font-mono">${pk}</span>`).join(' ') || '-';
@@ -581,7 +587,7 @@ export function initRequirementEvents() {
         searchInput.addEventListener('input', window.renderTreeList);
     }
 
-    
+
     const typeDropdown = document.getElementById('type');
     if (typeDropdown) {
         typeDropdown.addEventListener('change', () => window.handleTypeChange());
@@ -685,24 +691,33 @@ export function initRequirementEvents() {
     if (verifyForm) {
         verifyForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const payload = {
-                req_id: document.getElementById('verify_req_id').value,
-                criterion_idx: document.getElementById('verify_crit_idx').value,
-                note: document.getElementById('verify_note').value
-            };
+            const payload = new FormData();
+            payload.append('test_case_id', document.getElementById('verify_test_case').value);
+            payload.append('req_id', document.getElementById('verify_req_id').value);
+            payload.append('criterion_idx', document.getElementById('verify_crit_idx').value);
+            payload.append('title', document.getElementById('verify_title').value);
+            payload.append('result', document.getElementById('verify_result').value);
+            payload.append('test_description', document.getElementById('verify_description').value);
+            payload.append('expected_result', document.getElementById('verify_expected').value);
+            payload.append('actual_result', document.getElementById('verify_actual').value);
+            payload.append('software_version', document.getElementById('verify_software').value);
+            payload.append('hardware_revision', document.getElementById('verify_hardware').value);
+            payload.append('test_setup', document.getElementById('verify_setup').value);
+            payload.append('executed_at', document.getElementById('verify_executed_at').value.replace('T', ' '));
+            payload.append('limitation_text', document.getElementById('verify_limitation').value);
+            for (const file of document.getElementById('verify_files').files) payload.append('evidence[]', file);
 
             try {
                 const res = await fetch('../api/verify_criterion.php', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: payload
                 });
                 const data = await res.json();
 
                 if (data.success) {
                     document.getElementById('verifyModal').classList.add('hidden');
                     await loadRequirements();
-                    window.showRequirementDetailById(payload.req_id);
+                    window.showRequirementDetailById(document.getElementById('verify_req_id').value);
                 } else {
                     alert("Fehler beim Prüfen: " + data.error);
                 }
@@ -742,9 +757,28 @@ window.editRequirement = function (id) {
     if (validContact && isNaN(validContact)) validContact = '';
     loadStakeholdersForDropdown(validContact);
 
-    let parentKeys = []; let childKeys = [];
-    try { parentKeys = JSON.parse(req.parents || '[]'); } catch (e) { }
-    try { childKeys = JSON.parse(req.children || '[]'); } catch (e) { }
+    let parentKeys = [];
+    let childKeys = [];
+
+    if (Array.isArray(req.parents)) {
+        parentKeys = req.parents;
+    } else {
+        try {
+            parentKeys = JSON.parse(req.parents || '[]');
+        } catch (e) {
+            parentKeys = [];
+        }
+    }
+
+    if (Array.isArray(req.children)) {
+        childKeys = req.children;
+    } else {
+        try {
+            childKeys = JSON.parse(req.children || '[]');
+        } catch (e) {
+            childKeys = [];
+        }
+    }
 
     populateRelationshipCheckboxes(req.id, parentKeys, childKeys);
     if (document.getElementById('parentSearch')) document.getElementById('parentSearch').value = '';
@@ -810,3 +844,4 @@ window.openRequirementAttachment = function (requirementId) {
         requirement.title || ''
     );
 };
+
