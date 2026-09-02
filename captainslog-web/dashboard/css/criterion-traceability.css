@@ -1,0 +1,67 @@
+#v4 .ds-acceptance-row {
+    grid-template-columns: 25px minmax(0, 1fr) 34px 58px
+}
+
+#v4 .ct-tools {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 3px;
+    padding-top: 2px
+}
+
+#v4 .ct-tools button {
+    width: 24px;
+    min-width: 24px;
+    height: 24px;
+    min-height: 24px;
+    padding: 0;
+    border: 1px solid var(--ds-border, #aeb8c2);
+    border-radius: 3px;
+    background: #fff;
+    color: var(--ds-accent, #245783);
+    font-size: 14px;
+    line-height: 20px
+}
+
+#v4 .ct-tools button:hover {
+    background: var(--ds-hover, #edf3f8)
+}
+
+#v4 .ct-linked {
+    color: #477a55;
+    font-size: 10px
+}
+
+.ct-dialog #ctBody {
+    display: grid;
+    gap: 10px;
+    min-width: min(480px, 80vw)
+}
+
+.ct-dialog #ctBody>button {
+    justify-self: end
+}
+
+
+#v4 .ct-tools {
+    position: relative;
+    z-index: 20;
+    pointer-events: auto;
+    user-select: none;
+}
+
+#v4 .ct-tools button,
+#v4 .ct-map,
+#v4 .ct-evidence {
+    position: relative;
+    z-index: 21;
+    pointer-events: auto !important;
+    touch-action: manipulation;
+    cursor: pointer;
+}
+
+#v4 .ds-acceptance-row,
+#v4 .ds-acceptance-row .ds-acceptance-text {
+    overflow: visible;
+}

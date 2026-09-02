@@ -1,847 +1,142 @@
 // dashboard/js/requirements.js
 import { currentProjectId } from './state.js';
-import { renderHistory } from './history.js';
-
-
-// =============================================================================
-// MODULVERSION UND GEMEINSAME HILFSFUNKTIONEN
-// =============================================================================
-const REQUIREMENTS_MODULE_VERSION = '2026-08-28.2';
-console.info(`[Captain's Log] requirements.js ${REQUIREMENTS_MODULE_VERSION} geladen`);
-
-function escapeHtml(value) {
-    return String(value ?? '').replace(/[&<>"']/g, character => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;'
-    }[character]));
+const A='../api/';let editor=null,docs=[],types=[],templates=[],current=null,tab='meta',dirty=false,events=false,toolsLoaded=false,relations=[],entities=[],tests=[],coverage=null,pickerAction=null,editMode=false,editorInitializing=false,lastLoadedData=null;const $=x=>document.getElementById(x),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(url,opt={}){const r=await fetch(url,{...opt,headers:{Accept:'application/json',...(opt.body&&!opt.form?{'Content-Type':'application/json'}:{})}}),t=await r.text();let d;try{d=JSON.parse(t)}catch{throw Error(`API ${r.status}: ${t.slice(0,180)}`)}if(!r.ok||!(d.success===true||d.success===1))throw Error(d.error||`HTTP ${r.status}`);return d}function state(v){$('reqSaveState').textContent=v}function draftKey(){return current?`captainslog:draft:${current.id}`:null}function changed(){if(!editMode||editorInitializing)return;dirty=true;state('Ungespeichert');clearTimeout(changed.t);changed.t=setTimeout(saveDraft,500)}async function saveDraft(){if(!editor||!current)return;try{localStorage.setItem(draftKey(),JSON.stringify({savedAt:Date.now(),title:$('v4Title').value,data:await editor.save()}))}catch{}}
+function script(src,key){if(window[key])return Promise.resolve();return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=no;document.head.append(s)})}async function loadTools(){if(toolsLoaded)return;await script('https://cdn.jsdelivr.net/npm/@editorjs/editorjs@2.31.0','EditorJS');await script('https://cdn.jsdelivr.net/npm/@editorjs/list@2.0.8','EditorjsList');await script('https://cdn.jsdelivr.net/npm/@editorjs/table@2.4.5','Table');toolsLoaded=true}
+function acUuid(){
+    if(window.crypto?.randomUUID)return window.crypto.randomUUID();
+    return 'ac-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
+}
+function acPlainLines(value){
+    const box=document.createElement('div');
+    box.innerHTML=String(value??'').replace(/<br\s*\/?>/gi,'\n').replace(/<\/p>/gi,'\n').replace(/<\/div>/gi,'\n');
+    return(box.textContent||'').split(/\r?\n/).map(x=>x.replace(/^\s*[-*•–—☐☑◇]\s*/u,'').trim()).filter(Boolean);
+}
+class Text{
+    constructor({data={}}){this.d=data}
+    static get toolbox(){return{title:'Text',icon:'T'}}
+    static get conversionConfig(){return{export:data=>data.text||'',import:value=>({text:Array.isArray(value)?value.join('<br>'):String(value??'')})}}
+    render(){this.e=document.createElement('div');this.e.className='ce-paragraph';this.e.contentEditable='true';this.e.innerHTML=this.d.text||'';return this.e}
+    save(){return{...this.d,text:this.e.innerHTML}}
+    static get sanitize(){return{text:{b:true,i:true,u:true,br:true,a:{href:true}}}}
+}
+class Heading{
+    constructor({data={}}){this.d={...data,level:Math.max(3,Math.min(5,+data.level||3))}}
+    static get toolbox(){return{title:'Überschrift',icon:'H'}}
+    static get conversionConfig(){return{export:data=>data.text||'',import:value=>({text:String(value??''),level:3})}}
+    render(){this.e=document.createElement(`h${this.d.level}`);this.e.className='ce-header';this.e.contentEditable='true';this.e.innerHTML=this.d.text||'Überschrift';return this.e}
+    save(){return{...this.d,text:this.e.innerHTML,level:this.d.level}}
+    renderSettings(){return[3,4,5].map(n=>({icon:`H${n}`,label:`Überschrift ${n}`,onActivate:()=>{const el=document.createElement(`h${n}`);el.className='ce-header';el.contentEditable='true';el.innerHTML=this.e.innerHTML;this.e.replaceWith(el);this.e=el;this.d.level=n;changed()}}))}
+    static get sanitize(){return{text:{b:true,i:true,u:true,br:true}}}
+}
+class ChecklistTool{
+    constructor({data={}}){const src=Array.isArray(data.items)?data.items:acPlainLines(data.text||'');this.items=(src.length?src:['']).map(x=>typeof x==='string'?{text:x,checked:false}:{text:String(x.text??''),checked:Boolean(x.checked)})}
+    static get toolbox(){return{title:'Checkliste',icon:'☑'}}
+    static get conversionConfig(){return{export:data=>(data.items||[]).map(x=>x.text||'').filter(Boolean).join('\n'),import:value=>({items:(Array.isArray(value)?value:acPlainLines(value)).map(text=>({text:String(text),checked:false}))})}}
+    render(){this.root=document.createElement('div');this.root.className='ds-checklist';this.items.forEach(x=>this.add(x));return this.root}
+    add(item,after=null){const row=document.createElement('div');row.className='ds-checklist-row';const check=document.createElement('input');check.type='checkbox';check.checked=!!item.checked;const text=document.createElement('div');text.className='ds-checklist-text';text.contentEditable='true';text.innerHTML=item.text||'';check.onchange=()=>{row.classList.toggle('is-checked',check.checked);changed()};text.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();this.add({text:'',checked:false},row).querySelector('.ds-checklist-text').focus();changed()}else if(e.key==='Backspace'&&!text.textContent&&this.root.children.length>1){e.preventDefault();const target=row.previousElementSibling||row.nextElementSibling;row.remove();target?.querySelector('.ds-checklist-text')?.focus();changed()}};row.classList.toggle('is-checked',check.checked);row.append(check,text);after?after.insertAdjacentElement('afterend',row):this.root.append(row);return row}
+    save(){return{items:[...this.root.querySelectorAll('.ds-checklist-row')].map(row=>({text:row.querySelector('.ds-checklist-text').innerHTML.trim(),checked:row.querySelector('input').checked})).filter(x=>x.text||x.checked)}}
+    static get sanitize(){return{items:{},text:{b:true,i:true,u:true,br:true,a:{href:true}}}}
+}
+class AcceptanceCriteriaTool{
+    constructor({data={}}){
+        const source=Array.isArray(data.items)?data.items:acPlainLines(data.text||'');
+        this.title=String(data.title||'Akzeptanzkriterien');
+        this.rule=['ALL','ANY','THRESHOLD'].includes(data.rule)?data.rule:'ALL';
+        this.threshold=Math.max(1,Number(data.threshold)||1);
+        this.items=(source.length?source:['']).map(item=>typeof item==='string'?{id:acUuid(),text:item,revision:1,status:'open'}:{id:String(item.id||acUuid()),text:String(item.text??''),revision:Math.max(1,Number(item.revision)||1),status:['open','covered','passed','failed','outdated'].includes(item.status)?item.status:'open'});
+    }
+    static get toolbox(){return{title:'Akzeptanzkriterien',icon:'◇'}}
+    static get conversionConfig(){
+        return{
+            export:data=>(data.items||[]).map(item=>item.text||'').filter(Boolean).join('\n'),
+            import:value=>({title:'Akzeptanzkriterien',rule:'ALL',threshold:1,items:(Array.isArray(value)?value:acPlainLines(value)).map(text=>({id:acUuid(),text:String(text),revision:1,status:'open'}))})
+        };
+    }
+    render(){
+        this.root=document.createElement('section');this.root.className='ds-acceptance';
+        const head=document.createElement('div');head.className='ds-acceptance-head';
+        const title=document.createElement('div');title.className='ds-acceptance-title';title.contentEditable='true';title.textContent=this.title;
+        const badge=document.createElement('span');badge.className='ds-acceptance-badge';badge.textContent='SOLL-KRITERIEN';
+        head.append(title,badge);this.root.append(head);
+        const info=document.createElement('p');info.className='ds-acceptance-info';info.textContent='Status wird durch verknüpfte Test Runs bestimmt. Hier werden nur Kriterien definiert.';this.root.append(info);
+        const rows=document.createElement('div');rows.className='ds-acceptance-rows';this.rows=rows;this.root.append(rows);this.items.forEach(item=>this.add(item));
+        const foot=document.createElement('div');foot.className='ds-acceptance-foot';foot.innerHTML='<span>Erfüllungsregel</span>';
+        const rule=document.createElement('select');rule.className='ds-acceptance-rule';rule.innerHTML='<option value="ALL">Alle Kriterien</option><option value="ANY">Mindestens ein Kriterium</option><option value="THRESHOLD">Mindestanzahl</option>';rule.value=this.rule;
+        const threshold=document.createElement('input');threshold.type='number';threshold.min='1';threshold.className='ds-acceptance-threshold';threshold.value=String(this.threshold);threshold.hidden=this.rule!=='THRESHOLD';
+        rule.onchange=()=>{threshold.hidden=rule.value!=='THRESHOLD';changed()};threshold.oninput=changed;foot.append(rule,threshold);this.root.append(foot);return this.root;
+    }
+    add(item,after=null){
+        const row=document.createElement('div');row.className='ds-acceptance-row';row.dataset.id=item.id;row.dataset.revision=String(item.revision||1);row.dataset.originalText=item.text||'';
+        const state=document.createElement('span');state.className=`ds-acceptance-state is-${item.status||'open'}`;state.title=this.label(item.status);state.textContent=this.symbol(item.status);
+        const text=document.createElement('div');text.className='ds-acceptance-text';text.contentEditable='true';text.innerHTML=item.text||'';
+        const meta=document.createElement('span');meta.className='ds-acceptance-meta';meta.textContent=`R${item.revision||1}`;
+        text.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();this.add({id:acUuid(),text:'',revision:1,status:'open'},row).querySelector('.ds-acceptance-text').focus();changed()}else if(e.key==='Backspace'&&!text.textContent&&this.rows.children.length>1){e.preventDefault();const target=row.previousElementSibling||row.nextElementSibling;row.remove();target?.querySelector('.ds-acceptance-text')?.focus();changed()}};
+        row.append(state,text,meta);after?after.insertAdjacentElement('afterend',row):this.rows.append(row);return row;
+    }
+    symbol(status){return({passed:'✓',failed:'×',covered:'◐',outdated:'!',open:'◇'})[status]||'◇'}
+    label(status){return({passed:'Bestanden',failed:'Fehlgeschlagen',covered:'Mit Testfall abgedeckt',outdated:'Testnachweis veraltet',open:'Noch nicht abgedeckt'})[status]||'Offen'}
+    save(){
+        const title=this.root.querySelector('.ds-acceptance-title').textContent.trim()||'Akzeptanzkriterien';
+        const rule=this.root.querySelector('.ds-acceptance-rule').value;
+        const threshold=Math.max(1,Number(this.root.querySelector('.ds-acceptance-threshold').value)||1);
+        const items=[...this.rows.querySelectorAll('.ds-acceptance-row')].map(row=>{const text=row.querySelector('.ds-acceptance-text').innerHTML.trim();const old=row.dataset.originalText||'';let revision=Math.max(1,Number(row.dataset.revision)||1);let status=row.querySelector('.ds-acceptance-state').className.match(/is-(open|covered|passed|failed|outdated)/)?.[1]||'open';if(old&&text!==old){revision++;status='outdated'}return{id:row.dataset.id||acUuid(),text,revision,status}}).filter(item=>item.text);
+        return{schemaVersion:1,title,rule,threshold,items};
+    }
+    validate(data){return Array.isArray(data.items)&&data.items.every(item=>item.id&&typeof item.text==='string')}
+    static get sanitize(){return{title:{},items:{},text:{b:true,i:true,u:true,br:true,a:{href:true}}}}
+}
+class LegacyRequirement extends Text{static get toolbox(){return{title:'Text (Legacy)',icon:'T'}}}
+class Upload{constructor({data={},config}){this.d=data;this.kind=config.kind}render(){this.e=document.createElement('div');this.e.style.cssText='border:2px dashed #ccd6e2;padding:15px;text-align:center';this.paint();return this.e}paint(){if(this.d.fileId){const url=`../api/document_file.php?id=${encodeURIComponent(this.d.fileId)}`;this.e.innerHTML=this.kind==='image'?`<img src="${url}" style="max-width:100%"><input value="${esc(this.d.caption||'')}" placeholder="Bildunterschrift">`:`<a href="${url}" target="_blank">${esc(this.d.name||'Datei öffnen')}</a>`;return}this.e.textContent=this.kind==='image'?'Bild ablegen oder klicken':'Datei ablegen oder klicken';const i=document.createElement('input');i.type='file';i.style.display='none';i.accept=this.kind==='image'?'image/*':'*/*';i.onchange=()=>this.send(i.files[0]);this.e.onclick=()=>i.click();this.e.ondragover=e=>e.preventDefault();this.e.ondrop=e=>{e.preventDefault();this.send(e.dataTransfer.files[0])};this.e.append(i)}async send(file){if(!file)return;const f=new FormData();f.append('document_id',current.id);f.append('file',file);const d=await api(`${A}upload_document_file.php`,{method:'POST',body:f,form:true});this.d={fileId:d.file.id,name:d.file.name,mime:d.file.mime,size:d.file.size};this.paint();changed()}save(){if(this.kind==='image'){const i=this.e.querySelector('input');if(i)this.d.caption=i.value}return this.d}}
+class ImageTool extends Upload{constructor(a){super({...a,config:{kind:'image'}})}static get toolbox(){return{title:'Bild',icon:'▧'}}}class FileTool extends Upload{constructor(a){super({...a,config:{kind:'file'}})}static get toolbox(){return{title:'Datei',icon:'📎'}}}
+function editorTools(){return{text:Text,requirement:LegacyRequirement,heading:Heading,checklist:{class:ChecklistTool,inlineToolbar:true},acceptanceCriteria:{class:AcceptanceCriteriaTool,inlineToolbar:true},list:{class:window.EditorjsList,inlineToolbar:true,config:{defaultStyle:'unordered'}},table:{class:window.Table,inlineToolbar:true,config:{rows:2,cols:3,withHeadings:true}},image:ImageTool,file:FileTool}}
+async function loadLists(){const[a,b,c]=await Promise.all([api(`${A}document_studio_v4.php?action=list&project_id=${encodeURIComponent(currentProjectId)}`),api(`${A}document_types.php?project_id=${encodeURIComponent(currentProjectId)}`),api(`${A}document_templates_v4.php?project_id=${encodeURIComponent(currentProjectId)}`)]);docs=a.documents||[];types=b.types||[];templates=c.templates||[];$('v4CreateType').innerHTML=types.map(x=>`<option value="${x.id}">${esc(x.type_key)} · ${esc(x.name)}</option>`).join('');$('v4CreateTemplate').innerHTML='<option value="">Leeres Dokument</option>'+templates.map(x=>`<option value="${x.id}" data-type="${esc(x.requirement_type)}">${esc(x.name)}</option>`).join('');tree()}
+function depth(id,seen=new Set()){if(seen.has(id))return 0;seen.add(id);const d=docs.find(x=>x.id===id),p=d?.parent_ids?.[0];return p?1+depth(p,seen):0}
+function tree(){
+ const q=($('v4Search')?.value||'').toLowerCase();
+ $('v4Tree').innerHTML=docs.filter(d=>`${d.requirement_key} ${d.title}`.toLowerCase().includes(q)).map(d=>{
+  const coverage=`${Number(d.coverage_percent)}%`;
+  const tooltip=`${d.requirement_key} · ${d.title}\nStatus: ${d.status}\nVerifikation: ${d.verification_status}\nCoverage: ${coverage}`;
+  return `<button type="button" class="node ${current?.id===d.id?'active':''}" data-doc="${d.id}" title="${esc(tooltip)}" style="--tree-depth:${depth(d.id)}"><span class="node-key">${esc(d.requirement_key)}</span><span class="node-title">${esc(d.title)}</span><span class="node-coverage">${coverage}</span></button>`;
+ }).join('')||'<i>Keine Dokumente</i>';
+}
+function applyDocumentMode(){
+ const root=$('v4');if(!root)return;root.classList.toggle('is-editing',editMode);root.classList.toggle('is-reading',!editMode);
+ $('v4Title').readOnly=!editMode;
+ $('reqSave').classList.toggle('hidden',!editMode);
+ $('v4CancelEdit')?.classList.toggle('hidden',!editMode);
+ $('v4Edit')?.classList.toggle('hidden',editMode);
+ $('v4Delete')?.classList.toggle('hidden',!editMode);
+ document.querySelectorAll('#requirementsEditor [contenteditable]').forEach(el=>el.contentEditable=editMode?'true':'false');
+ document.querySelectorAll('#requirementsEditor input,#requirementsEditor select,#requirementsEditor textarea').forEach(el=>el.disabled=!editMode);
+ document.querySelectorAll('#v4Panel input,#v4Panel select,#v4Panel textarea').forEach(el=>el.disabled=!editMode);
+ state(editMode?(dirty?'Ungespeichert':'Bearbeitungsmodus'):'Lesemodus');
+}
+function enterEditMode(){editMode=true;dirty=false;applyDocumentMode();setTimeout(()=>applyDocumentMode(),50)}
+async function cancelEditMode(){
+ if(!current)return;
+ if(dirty&&!confirm('Ungespeicherte Änderungen verwerfen?'))return;
+ localStorage.removeItem(draftKey());dirty=false;editMode=false;await openDoc(current.id,true);
 }
 
-let loadedRequirements = [];
-let globalStakeholders = [];
-
-// NEU: Globale Variable für die aktiven Checkbox-Filter
-window.activeTypeFilters = [];
-
-// Wird vom HTML-Filter-Bereich aus aufgerufen
-window.updateTypeFilters = function () {
-    const container = document.getElementById('reqFilterCheckboxes');
-    if (!container) return;
-
-    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
-
-    // Holt sich alle angehakten Values in ein Array (z.B. ['SRS', 'TC', 'GOAL'])
-    window.activeTypeFilters = Array.from(checkboxes)
-        .filter(cb => cb.checked)
-        .map(cb => cb.value);
-
-    window.renderTreeList();
-};
-
-window.selectAllFilters = function (state) {
-    const container = document.getElementById('reqFilterCheckboxes');
-    if (!container) return;
-    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
-    checkboxes.forEach(cb => cb.checked = state);
-    window.updateTypeFilters();
+async function loadSide(){const[r,e,t,c]=await Promise.all([api(`${A}document_links.php?kind=relation&document_id=${current.id}`),api(`${A}document_links.php?kind=entity&document_id=${current.id}`),api(`${A}document_test_links.php?document_id=${current.id}`),api(`${A}document_coverage.php?document_id=${current.id}`)]);relations=r.items||[];entities=e.items||[];tests=t.links||[];coverage=c.coverage;renderInspector();renderMargin()}
+function renderMargin(){$('v4Margin').innerHTML=`<span>${esc(current.status)}</span><span>${esc(current.priority)}</span><span>${esc(coverage?.verification_status||'Not Covered')} ${coverage?.coverage_percent||0}%</span>`}function cards(items,kind){return items.map(x=>`<div class="card"><span><b>${esc(x.requirement_key||x.item_key||'')}</b> ${esc(x.title||x.label||x.test_case_id||x.test_run_id||'Eintrag')}</span><button data-remove="${x.id}" data-kind="${kind}" title="Entfernen">×</button></div>`).join('')||'<i>Keine Einträge</i>'}
+function renderInspector(){const p=$('v4Panel');if(tab==='meta'){p.innerHTML=`<label class="field">Status<select id="iStatus"><option>Open</option><option>In Progress</option><option>Reviewed</option><option>Closed</option></select></label><label class="field">Priorität<select id="iPriority"><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select></label><label class="field">Relevanz<select id="iRelevance"><option>Must</option><option>Should</option><option>Could</option><option>Won't</option></select></label><label class="field">Review<select id="iReview"><option>New</option><option>In Review</option><option>Approved</option><option>Rejected</option></select></label><p>Revision: <b>${current.revision}</b></p>`;for(const[k,id]of[['status','iStatus'],['priority','iPriority'],['relevance','iRelevance'],['review_status','iReview']]){$(id).value=current[k];$(id).onchange=()=>{current[k]=$(id).value;changed();renderMargin()}}}else if(tab==='trace'){p.innerHTML=`<h3>Parents</h3>${cards(relations.filter(x=>x.role==='parent'),'relation')}<button data-pick-relation="parent">+ Parent auswählen</button><div class="section"><h3>Children</h3>${cards(relations.filter(x=>x.role==='child'),'relation')}<button data-pick-relation="child">+ Child auswählen</button></div><div class="section"><h3>Fachobjekte</h3>${cards(entities,'entity')}<button data-pick-entity="risk">+ Risiko</button> <button data-pick-entity="issue">+ Issue</button> <button data-pick-entity="task">+ Aufgabe</button> <button data-pick-entity="person">+ Person</button></div>`}else{p.innerHTML=`<h3>${esc(coverage.verification_status)}</h3><div class="coverage"><i style="width:${coverage.coverage_percent}%"></i></div><p>${coverage.executed_count} von ${coverage.leaf_count} Leaf-Anforderungen ausgeführt</p><p>Bestanden: ${coverage.passed_count}<br>Fehlgeschlagen: ${coverage.failed_count}<br>Veraltet: ${coverage.outdated_count}</p><div class="section"><h3>Testlinks</h3>${cards(tests,'test')}<button id="pickTest">+ Test auswählen</button></div>`}}
+async function openDoc(id,force=false){
+ if(!force&&editMode&&dirty&&!confirm('Ungespeicherte Änderungen verwerfen?'))return;
+ editorInitializing=true;editMode=false;dirty=false;
+ const d=await api(`${A}document_studio_v4.php?action=get&id=${id}`);current=d.document;lastLoadedData=d.editor;
+ $('v4Empty').classList.add('hidden');$('v4Work').classList.remove('hidden');$('v4Key').textContent=current.requirement_key;$('v4Title').value=current.title;
+ if(editor){try{await editor.isReady;editor.destroy?.()}catch{}}
+ let data=d.editor;let restored=false;const raw=localStorage.getItem(`captainslog:draft:${id}`);
+ if(raw&&!force){const draft=JSON.parse(raw);if(confirm('Lokalen Entwurf wiederherstellen?')){data=draft.data;$('v4Title').value=draft.title;restored=true}}
+ editor=new window.EditorJS({holder:'requirementsEditor',tools:editorTools(),defaultBlock:'text',data,onChange:changed});await editor.isReady;
+ editorInitializing=false;editMode=restored;dirty=restored;applyDocumentMode();await loadSide();applyDocumentMode();tree();
 }
-
-window.filterCheckboxes = function (inputId, listId) {
-    const input = document.getElementById(inputId);
-    const list = document.getElementById(listId);
-    if (!input || !list) return;
-    const filter = input.value.toLowerCase();
-    const items = list.querySelectorAll('.checkbox-item');
-    items.forEach(item => {
-        const text = item.textContent.toLowerCase();
-        item.style.display = text.includes(filter) ? 'flex' : 'none';
-    });
-};
-
-function populateRelationshipCheckboxes(currentReqId = null, selectedParents = [], selectedChildren = []) {
-    const parentList = document.getElementById('parentsCheckboxList');
-    const childList = document.getElementById('childrenCheckboxList');
-    if (!parentList || !childList) return;
-    parentList.innerHTML = '';
-    childList.innerHTML = '';
-    loadedRequirements.forEach(req => {
-        if (req.id == currentReqId) return;
-        const isParent = selectedParents.includes(req.req_key) ? 'checked' : '';
-        const isChild = selectedChildren.includes(req.req_key) ? 'checked' : '';
-        const labelStr = `${req.req_key} - ${req.title}`;
-        parentList.innerHTML += `
-            <div class="checkbox-item flex items-center gap-2 p-1 hover:bg-slate-50">
-                <input type="checkbox" id="parent_${req.req_key}" value="${req.req_key}" class="req-parent-cb w-4 h-4 text-blue-900 focus:ring-blue-500" ${isParent}>
-                <label for="parent_${req.req_key}" class="cursor-pointer truncate w-full text-slate-700" title="${labelStr}">${labelStr}</label>
-            </div>
-        `;
-        childList.innerHTML += `
-            <div class="checkbox-item flex items-center gap-2 p-1 hover:bg-slate-50">
-                <input type="checkbox" id="child_${req.req_key}" value="${req.req_key}" class="req-child-cb w-4 h-4 text-blue-900 focus:ring-blue-500" ${isChild}>
-                <label for="child_${req.req_key}" class="cursor-pointer truncate w-full text-slate-700" title="${labelStr}">${labelStr}</label>
-            </div>
-        `;
-    });
-}
-
-// CIA Automatik
-window.autoSelectCIA = function (strideValue) {
-    document.querySelectorAll('.cia-cb').forEach(cb => { cb.checked = false; });
-    const map = {
-        'Spoofing': 'Authentizität',
-        'Tampering': 'Integrität',
-        'Repudiation': 'Zurechenbarkeit',
-        'Information Disclosure': 'Vertraulichkeit',
-        'Denial of Service': 'Verfügbarkeit',
-        'Elevation of Privilege': 'Autorisierung'
-    };
-    const targetGoal = map[strideValue];
-    if (targetGoal) {
-        document.querySelectorAll('.cia-cb').forEach(cb => {
-            if (cb.value === targetGoal) cb.checked = true;
-        });
-    }
-};
-
-window.handleTypeChange = function (loadedAttrs = {}) {
-    const typeDropdown = document.getElementById('type');
-    const container = document.getElementById('dynamicAttributes');
-    const fields = document.getElementById('attributeFields');
-    if (!typeDropdown || !container || !fields) return;
-    const type = typeDropdown.value;
-
-    const criteriaContainer = document.getElementById('criteria_container');
-    const needsCriteria = ['USR', 'SYS', 'SEC', 'SRS', 'HRS', 'SWC'];
-    if (criteriaContainer) {
-        if (needsCriteria.includes(type)) {
-            criteriaContainer.classList.remove('hidden');
-        } else {
-            criteriaContainer.classList.add('hidden');
-            if (document.getElementById('acceptance_criteria')) {
-                document.getElementById('acceptance_criteria').value = '';
-            }
-        }
-    }
-
-    if (type === 'AST') {
-        fields.innerHTML = `
-            <div class="col-span-1">
-                <label class="block text-sm font-semibold text-slate-700">Kategorie des Assets
-                    <select id="attr_asset_type" class="mt-1 w-full border p-2 font-normal outline-none bg-white">
-                        <option value="">-- Wählen --</option>
-                        <optgroup label="Digital & IT">
-                            <option value="Daten / Informationen" ${loadedAttrs.asset_type === 'Daten / Informationen' ? 'selected' : ''}>Daten / PII / Passwörter</option>
-                            <option value="Geheimnis / Key" ${loadedAttrs.asset_type === 'Geheimnis / Key' ? 'selected' : ''}>Zertifikate / Krypto-Keys</option>
-                            <option value="Code / Firmware" ${loadedAttrs.asset_type === 'Code / Firmware' ? 'selected' : ''}>Code / Firmware / OS</option>
-                            <option value="Service / Funktion" ${loadedAttrs.asset_type === 'Service / Funktion' ? 'selected' : ''}>Service / API / Update-Dienst</option>
-                        </optgroup>
-                        <optgroup label="Cyber-Physical (Hardware & Mechanik)">
-                            <option value="Elektronik / PCB" ${loadedAttrs.asset_type === 'Elektronik / PCB' ? 'selected' : ''}>Elektronik / PCB / Controller</option>
-                            <option value="Physisches Gehäuse / Mechanik" ${loadedAttrs.asset_type === 'Physisches Gehäuse / Mechanik' ? 'selected' : ''}>Physisches Gehäuse / Mechanik (z.B. Chassis, Schlösser)</option>
-                            <option value="Schnittstelle / HMI" ${loadedAttrs.asset_type === 'Schnittstelle / HMI' ? 'selected' : ''}>Mensch-Maschine-Schnittstelle (z.B. Display, Taster)</option>
-                            <option value="Infrastruktur / Befestigung" ${loadedAttrs.asset_type === 'Infrastruktur / Befestigung' ? 'selected' : ''}>Infrastruktur / Befestigung (z.B. Mast, Fundament)</option>
-                        </optgroup>
-                    </select>
-                </label>
-            </div>
-            <div class="col-span-1">
-                <label class="block text-sm font-semibold text-slate-700">Physischer Zugang (Exposition)
-                    <select id="attr_asset_exposure" class="mt-1 w-full border p-2 font-normal outline-none bg-white">
-                        <option value="">-- Wählen --</option>
-                        <option value="Öffentlich zugänglich (Public)" ${loadedAttrs.asset_exposure === 'Öffentlich zugänglich (Public)' ? 'selected' : ''}>Öffentlich zugänglich (Public Space, unbeaufsichtigt)</option>
-                        <option value="Eingeschränkter Zugang (Restricted)" ${loadedAttrs.asset_exposure === 'Eingeschränkter Zugang (Restricted)' ? 'selected' : ''}>Eingeschränkter Zugang (z.B. Büro, Bahnhofspersonal)</option>
-                        <option value="Streng gesichert (Secure)" ${loadedAttrs.asset_exposure === 'Streng gesichert (Secure)' ? 'selected' : ''}>Streng gesichert (z.B. verschlossener Serverraum)</option>
-                        <option value="Isoliert im Gehäuse (Internal)" ${loadedAttrs.asset_exposure === 'Isoliert im Gehäuse (Internal)' ? 'selected' : ''}>Isoliert im Gehäuse (Nur nach Aufbrechen erreichbar)</option>
-                    </select>
-                </label>
-            </div>
-        `;
-        container.classList.remove('hidden');
-    } else if (type === 'RISK') {
-        fields.innerHTML = `
-            <label class="block text-sm font-semibold text-slate-700">Wahrscheinlichkeit
-                <select id="attr_prob" class="mt-1 w-full border p-2 font-normal outline-none bg-white">
-                    <option value="">-- Wählen --</option>
-                    <option value="Häufig" ${loadedAttrs.initial_probability === 'Häufig' ? 'selected' : ''}>Häufig</option>
-                    <option value="Gelegentlich" ${loadedAttrs.initial_probability === 'Gelegentlich' ? 'selected' : ''}>Gelegentlich</option>
-                    <option value="Selten" ${loadedAttrs.initial_probability === 'Selten' ? 'selected' : ''}>Selten</option>
-                    <option value="Unwahrscheinlich" ${loadedAttrs.initial_probability === 'Unwahrscheinlich' ? 'selected' : ''}>Unwahrscheinlich</option>
-                </select>
-            </label>
-            <label class="block text-sm font-semibold text-slate-700">Schadensausmaß
-                <select id="attr_sev" class="mt-1 w-full border p-2 font-normal outline-none bg-white">
-                    <option value="">-- Wählen --</option>
-                    <option value="Kritisch" ${loadedAttrs.initial_severity === 'Kritisch' ? 'selected' : ''}>Kritisch</option>
-                    <option value="Marginal" ${loadedAttrs.initial_severity === 'Marginal' ? 'selected' : ''}>Marginal</option>
-                    <option value="Vernachlässigbar" ${loadedAttrs.initial_severity === 'Vernachlässigbar' ? 'selected' : ''}>Vernachlässigbar</option>
-                </select>
-            </label>
-            <label class="block text-sm font-semibold text-slate-700 md:col-span-2">Gefahr / Bedrohung
-                <input id="attr_hazard" type="text" value="${loadedAttrs.hazard || ''}" placeholder="Was ist die Bedrohung?" class="mt-1 w-full border p-2 font-normal outline-none bg-white">
-            </label>
-        `;
-        container.classList.remove('hidden');
-    } else if (type === 'SEC') {
-        const ciaArray = loadedAttrs.cia ? loadedAttrs.cia.split(', ') : [];
-        const isChecked = (val) => ciaArray.includes(val) ? 'checked' : '';
-        fields.innerHTML = `
-            <div class="md:col-span-2">
-                <label class="block text-sm font-semibold text-slate-700 mb-2">Schutzziele (Erweiterte CIA-Triade)</label>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 bg-white p-2 border">
-                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Vertraulichkeit" class="cia-cb w-4 h-4 text-blue-900 focus:ring-blue-500" ${isChecked('Vertraulichkeit')}> Vertraulichkeit</label>
-                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Integrität" class="cia-cb w-4 h-4 text-blue-900 focus:ring-blue-500" ${isChecked('Integrität')}> Integrität</label>
-                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Verfügbarkeit" class="cia-cb w-4 h-4 text-blue-900 focus:ring-blue-500" ${isChecked('Verfügbarkeit')}> Verfügbarkeit</label>
-                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Authentizität" class="cia-cb w-4 h-4 text-blue-900 focus:ring-blue-500" ${isChecked('Authentizität')}> Authentizität</label>
-                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Zurechenbarkeit" class="cia-cb w-4 h-4 text-blue-900 focus:ring-blue-500" ${isChecked('Zurechenbarkeit')}> Zurechenbarkeit</label>
-                    <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="Autorisierung" class="cia-cb w-4 h-4 text-blue-900 focus:ring-blue-500" ${isChecked('Autorisierung')}> Autorisierung</label>
-                </div>
-            </div>
-            <div class="md:col-span-2">
-                <label class="block text-sm font-semibold text-slate-700 mb-2">STRIDE Kategorie</label>
-                <select id="attr_stride" onchange="window.autoSelectCIA(this.value)" class="w-full border p-2 font-normal outline-none bg-white">
-                    <option value="">-- Wählen --</option>
-                    <option value="Spoofing" ${loadedAttrs.stride === 'Spoofing' ? 'selected' : ''}>Spoofing (Identitätstäuschung)</option>
-                    <option value="Tampering" ${loadedAttrs.stride === 'Tampering' ? 'selected' : ''}>Tampering (Datenmanipulation)</option>
-                    <option value="Repudiation" ${loadedAttrs.stride === 'Repudiation' ? 'selected' : ''}>Repudiation (Verleugnung von Aktionen)</option>
-                    <option value="Information Disclosure" ${loadedAttrs.stride === 'Information Disclosure' ? 'selected' : ''}>Information Disclosure (Informationspreisgabe)</option>
-                    <option value="Denial of Service" ${loadedAttrs.stride === 'Denial of Service' ? 'selected' : ''}>Denial of Service (Dienstverweigerung)</option>
-                    <option value="Elevation of Privilege" ${loadedAttrs.stride === 'Elevation of Privilege' ? 'selected' : ''}>Elevation of Privilege (Rechteausweitung)</option>
-                </select>
-            </div>
-        `;
-        container.classList.remove('hidden');
-    } else {
-        fields.innerHTML = '';
-        container.classList.add('hidden');
-    }
-};
-
-async function loadStakeholdersForDropdown(selectedValue = '') {
-    if (!currentProjectId) return;
-    try {
-        const res = await fetch(`../api/get_stakeholders.php?project_id=${currentProjectId}`);
-        const data = await res.json();
-        const sel = document.getElementById('source_contact');
-        if (!sel) return;
-        sel.innerHTML = '<option value="">-- Niemand zugewiesen --</option>';
-        if (data.success && data.stakeholders) {
-            globalStakeholders = data.stakeholders;
-            data.stakeholders.forEach(s => {
-                const selected = s.id == selectedValue ? 'selected' : '';
-                sel.innerHTML += `<option value="${s.id}" ${selected}>${s.name} (${s.role || 'Stakeholder'})</option>`;
-            });
-        }
-    } catch (e) {
-        console.error("Stakeholder konnten nicht geladen werden:", e);
-    }
-}
-
-function getStakeholderName(id) {
-    if (!id) return 'Nicht angegeben';
-    const s = globalStakeholders.find(x => x.id == id);
-    return s ? s.name : id;
-}
-
-export async function loadRequirements() {
-    if (!currentProjectId) return;
-    if (globalStakeholders.length === 0) await loadStakeholdersForDropdown();
-
-    try {
-        const res = await fetch(`../api/get_requirements.php?project_id=${currentProjectId}&t=${new Date().getTime()}`);
-        const data = await res.json();
-
-        if (!data.success || data.requirements.length === 0) {
-            loadedRequirements = [];
-            window.renderTreeList();
-            const detail = document.getElementById('detail');
-            if (detail) detail.innerHTML = '<div class="flex h-full items-center justify-center text-slate-400 italic">Noch keine Elemente vorhanden.</div>';
-            return;
-        }
-
-        loadedRequirements = data.requirements;
-        loadedRequirements.forEach(req => {
-            let p = req.parents;
-            if (typeof p === 'string') { try { p = JSON.parse(p); } catch (e) { p = []; } }
-            req.parsedParents = Array.isArray(p) ? p : [];
-        });
-
-        window.updateTypeFilters();
-
-    } catch (e) {
-        console.error("Fehler beim Laden:", e);
-    } finally {
-        if (typeof window.hideLoader === 'function') window.hideLoader();
-    }
-}
-
-window.renderTreeList = function () {
-    const listContainer = document.getElementById('items');
-    if (!listContainer) return;
-
-    if (loadedRequirements.length === 0) {
-        listContainer.innerHTML = '<div class="p-4 text-sm text-slate-500 italic">Keine Elemente vorhanden.</div>';
-        return;
-    }
-
-    listContainer.innerHTML = '';
-
-    let targetReqs = [];
-    if (window.activeTypeFilters.length === 0) {
-        listContainer.innerHTML = '<div class="p-4 text-sm text-slate-500 italic text-center">Bitte Filter oben auswählen.</div>';
-        return;
-    } else {
-        // Suchtext auslesen und in Kleinbuchstaben umwandeln
-        const searchQuery = (document.getElementById('reqSearchInput')?.value || '').toLowerCase();
-
-        targetReqs = loadedRequirements.filter(r => {
-            // 1. Ist der Typ in den Checkboxen aktiv?
-            const typeMatch = window.activeTypeFilters.includes(r.type);
-
-            // 2. Passt der Suchtext zu ID, Titel oder Beschreibung?
-            const searchMatch = !searchQuery ||
-                (r.req_key && r.req_key.toLowerCase().includes(searchQuery)) ||
-                (r.title && r.title.toLowerCase().includes(searchQuery)) ||
-                (r.description && r.description.toLowerCase().includes(searchQuery));
-
-            return typeMatch && searchMatch;
-        });
-    }
-
-    if (targetReqs.length === 0) {
-        listContainer.innerHTML = '<div class="p-4 text-sm text-slate-500 italic">Keine Einträge für diese Filter vorhanden.</div>';
-        return;
-    }
-
-    const rendered = new Set();
-    let needsParentCheck = true;
-    while (needsParentCheck) {
-        needsParentCheck = false;
-        const currentTargetKeys = targetReqs.map(r => r.req_key);
-
-        targetReqs.forEach(req => {
-            req.parsedParents.forEach(parentId => {
-                if (!currentTargetKeys.includes(parentId)) {
-                    const missingParent = loadedRequirements.find(r => r.req_key === parentId);
-                    if (missingParent) {
-                        targetReqs.push(missingParent);
-                        needsParentCheck = true;
-                    }
-                }
-            });
-        });
-    }
-
-    function renderNode(req, level) {
-        if (rendered.has(req.req_key)) return;
-        rendered.add(req.req_key);
-
-        const btn = document.createElement('button');
-        const indentRem = level * 1.2;
-        const bgClass = level > 0 ? 'bg-slate-50/60' : 'bg-white';
-
-        btn.className = `w-full text-left p-2.5 border-b border-slate-100 hover:bg-blue-50 transition focus:bg-blue-100 flex items-center justify-between text-xs ${bgClass}`;
-        btn.style.paddingLeft = `calc(0.75rem + ${indentRem}rem)`;
-
-        const children = targetReqs.filter(r => r.parsedParents.includes(req.req_key));
-        const icon = children.length > 0 ? `<span class="text-slate-400 mr-1">▶</span>` : `<span class="mr-3"></span>`;
-
-        btn.innerHTML = `
-            <div class="flex items-center truncate">
-                ${icon}
-                <span class="font-mono font-bold text-blue-950 mr-1">${req.req_key}</span>
-                <span class="text-slate-700 truncate">${req.title}</span>
-            </div>
-            <span class="text-[9px] bg-slate-200 text-slate-600 px-1 py-0.5 font-mono shrink-0 rounded">${req.review_status || req.status || 'Neu'}</span>
-        `;
-        btn.onclick = () => showRequirementDetail(req);
-        listContainer.appendChild(btn);
-
-        children.forEach(child => renderNode(child, level + 1));
-    }
-
-    const roots = targetReqs.filter(req =>
-        req.parsedParents.length === 0 ||
-        !req.parsedParents.some(pk => targetReqs.find(r => r.req_key === pk))
-    );
-
-    roots.forEach(root => renderNode(root, 0));
-    targetReqs.forEach(req => { if (!rendered.has(req.req_key)) renderNode(req, 0); });
-};
-
-window.showRequirementDetailById = function (id) {
-    const req = loadedRequirements.find(r => r.id == id);
-    if (req) showRequirementDetail(req);
-};
-
-window.triggerVerify = async function (reqId, idx, checkbox) {
-    if (!checkbox.checked) return;
-    checkbox.checked = false;
-
-    const labelEl = checkbox.parentNode.querySelector('label') || checkbox.nextElementSibling;
-    const textNode = labelEl.textContent;
-
-    document.getElementById('verify_req_id').value = reqId;
-    document.getElementById('verify_crit_idx').value = idx;
-    document.getElementById('verify_crit_text').textContent = textNode;
-    document.getElementById('verify_title').value = 'Test: ' + textNode.trim();
-    document.getElementById('verify_description').value = '';
-    document.getElementById('verify_expected').value = textNode.trim();
-    document.getElementById('verify_actual').value = '';
-    document.getElementById('verify_executed_at').value = new Date().toISOString().slice(0, 16);
-    try { const r = await fetch('../api/get_test_cases.php?project_id=' + encodeURIComponent(currentProjectId)); const d = await r.json(); const sel = document.getElementById('verify_test_case'); sel.innerHTML = '<option value="">Testfall wählen</option>' + ((d.test_cases || []).map(t => `<option value="${t.id}">${escapeHtml(t.req_key)} - ${escapeHtml(t.title)}</option>`).join('')); } catch (e) { console.error(e); }
-    document.getElementById('verifyModal').classList.remove('hidden');
-};
-
-function showRequirementDetail(req) {
-    const detail = document.getElementById('detail');
-    if (!detail) return;
-
-    let attrs = {};
-    try {
-        if (typeof req.attributes === 'object' && req.attributes !== null) {
-            attrs = req.attributes;
-        } else {
-            let parsed = JSON.parse(req.attributes || '{}');
-            if (typeof parsed === 'string') parsed = JSON.parse(parsed);
-            attrs = parsed;
-        }
-    } catch (e) {
-        console.error("Fehler beim Parsen der Attribute:", e);
-    }
-
-    let states = attrs.criteria_states || {};
-    if (typeof states === 'string') {
-        try { states = JSON.parse(states); } catch (e) { states = {}; }
-    }
-
-    let criteriaHtml = '<span class="italic text-slate-400">Keine Kriterien definiert.</span>';
-    if (req.acceptance_criteria) {
-        const lines = req.acceptance_criteria.split('\n');
-        criteriaHtml = '<ul class="space-y-3 mt-2">';
-        lines.forEach((line, idx) => {
-            const cleanLine = line.replace(/^-\s*/, '');
-            if (cleanLine.trim() !== '') {
-                const state = states[idx] || states[String(idx)];
-
-                if (state && state.checked) {
-                    criteriaHtml += `
-                        <li class="flex items-start gap-4 p-4 border-2 border-emerald-400 rounded-lg bg-emerald-50 shadow-sm">
-                            <div class="mt-0.5 shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500 text-white font-extrabold shadow">✓</div>
-                            <div class="flex flex-col w-full">
-                                <span class="font-bold text-emerald-950 leading-relaxed">${cleanLine}</span>
-                                <div class="mt-3 text-xs text-emerald-900 bg-white border border-emerald-200 p-3 rounded shadow-sm">
-                                    <div class="uppercase tracking-widest font-extrabold text-[10px] text-emerald-600 mb-1">Prüfvermerk</div>
-                                    <span class="font-bold">Geprüft von ${state.by}</span> am ${state.date}<br>
-                                    <span class="italic mt-1 block">"${state.note}"</span>
-                                </div>
-                            </div>
-                        </li>
-                    `;
-                } else {
-                    criteriaHtml += `
-                        <li class="flex items-start gap-4 p-4 border border-slate-200 rounded-lg bg-white shadow-sm hover:border-blue-400 transition">
-                            <input type="checkbox" id="crit_${req.id}_${idx}" class="mt-1 shrink-0 w-5 h-5 rounded border-slate-400 text-blue-900 cursor-pointer focus:ring-blue-900" onchange="window.triggerVerify(${req.id}, ${idx}, this)">
-                            <label for="crit_${req.id}_${idx}" class="cursor-pointer text-slate-700 font-medium leading-relaxed">${cleanLine}</label>
-                        </li>
-                    `;
-                }
-            }
-        });
-        criteriaHtml += '</ul>';
-        criteriaHtml += `<div class="mt-4 flex justify-end"><button type="button" class="cl-button cl-button-secondary" onclick="window.openRequirementAttachment(${req.id}, '${String(req.req_key || '').replace(/'/g, "\'")}', '${String(req.title || '').replace(/'/g, "\'")}')">Bild / Zeichnung anhängen</button></div><div id="reqAttachmentList-${req.id}" class="mt-3"></div>`;
-    }
-
-    const parentLinks = req.parsedParents.map(pk => `<span class="bg-blue-100 text-blue-800 px-1.5 py-0.5 text-[10px] font-mono">${pk}</span>`).join(' ') || '-';
-
-    let childKeys = [];
-    try { childKeys = JSON.parse(req.children || '[]'); } catch (e) { }
-    const childLinks = childKeys.map(ck => `<span class="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[10px] font-mono">${ck}</span>`).join(' ') || '-';
-
-    let dynamicAttrHtml = '';
-    if (req.type === 'AST') {
-        dynamicAttrHtml = `
-            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-emerald-700 font-medium bg-emerald-50 p-2 border border-emerald-100">
-                <div> Asset-Kategorie: <b>${attrs.asset_type || '-'}</b></div>
-                <div> Exposition: <b>${attrs.asset_exposure || '-'}</b></div>
-            </div>
-        `;
-    } else if (req.type === 'RISK') {
-        dynamicAttrHtml = `
-            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-red-700 font-medium bg-red-50 p-2 border border-red-100">
-                <div> Wahrscheinlichkeit: <b>${attrs.initial_probability || '-'}</b></div>
-                <div> Schaden: <b>${attrs.initial_severity || '-'}</b></div>
-                <div> Gefahr: <b>${attrs.hazard || '-'}</b></div>
-            </div>
-        `;
-    } else if (req.type === 'SEC') {
-        dynamicAttrHtml = `
-            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-indigo-700 font-medium bg-indigo-50 p-2 border border-indigo-100">
-                <div> Schutzziele: <b>${attrs.cia || '-'}</b></div>
-                <div> STRIDE: <b>${attrs.stride || '-'}</b></div>
-            </div>
-        `;
-    }
-
-    const stakeholderName = getStakeholderName(req.source_contact);
-
-    let legacySource = '';
-    let validContact = req.source_contact;
-    if (validContact && isNaN(validContact)) {
-        legacySource = validContact;
-    }
-    const sourceDoc = req.source_document || attrs.source_document || legacySource || 'Nicht angegeben';
-
-    detail.innerHTML = `
-        <div class="border-b pb-4 mb-4">
-            <div class="flex justify-between items-start">
-                <div>
-                    <span class="font-mono text-xs font-bold bg-slate-100 px-2 py-1 text-blue-900 border">${req.type}</span>
-                    <span class="font-mono text-sm text-blue-900 font-bold ml-2">${req.req_key}</span>
-                    <h2 class="text-2xl font-bold text-slate-900 mt-1">${req.title}</h2>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button onclick="window.editRequirement(${req.id})" class="bg-blue-900 text-white text-xs px-3 py-1.5 font-bold hover:bg-blue-800 shadow">Bearbeiten</button>
-                    <button onclick="window.hardDeleteRequirement(${req.id}, '${req.req_key}')" class="bg-red-50 text-red-700 border border-red-200 text-xs px-3 py-1.5 font-bold hover:bg-red-100 shadow-sm transition">Löschen</button>
-                </div>
-            </div>
-            
-            <div class="flex gap-4 mt-3 text-xs text-slate-500 font-medium flex-wrap items-center">
-                <div> Quelle: <strong class="text-slate-700">${sourceDoc}</strong></div>
-                <div> Stakeholder: <strong class="text-slate-700">${stakeholderName}</strong></div>
-                <div> Aufwand: <strong class="text-slate-700">${req.effort || 'Offen'}</strong></div>
-                <div> Status: <span class="bg-blue-50 text-blue-900 border border-blue-200 px-2 py-0.5 font-bold rounded">${req.review_status || 'Neu'}</span></div>
-            </div>
-            
-            ${dynamicAttrHtml}
-            <div class="flex gap-4 mt-3 pt-3 border-t text-xs text-slate-500 font-medium">
-                <div>Erfüllt (Parents): ${parentLinks}</div>
-                <div>Wird erfüllt durch (Children): ${childLinks}</div>
-            </div>
-        </div>
-        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Beschreibung</h3>
-        <p class="text-sm text-slate-800 whitespace-pre-wrap mb-6">${req.description || '<span class="italic text-slate-400">Keine Beschreibung</span>'}</p>
-        
-        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">Begründung (Rationale)</h3>
-        <div class="bg-slate-50 border p-3 text-sm text-slate-700 whitespace-pre-wrap mb-6">${req.rationale || '-'}</div>
-        
-        <section id="requirementLinkedRisks" class="mb-6">
-            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Verknüpfte Risiken</h3>
-            <div class="bg-slate-50 border p-3 text-sm italic text-slate-400">Risiken werden geladen...</div>
-        </section>
-
-        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Prüfungen & Kriterien</h3>
-        <div class="bg-slate-50 border p-4">${criteriaHtml}</div>
-    `;
-
-    renderLinkedRisks(req.id);
-    renderHistory(req.req_key);
-}
-
-// =============================================================================
-// RISIKO-TRACEABILITY: VERKNÜPFTE RISIKEN IN DER ANFORDERUNG ANZEIGEN
-// =============================================================================
-async function renderLinkedRisks(requirementId) {
-    const container = document.querySelector('#requirementLinkedRisks > div');
-    if (!container || !currentProjectId) return;
-    try {
-        const response = await fetch(`../api/get_requirement_risks.php?project_id=${encodeURIComponent(currentProjectId)}&requirement_id=${Number(requirementId)}`);
-        const data = await response.json();
-        if (!response.ok || !data.success) throw new Error(data.error || 'Risiken konnten nicht geladen werden.');
-        if (!data.risks.length) {
-            container.className = 'border border-slate-200 bg-slate-50 p-3 text-sm italic text-slate-400';
-            container.textContent = 'Keine Risiken mit dieser Anforderung verknüpft.';
-            return;
-        }
-        container.className = 'space-y-2';
-        container.innerHTML = data.risks.map(risk => `
-            <button type="button" onclick="window.openRiskFromRequirement(${Number(risk.id)})"
-                class="flex w-full items-center justify-between gap-3 border border-amber-200 bg-amber-50 p-3 text-left hover:bg-amber-100">
-                <span class="min-w-0"><strong class="font-mono text-xs text-amber-900">${escapeHtml(risk.req_key)}</strong>
-                <span class="ml-2 text-sm font-bold text-slate-800">${escapeHtml(risk.title)}</span></span>
-                <span class="shrink-0 text-xs font-bold text-amber-900">R ${Number(risk.risk_score)} · ${escapeHtml(risk.workflow_status)}</span>
-            </button>`).join('');
-    } catch (error) {
-        container.className = 'border border-red-200 bg-red-50 p-3 text-sm text-red-700';
-        container.textContent = error.message;
-    }
-}
-
-window.openRiskFromRequirement = function (riskId) {
-    document.querySelector('[data-panel="risks"], [data-target="risks"]')?.click();
-    window.setTimeout(() => window.editRisk?.(Number(riskId)), 150);
-};
-
-export function initRequirementEvents() {
-    const filterContainer = document.getElementById('reqFilterCheckboxes');
-    if (filterContainer) {
-        filterContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-            cb.addEventListener('change', () => window.updateTypeFilters());
-        });
-    }
-
-    const searchInput = document.getElementById('reqSearchInput');
-    if (searchInput) {
-        // Löst bei jedem Tastendruck direkt das Neu-Zeichnen der Liste aus
-        searchInput.addEventListener('input', window.renderTreeList);
-    }
-
-
-    const typeDropdown = document.getElementById('type');
-    if (typeDropdown) {
-        typeDropdown.addEventListener('change', () => window.handleTypeChange());
-    }
-
-    const newBtn = document.getElementById('new');
-    if (newBtn) {
-        newBtn.addEventListener('click', () => {
-            if (!currentProjectId) { alert("Projekt wählen!"); return; }
-            document.getElementById('reqForm').reset();
-            document.getElementById('reqForm').dataset.editId = '';
-            document.getElementById('reqHeading').textContent = 'Neues Element anlegen';
-
-            const revStat = document.getElementById('review_status');
-            if (revStat) revStat.value = 'Neu';
-
-            window.handleTypeChange();
-            populateRelationshipCheckboxes();
-            loadStakeholdersForDropdown();
-
-            const modal = document.getElementById('reqModal');
-            if (modal) modal.classList.remove('hidden');
-        });
-    }
-
-    const form = document.getElementById('reqForm');
-    if (form) {
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const typeValue = document.getElementById('type') ? document.getElementById('type').value : '';
-
-            const needsCriteria = ['USR', 'SYS', 'SEC', 'SRS', 'HRS', 'SWC'];
-            if (needsCriteria.includes(typeValue)) {
-                const criteriaText = document.getElementById('acceptance_criteria') ? document.getElementById('acceptance_criteria').value.trim() : '';
-                if (!criteriaText) {
-                    alert(`Fehler: Anforderungen vom Typ ${typeValue} benötigen zwingend Akzeptanzkriterien!`);
-                    return;
-                }
-            }
-
-            const selectedParents = Array.from(document.querySelectorAll('.req-parent-cb:checked')).map(cb => cb.value);
-            const selectedChildren = Array.from(document.querySelectorAll('.req-child-cb:checked')).map(cb => cb.value);
-
-            let dynamicAttrs = {};
-            if (typeValue === 'AST') {
-                dynamicAttrs.asset_type = document.getElementById('attr_asset_type') ? document.getElementById('attr_asset_type').value : '';
-                dynamicAttrs.asset_exposure = document.getElementById('attr_asset_exposure') ? document.getElementById('attr_asset_exposure').value : '';
-            } else if (typeValue === 'RISK') {
-                dynamicAttrs.initial_probability = document.getElementById('attr_prob') ? document.getElementById('attr_prob').value : '';
-                dynamicAttrs.initial_severity = document.getElementById('attr_sev') ? document.getElementById('attr_sev').value : '';
-                dynamicAttrs.hazard = document.getElementById('attr_hazard') ? document.getElementById('attr_hazard').value : '';
-            } else if (typeValue === 'SEC') {
-                const checkedCIA = Array.from(document.querySelectorAll('.cia-cb:checked')).map(cb => cb.value);
-                dynamicAttrs.cia = checkedCIA.join(', ');
-                dynamicAttrs.stride = document.getElementById('attr_stride') ? document.getElementById('attr_stride').value : '';
-            }
-
-            const payload = {
-                id: document.getElementById('reqForm').dataset.editId,
-                project_id: currentProjectId,
-                type: typeValue,
-                title: document.getElementById('title') ? document.getElementById('title').value : '',
-                description: document.getElementById('text') ? document.getElementById('text').value : '',
-                rationale: document.getElementById('rationale') ? document.getElementById('rationale').value : '',
-                source_contact: document.getElementById('source_contact') ? document.getElementById('source_contact').value : '',
-                source_document: document.getElementById('source_document') ? document.getElementById('source_document').value : '', // HIER ERGÄNZT
-                effort: document.getElementById('effort') ? document.getElementById('effort').value : '',
-                acceptance_criteria: document.getElementById('acceptance_criteria') ? document.getElementById('acceptance_criteria').value : '',
-                review_status: document.getElementById('review_status') ? document.getElementById('review_status').value : '',
-                parents: selectedParents,
-                children: selectedChildren,
-                attributes: dynamicAttrs
-            };
-
-            try {
-                const res = await fetch('../api/set_requirements.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await res.json();
-                if (data.success) {
-                    document.getElementById('reqModal').classList.add('hidden');
-                    await loadRequirements();
-                    const updatedId = payload.id || data.id;
-                    if (updatedId) {
-                        window.showRequirementDetailById(updatedId);
-                    }
-                } else {
-                    alert("Fehler: " + data.error);
-                }
-            } catch (err) {
-                console.error("API Error:", err);
-            }
-        });
-    }
-
-    const verifyForm = document.getElementById('verifyForm');
-    if (verifyForm) {
-        verifyForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const payload = new FormData();
-            payload.append('test_case_id', document.getElementById('verify_test_case').value);
-            payload.append('req_id', document.getElementById('verify_req_id').value);
-            payload.append('criterion_idx', document.getElementById('verify_crit_idx').value);
-            payload.append('title', document.getElementById('verify_title').value);
-            payload.append('result', document.getElementById('verify_result').value);
-            payload.append('test_description', document.getElementById('verify_description').value);
-            payload.append('expected_result', document.getElementById('verify_expected').value);
-            payload.append('actual_result', document.getElementById('verify_actual').value);
-            payload.append('software_version', document.getElementById('verify_software').value);
-            payload.append('hardware_revision', document.getElementById('verify_hardware').value);
-            payload.append('test_setup', document.getElementById('verify_setup').value);
-            payload.append('executed_at', document.getElementById('verify_executed_at').value.replace('T', ' '));
-            payload.append('limitation_text', document.getElementById('verify_limitation').value);
-            for (const file of document.getElementById('verify_files').files) payload.append('evidence[]', file);
-
-            try {
-                const res = await fetch('../api/verify_criterion.php', {
-                    method: 'POST',
-                    body: payload
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    document.getElementById('verifyModal').classList.add('hidden');
-                    await loadRequirements();
-                    window.showRequirementDetailById(document.getElementById('verify_req_id').value);
-                } else {
-                    alert("Fehler beim Prüfen: " + data.error);
-                }
-            } catch (err) {
-                console.error("API Error:", err);
-            }
-        });
-    }
-}
-
-window.editRequirement = function (id) {
-    const req = loadedRequirements.find(r => r.id == id);
-    if (!req) return;
-
-    document.getElementById('reqForm').dataset.editId = req.id;
-    if (document.getElementById('type')) document.getElementById('type').value = req.type;
-    if (document.getElementById('title')) document.getElementById('title').value = req.title;
-    if (document.getElementById('text')) document.getElementById('text').value = req.description || '';
-    if (document.getElementById('rationale')) document.getElementById('rationale').value = req.rationale || '';
-    if (document.getElementById('effort')) document.getElementById('effort').value = req.effort || '';
-    if (document.getElementById('acceptance_criteria')) document.getElementById('acceptance_criteria').value = req.acceptance_criteria || '';
-    if (document.getElementById('review_status')) document.getElementById('review_status').value = req.review_status || 'Neu';
-
-    // Quelle / Dokument im Formular beim Bearbeiten befüllen
-    if (document.getElementById('source_document')) {
-        let legacySource = '';
-        let valContact = req.source_contact;
-        if (valContact && isNaN(valContact)) legacySource = valContact;
-        document.getElementById('source_document').value = req.source_document || legacySource || '';
-    }
-
-    let attrs = {};
-    try { attrs = JSON.parse(req.attributes || '{}'); } catch (e) { }
-    window.handleTypeChange(attrs);
-
-    let validContact = req.source_contact;
-    if (validContact && isNaN(validContact)) validContact = '';
-    loadStakeholdersForDropdown(validContact);
-
-    let parentKeys = [];
-    let childKeys = [];
-
-    if (Array.isArray(req.parents)) {
-        parentKeys = req.parents;
-    } else {
-        try {
-            parentKeys = JSON.parse(req.parents || '[]');
-        } catch (e) {
-            parentKeys = [];
-        }
-    }
-
-    if (Array.isArray(req.children)) {
-        childKeys = req.children;
-    } else {
-        try {
-            childKeys = JSON.parse(req.children || '[]');
-        } catch (e) {
-            childKeys = [];
-        }
-    }
-
-    populateRelationshipCheckboxes(req.id, parentKeys, childKeys);
-    if (document.getElementById('parentSearch')) document.getElementById('parentSearch').value = '';
-    if (document.getElementById('childSearch')) document.getElementById('childSearch').value = '';
-
-    const heading = document.getElementById('reqHeading');
-    if (heading) heading.textContent = 'Eintrag bearbeiten (' + req.req_key + ')';
-
-    const modal = document.getElementById('reqModal');
-    if (modal) modal.classList.remove('hidden');
-};
-
-window.hardDeleteRequirement = async function (id, key) {
-    const code = prompt(`ACHTUNG: Willst du die Anforderung ${key} wirklich restlos löschen?\nAlle Kriterien, Beziehungen und die Historie werden endgültig vernichtet!\n\nZum Bestätigen tippe das Wort "LÖSCHEN" ein:`);
-
-    if (code !== 'LÖSCHEN') {
-        return;
-    }
-
-    try {
-        const res = await fetch('../api/delete_requirement.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: id })
-        });
-        const data = await res.json();
-
-        if (data.success) {
-            document.getElementById('detail').innerHTML = '<div class="flex h-full items-center justify-center italic text-slate-400">Anforderung restlos gelöscht.</div>';
-            await loadRequirements();
-        } else {
-            alert("Fehler beim Löschen: " + data.error);
-        }
-    } catch (e) {
-        console.error(e);
-        alert("Netzwerkfehler beim Löschen.");
-    }
-};
-
-
-// =============================================================================
-// ANHÄNGE: FORMULAR MIT DER AKTUELLEN ANFORDERUNG ÖFFNEN
-// =============================================================================
-window.openRequirementAttachment = function (requirementId) {
-    const requirement = loadedRequirements.find(
-        item => Number(item.id) === Number(requirementId)
-    );
-
-    if (!requirement) {
-        alert('Anforderung wurde nicht gefunden.');
-        return;
-    }
-
-    if (typeof window.openAttachmentModal !== 'function') {
-        alert('Das Anhangsmodul wurde nicht geladen.');
-        return;
-    }
-
-    window.openAttachmentModal(
-        'requirement',
-        Number(requirement.id),
-        requirement.req_key || '',
-        requirement.title || ''
-    );
-};
-
+export async function saveRequirements(){if(!editor||!current)return;try{state('Speichern ...');const out=await editor.save(),r=await api(`${A}document_studio_v4.php?action=save`,{method:'POST',body:JSON.stringify({id:current.id,title:$('v4Title').value,status:current.status,priority:current.priority,relevance:current.relevance,review_status:current.review_status,metadata:current.metadata||{},...out})});current.revision=r.revision;localStorage.removeItem(draftKey());dirty=false;editMode=false;state('Gespeichert');await loadLists();await loadSide();applyDocumentMode()}catch(e){state('Fehler');alert(e.message)}}
+function showPicker(title,items,action){pickerAction=action;$('v4PickerTitle').textContent=title;$('v4PickerSearch').value='';$('v4PickerList').dataset.items=JSON.stringify(items);paintPicker(items);$('v4PickerDialog').showModal()}function paintPicker(items){const q=($('v4PickerSearch')?.value||'').toLowerCase();$('v4PickerList').innerHTML=items.filter(x=>`${x.item_key||x.requirement_key||''} ${x.title||''} ${x.status||''}`.toLowerCase().includes(q)).map((x,i)=>`<button type="button" class="picker-item" data-pick-index="${i}" data-pick-id="${esc(x.id)}"><b>${esc(x.item_key||x.requirement_key||x.id)}</b> · ${esc(x.title||'')}<small>${esc(x.status||'')}</small></button>`).join('')||'<p>Keine Treffer.</p>';}
+async function pickRelation(role){showPicker(role==='parent'?'Parent auswählen':'Child auswählen',docs.filter(d=>d.id!==current.id),async item=>{await api(`${A}document_links.php?kind=relation`,{method:'POST',body:JSON.stringify({document_id:current.id,related_id:item.id,role})});await loadLists();await loadSide()})}async function pickEntity(type){const d=await api(`${A}document_entity_catalog.php?project_id=${encodeURIComponent(currentProjectId)}&type=${type}`);showPicker(`${type} auswählen`,d.items||[],async item=>{await api(`${A}document_links.php?kind=entity`,{method:'POST',body:JSON.stringify({document_id:current.id,entity_type:type,entity_id:String(item.id),label:`${item.item_key||''} ${item.title}`,relation_type:'relates_to'})});await loadSide()})}
+async function pickTest(){const[tc,tr,td]=await Promise.all([api(`${A}document_entity_catalog.php?project_id=${encodeURIComponent(currentProjectId)}&type=test_case`),api(`${A}document_entity_catalog.php?project_id=${encodeURIComponent(currentProjectId)}&type=test_run`),api(`${A}document_entity_catalog.php?project_id=${encodeURIComponent(currentProjectId)}&type=test_document`)]);const items=[...(tc.items||[]),...(tr.items||[]),...(td.items||[])];showPicker('Testfall, Testlauf oder Testdokument auswählen',items,async item=>{const result=item.source_type==='test_run'?(item.status==='passed'?'passed':item.status==='failed'?'failed':item.status==='blocked'?'blocked':'not_run'):'not_run';await api(`${A}document_test_links.php`,{method:'POST',body:JSON.stringify({document_id:current.id,test_case_id:item.source_type==='requirement'?String(item.id):null,test_run_id:item.source_type==='test_run'?String(item.id):null,result,metadata:{source_type:item.source_type,source_document_id:item.source_type==='document'?item.id:null,label:`${item.item_key} ${item.title}`}})});await loadSide();await loadLists()})}
+async function createDoc(){const title=$('v4CreateTitle').value.trim();if(!title)throw Error('Titel fehlt.');const d=await api(`${A}document_studio_v4.php?action=create`,{method:'POST',body:JSON.stringify({project_id:currentProjectId,document_type_id:$('v4CreateType').value,template_id:$('v4CreateTemplate').value,title})});$('v4CreateDialog').close();$('v4CreateTitle').value='';await loadLists();await openDoc(d.id)}
+export async function loadRequirements(){if(!$('v4')||!currentProjectId)return;try{await loadTools();await loadLists()}catch(e){console.error(e);alert(e.message)}finally{window.hideLoader?.()}}
+export function initRequirementEvents(){if(events)return;events=true;document.addEventListener('click',async e=>{try{const d=e.target.closest('[data-doc]');if(d)return openDoc(d.dataset.doc);if(e.target.closest('#v4Edit'))return enterEditMode();if(e.target.closest('#v4CancelEdit'))return cancelEditMode();if(e.target.closest('#v4New'))return $('v4CreateDialog').showModal();if(e.target.closest('#v4CreateConfirm')){e.preventDefault();return createDoc()}const t=e.target.closest('[data-tab]');if(t){tab=t.dataset.tab;renderInspector();return}const pr=e.target.closest('[data-pick-relation]');if(pr)return pickRelation(pr.dataset.pickRelation);const pe=e.target.closest('[data-pick-entity]');if(pe)return pickEntity(pe.dataset.pickEntity);if(e.target.closest('#pickTest'))return pickTest();const chosen=e.target.closest('[data-pick-id]');if(chosen&&pickerAction){const all=JSON.parse($('v4PickerList').dataset.items||'[]'),item=all.find(x=>String(x.id)===chosen.dataset.pickId);if(item){await pickerAction(item);$('v4PickerDialog').close()}return}const rm=e.target.closest('[data-remove]');if(rm&&confirm('Eintrag entfernen?')){const endpoint=rm.dataset.kind==='test'?'document_test_links.php':`document_links.php?kind=${rm.dataset.kind}`;await api(`${A}${endpoint}`,{method:'DELETE',body:JSON.stringify({id:rm.dataset.remove})});await loadSide();await loadLists();return}if(e.target.closest('#reqSave'))return saveRequirements()}catch(x){console.error(x);alert(x.message)}});document.addEventListener('input',e=>{if(e.target.matches('#v4Search'))tree();if(e.target.matches('#v4PickerSearch'))paintPicker(JSON.parse($('v4PickerList').dataset.items||'[]'));if(e.target.matches('#v4Title'))changed()});document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'&&editor){e.preventDefault();saveRequirements()}});window.addEventListener('beforeunload',e=>{if(editMode&&dirty){e.preventDefault();e.returnValue=''}})}

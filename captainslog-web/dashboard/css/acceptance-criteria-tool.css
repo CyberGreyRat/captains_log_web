@@ -1,0 +1,188 @@
+/* AcceptanceCriteriaTool and ChecklistTool, scoped to Captain's Log Document Studio */
+#v4 .ds-checklist {
+    margin: 6px 0 10px;
+    padding: 0
+}
+
+#v4 .ds-checklist-row {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    align-items: start;
+    min-height: 30px;
+    padding: 2px 0
+}
+
+#v4 .ds-checklist-row>input {
+    width: 15px;
+    height: 15px;
+    margin: 5px 7px 0 0;
+    accent-color: var(--ds-accent, #245783)
+}
+
+#v4 .ds-checklist-text {
+    min-height: 25px;
+    padding: 2px 4px;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    color: var(--ds-text, #1f2933);
+    font-size: 15px;
+    line-height: 1.5;
+    outline: none
+}
+
+#v4 .ds-checklist-text:focus {
+    border-color: var(--ds-border, #aeb8c2);
+    background: #fff
+}
+
+#v4 .ds-checklist-row.is-checked .ds-checklist-text {
+    color: var(--ds-muted, #65717d);
+    text-decoration: line-through
+}
+
+#v4 .ds-acceptance {
+    margin: 12px 0 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--ds-border, #aeb8c2);
+    border-left: 3px solid var(--ds-accent, #245783);
+    border-radius: 3px;
+    background: #fbfcfd
+}
+
+#v4 .ds-acceptance-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 2px
+}
+
+#v4 .ds-acceptance-title {
+    min-width: 0;
+    padding: 2px 3px;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    color: #18212a;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.35;
+    outline: none
+}
+
+#v4 .ds-acceptance-title:focus {
+    border-color: var(--ds-border, #aeb8c2);
+    background: #fff
+}
+
+#v4 .ds-acceptance-badge {
+    color: var(--ds-muted, #65717d);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    white-space: nowrap
+}
+
+#v4 .ds-acceptance-info {
+    margin: 0 0 9px;
+    color: var(--ds-muted, #65717d);
+    font-size: 13px;
+    line-height: 1.4
+}
+
+#v4 .ds-acceptance-row {
+    display: grid;
+    grid-template-columns: 25px minmax(0, 1fr) 34px;
+    align-items: start;
+    min-height: 31px;
+    padding: 2px 0;
+    border-top: 1px solid #edf0f2
+}
+
+#v4 .ds-acceptance-state {
+    display: grid;
+    width: 17px;
+    height: 17px;
+    margin: 5px 7px 0 0;
+    place-items: center;
+    border: 1px solid #8e99a4;
+    border-radius: 3px;
+    background: #fff;
+    color: #5d6974;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1
+}
+
+#v4 .ds-acceptance-state.is-covered {
+    border-color: #8a6c2b;
+    background: #fff9e8;
+    color: #7c5d18
+}
+
+#v4 .ds-acceptance-state.is-passed {
+    border-color: #477a55;
+    background: #edf7f0;
+    color: #356643
+}
+
+#v4 .ds-acceptance-state.is-failed {
+    border-color: #9f2630;
+    background: #fbefef;
+    color: #8d2029
+}
+
+#v4 .ds-acceptance-state.is-outdated {
+    border-color: #9a6425;
+    background: #fff4e7;
+    color: #8a551a
+}
+
+#v4 .ds-acceptance-text {
+    min-height: 26px;
+    padding: 2px 4px;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    color: var(--ds-text, #1f2933);
+    font-size: 15px;
+    line-height: 1.5;
+    outline: none
+}
+
+#v4 .ds-acceptance-text:focus {S
+    border-color: var(--ds-border, #aeb8c2);
+    background: #fff
+}
+
+#v4 .ds-acceptance-meta {
+    padding-top: 6px;
+    color: var(--ds-muted, #65717d);
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 11px;
+    text-align: right
+}
+
+#v4 .ds-acceptance-foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--ds-border-light, #d7dde3);
+    color: var(--ds-muted, #65717d);
+    font-size: 13px
+}
+
+#v4 .ds-acceptance-rule,
+#v4 .ds-acceptance-threshold {
+    height: 29px;
+    padding: 3px 6px;
+    border: 1px solid var(--ds-border, #aeb8c2);
+    border-radius: 3px;
+    background: #fff;
+    color: var(--ds-text, #1f2933);
+    font-size: 13px
+}
+
+#v4 .ds-acceptance-threshold {
+    width: 65px
+}

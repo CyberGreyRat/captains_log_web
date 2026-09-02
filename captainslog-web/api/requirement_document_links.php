@@ -1,0 +1,7 @@
+<?php
+require_once __DIR__.'/requirement_document_common.php';$userId=reqAuth();
+try{
+ if($_SERVER['REQUEST_METHOD']==='POST'){$d=reqInput();$source=trim((string)($d['source_document_id']??''));$target=trim((string)($d['target_document_id']??''));$type=trim((string)($d['link_type']??''));$allowed=['parent_of','child_of','depends_on','derived_from','refines','verifies','conflicts_with','relates_to'];if($source===$target||!in_array($type,$allowed,true))reqRespond(['success'=>false,'error'=>'Ungültige Verknüpfung.'],422);$q=$pdo->prepare('SELECT project_id FROM requirement_documents WHERE id=?');$q->execute([$source]);$projectId=$q->fetchColumn();$q->execute([$target]);if(!$projectId||$q->fetchColumn()!==$projectId)reqRespond(['success'=>false,'error'=>'Dokumente müssen im selben Projekt liegen.'],422);$id=reqUuid();$pdo->prepare('INSERT INTO requirement_document_links(id,project_id,source_document_id,target_document_id,link_type,description,metadata,created_by) VALUES(?,?,?,?,?,?,?,?)')->execute([$id,$projectId,$source,$target,$type,trim((string)($d['description']??'')),json_encode($d['metadata']??[],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),$userId]);reqRespond(['success'=>true,'id'=>$id],201);}
+ if($_SERVER['REQUEST_METHOD']==='DELETE'){$d=reqInput();$pdo->prepare('DELETE FROM requirement_document_links WHERE id=?')->execute([trim((string)($d['id']??''))]);reqRespond(['success'=>true]);}
+ reqRespond(['success'=>false,'error'=>'Methode nicht erlaubt.'],405);
+}catch(Throwable $e){reqRespond(['success'=>false,'error'=>$e->getMessage()],500);}

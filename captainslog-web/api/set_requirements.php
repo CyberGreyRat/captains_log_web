@@ -1,434 +1,187 @@
 <?php
 // api/set_requirements.php
 
+declare(strict_types=1);
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 session_start();
-
 require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../config/audit_context.php';
-
 header('Content-Type: application/json; charset=utf-8');
 
-function requirement_json(array $data, int $status = 200): never
+function respond(array $payload, int $status = 200): never
 {
     http_response_code($status);
-    echo json_encode(
-        $data,
-        JSON_UNESCAPED_UNICODE |
-        JSON_UNESCAPED_SLASHES |
-        JSON_INVALID_UTF8_SUBSTITUTE
-    );
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
     exit;
 }
 
-try {
-    if (empty($_SESSION['user_id'])) {
-        requirement_json([
-            'success' => false,
-            'error' => 'Nicht angemeldet.'
-        ], 401);
-    }
+function uuidV4(): string
+{
+    $data = random_bytes(16);
+    $data[6] = chr((ord($data[6]) & 0x0f) | 0x40);
+    $data[8] = chr((ord($data[8]) & 0x3f) | 0x80);
+    return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+}
 
-    $pdo->setAttribute(
-        PDO::ATTR_ERRMODE,
-        PDO::ERRMODE_EXCEPTION
+function editorType(string $artifactType): string
+{
+    return match ($artifactType) {
+        'Heading' => 'heading',
+        'Requirement' => 'requirement',
+        'Risk' => 'risk',
+        'Issue' => 'issue',
+        'Task' => 'task',
+        default => 'text'
+    };
+}
+
+function artifactType(string $editorType): string
+{
+    return match (strtolower($editorType)) {
+        'heading', 'header' => 'Heading',
+        'requirement' => 'Requirement',
+        'risk' => 'Risk',
+        'issue' => 'Issue',
+        'task' => 'Task',
+        default => 'Text'
+    };
+}
+
+function loadDocument(PDO $pdo, string $projectId): array
+{
+    $links = $pdo->prepare(
+        'SELECT source_id, target_id, link_type
+         FROM artifact_links
+         WHERE source_id IN (SELECT id FROM artifacts WHERE project_id = ?)'
     );
-
-    set_audit_context(
-        $pdo,
-        'web',
-        basename($_SERVER['SCRIPT_NAME'])
-    );
-
-    $data = json_decode(
-        file_get_contents('php://input'),
-        true
-    );
-
-    if (!is_array($data)) {
-        throw new Exception('Ungültige JSON-Daten.');
+    $links->execute([$projectId]);
+    $linksBySource = [];
+    foreach ($links->fetchAll(PDO::FETCH_ASSOC) as $link) {
+        $linksBySource[$link['source_id']][] = [
+            'target_id' => $link['target_id'],
+            'link_type' => $link['link_type']
+        ];
     }
 
-    $id = !empty($data['id'])
-        ? (int) $data['id']
-        : null;
-
-    $projectId = trim((string) ($data['project_id'] ?? ''));
-    $type = strtoupper(trim((string) ($data['type'] ?? 'SYS')));
-    $title = trim((string) ($data['title'] ?? ''));
-    $description = trim((string) ($data['description'] ?? ''));
-    $rationale = trim((string) ($data['rationale'] ?? ''));
-    $status = trim((string) ($data['status'] ?? 'open'));
-    $sourceContact = trim((string) ($data['source_contact'] ?? ''));
-    $effort = $data['effort'] ?? null;
-    $acceptanceCriteria = trim((string) ($data['acceptance_criteria'] ?? ''));
-    $reviewStatus = trim((string) ($data['review_status'] ?? 'Neu'));
-    $sourceReference = trim((string) ($data['source_reference'] ?? ''));
-    $sourceDocument = trim((string) ($data['source_document'] ?? ''));
-    $sourcePage = ($data['source_page'] ?? '') !== ''
-        ? (int) $data['source_page']
-        : null;
-    $attributes = is_array($data['attributes'] ?? null)
-        ? $data['attributes']
-        : [];
-
-    if ($projectId === '' || $title === '') {
-        throw new Exception('Projekt-ID und Titel sind Pflichtfelder.');
-    }
-
-    $allowedTypes = [
-        'USR',
-        'SYS',
-        'SEC',
-        'SRS',
-        'HRS',
-        'SWC',
-        'TC',
-        'TR',
-        'AST',
-        'GOAL',
-        'RISK',
-        'ENV'
-    ];
-
-    if (!in_array($type, $allowedTypes, true)) {
-        throw new Exception('Unbekannter Anforderungstyp.');
-    }
-
-    $parentIds = array_values(array_unique(array_filter(array_map(
-        'intval',
-        $data['parent_ids'] ?? []
-    ))));
-
-    $childIds = array_values(array_unique(array_filter(array_map(
-        'intval',
-        $data['child_ids'] ?? []
-    ))));
-
-    /* Rückwärtskompatibilität: alte UI sendet noch Keys. */
-    $parentKeys = array_values(array_filter(array_map(
-        static fn($value) => trim((string) $value),
-        $data['parents'] ?? []
-    )));
-
-    $childKeys = array_values(array_filter(array_map(
-        static fn($value) => trim((string) $value),
-        $data['children'] ?? []
-    )));
-
-    $resolver = $pdo->prepare(
-        'SELECT id
-         FROM requirements
+    $query = $pdo->prepare(
+        'SELECT id, artifact_type, content
+         FROM artifacts
          WHERE project_id = ?
-           AND (
-               req_key = ?
-               OR source_reference = ?
-           )
-         LIMIT 1'
+         ORDER BY sort_order, created_at, id'
     );
+    $query->execute([$projectId]);
+    $blocks = [];
+    foreach ($query->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $content = json_decode((string) $row['content'], true);
+        if (!is_array($content)) $content = [];
+        $blockId = (string) ($content['_editorBlockId'] ?? '');
+        unset($content['_editorBlockId']);
+        $content['artifactId'] = $row['id'];
+        $content['links'] = $linksBySource[$row['id']] ?? [];
+        $block = ['type' => editorType($row['artifact_type']), 'data' => $content];
+        if ($blockId !== '') $block['id'] = $blockId;
+        $blocks[] = $block;
+    }
+    return ['time' => (int) round(microtime(true) * 1000), 'blocks' => $blocks, 'version' => '2.31.0'];
+}
 
-    foreach ($parentKeys as $key) {
-        $resolver->execute([$projectId, $key, $key]);
-        $resolvedId = (int) $resolver->fetchColumn();
-        if ($resolvedId > 0)
-            $parentIds[] = $resolvedId;
+try {
+    if (empty($_SESSION['user_id'])) respond(['success' => false, 'error' => 'Nicht angemeldet.'], 401);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        $projectId = trim((string) ($_GET['project_id'] ?? ''));
+        if ($projectId === '') respond(['success' => false, 'error' => 'Projekt-ID fehlt.'], 422);
+        respond(['success' => true, 'document' => loadDocument($pdo, $projectId)]);
     }
 
-    foreach ($childKeys as $key) {
-        $resolver->execute([$projectId, $key, $key]);
-        $resolvedId = (int) $resolver->fetchColumn();
-        if ($resolvedId > 0)
-            $childIds[] = $resolvedId;
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        header('Allow: GET, POST');
+        respond(['success' => false, 'error' => 'Methode nicht erlaubt.'], 405);
     }
 
-    $parentIds = array_values(array_unique($parentIds));
-    $childIds = array_values(array_unique($childIds));
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!is_array($input)) respond(['success' => false, 'error' => 'Ungültiges JSON.'], 400);
+
+    $projectId = trim((string) ($input['project_id'] ?? ''));
+    $blocks = $input['blocks'] ?? null;
+    if ($projectId === '' || !is_array($blocks)) {
+        respond(['success' => false, 'error' => 'Projekt-ID und blocks-Array sind erforderlich.'], 422);
+    }
 
     $pdo->beginTransaction();
+    $project = $pdo->prepare('SELECT id FROM projects WHERE id = ? FOR UPDATE');
+    $project->execute([$projectId]);
+    if (!$project->fetchColumn()) throw new RuntimeException('Projekt wurde nicht gefunden.');
 
-    if ($id) {
-        $existingStatement = $pdo->prepare(
-            'SELECT *
-             FROM requirements
-             WHERE id = ?
-               AND project_id = ?
-             FOR UPDATE'
-        );
+    $existingQuery = $pdo->prepare('SELECT id FROM artifacts WHERE project_id = ? FOR UPDATE');
+    $existingQuery->execute([$projectId]);
+    $existingIds = array_fill_keys($existingQuery->fetchAll(PDO::FETCH_COLUMN), true);
 
-        $existingStatement->execute([$id, $projectId]);
-        $existing = $existingStatement->fetch(PDO::FETCH_ASSOC);
-
-        if (!$existing) {
-            throw new Exception('Anforderung wurde nicht gefunden.');
-        }
-
-        $serialNumber = (int) $existing['serial_number'];
-        $newKey = $type . '-' . str_pad(
-            (string) $serialNumber,
-            3,
-            '0',
-            STR_PAD_LEFT
-        );
-
-        if ($sourceReference === '') {
-            $sourceReference = (string) ($existing['source_reference'] ?? '');
-        }
-
-        if ($sourceDocument === '') {
-            $sourceDocument = (string) ($existing['source_document'] ?? '');
-        }
-
-        if ($sourcePage === null && $existing['source_page'] !== null) {
-            $sourcePage = (int) $existing['source_page'];
-        }
-
-        $existingAttributes = json_decode(
-            $existing['attributes'] ?? '{}',
-            true
-        );
-
-        if (!is_array($existingAttributes)) {
-            $existingAttributes = [];
-        }
-
-        $attributes = array_replace(
-            $existingAttributes,
-            $attributes
-        );
-
-        $update = $pdo->prepare(
-            'UPDATE requirements
-             SET
-                req_key = ?,
-                type = ?,
-                title = ?,
-                description = ?,
-                rationale = ?,
-                status = ?,
-                source_contact = ?,
-                effort = ?,
-                acceptance_criteria = ?,
-                review_status = ?,
-                source_reference = ?,
-                source_document = ?,
-                source_page = ?,
-                attributes = ?
-             WHERE id = ?
-               AND project_id = ?'
-        );
-
-        $update->execute([
-            $newKey,
-            $type,
-            $title,
-            $description,
-            $rationale,
-            $status,
-            $sourceContact,
-            $effort === '' ? null : $effort,
-            $acceptanceCriteria,
-            $reviewStatus,
-            $sourceReference ?: null,
-            $sourceDocument ?: null,
-            $sourcePage,
-            json_encode(
-                $attributes,
-                JSON_UNESCAPED_UNICODE |
-                JSON_UNESCAPED_SLASHES
-            ),
-            $id,
-            $projectId
-        ]);
-
-        $savedId = $id;
-    } else {
-        /* Projektzeile sperren, damit die Nummer nicht doppelt vergeben wird. */
-        $projectLock = $pdo->prepare(
-            'SELECT id
-             FROM projects
-             WHERE id = ?
-             FOR UPDATE'
-        );
-        $projectLock->execute([$projectId]);
-
-        if (!$projectLock->fetchColumn()) {
-            throw new Exception('Projekt wurde nicht gefunden.');
-        }
-
-        $numberStatement = $pdo->prepare(
-            'SELECT COALESCE(MAX(serial_number), 0) + 1
-             FROM requirements
-             WHERE project_id = ?'
-        );
-        $numberStatement->execute([$projectId]);
-        $serialNumber = (int) $numberStatement->fetchColumn();
-
-        $newKey = $type . '-' . str_pad(
-            (string) $serialNumber,
-            3,
-            '0',
-            STR_PAD_LEFT
-        );
-
-       $insert = $pdo->prepare(
-            'INSERT INTO requirements (
-                project_id,
-                serial_number,
-                display_number, 
-                req_key,
-                source_reference,
-                source_document,
-                source_page,
-                type,
-                title,
-                description,
-                rationale,
-                status,
-                source_contact,
-                effort,
-                acceptance_criteria,
-                review_status,
-                parents,
-                children,
-                attributes
-             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?
-             )'
-        );
-
-        $insert->execute([
-            $projectId,
-            $serialNumber,
-            $serialNumber, 
-            $newKey,
-            $sourceReference ?: null,
-            $sourceDocument ?: null,
-            $sourcePage,
-            $type,
-            $title,
-            $description,
-            $rationale,
-            $status,
-            $sourceContact,
-            $effort === '' ? null : $effort,
-            $acceptanceCriteria,
-            $reviewStatus,
-            '[]',
-            '[]',
-            json_encode(
-                $attributes,
-                JSON_UNESCAPED_UNICODE |
-                JSON_UNESCAPED_SLASHES
-            )
-        ]);
-
-        $savedId = (int) $pdo->lastInsertId();
-    }
-
-    $parentIds = array_values(array_filter(
-        $parentIds,
-        static fn($relatedId) => $relatedId !== $savedId
-    ));
-
-    $childIds = array_values(array_filter(
-        $childIds,
-        static fn($relatedId) => $relatedId !== $savedId
-    ));
-
-    $pdo->prepare(
-        'DELETE FROM requirement_relations
-         WHERE child_requirement_id = ?
-            OR parent_requirement_id = ?'
-    )->execute([$savedId, $savedId]);
-
-    $relationInsert = $pdo->prepare(
-        'INSERT IGNORE INTO requirement_relations (
-            parent_requirement_id,
-            child_requirement_id,
-            relation_type,
-            created_by
-         ) VALUES (?, ?, ?, ?)'
+    $insert = $pdo->prepare(
+        'INSERT INTO artifacts (id, project_id, artifact_type, content, sort_order)
+         VALUES (?, ?, ?, ?, ?)'
+    );
+    $update = $pdo->prepare(
+        'UPDATE artifacts SET artifact_type = ?, content = ?, sort_order = ?
+         WHERE id = ? AND project_id = ?'
     );
 
-    foreach ($parentIds as $parentId) {
-        $relationInsert->execute([
-            $parentId,
-            $savedId,
-            'fulfills',
-            (int) $_SESSION['user_id']
-        ]);
+    $keptIds = [];
+    $pendingLinks = [];
+    foreach (array_values($blocks) as $position => $block) {
+        if (!is_array($block)) continue;
+        $data = is_array($block['data'] ?? null) ? $block['data'] : [];
+        $text = trim(strip_tags((string) ($data['text'] ?? '')));
+        if ($text === '') continue;
+
+        $requestedId = trim((string) ($data['artifactId'] ?? ''));
+        $artifactId = isset($existingIds[$requestedId]) ? $requestedId : uuidV4();
+        $type = artifactType((string) ($block['type'] ?? 'text'));
+        $links = is_array($data['links'] ?? null) ? $data['links'] : [];
+        unset($data['artifactId'], $data['links']);
+        $data['_editorBlockId'] = (string) ($block['id'] ?? '');
+        $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
+        if (isset($existingIds[$artifactId])) {
+            $update->execute([$type, $json, $position, $artifactId, $projectId]);
+        } else {
+            $insert->execute([$artifactId, $projectId, $type, $json, $position]);
+        }
+        $keptIds[] = $artifactId;
+        foreach ($links as $link) $pendingLinks[] = [$artifactId, $link];
     }
 
-    foreach ($childIds as $childId) {
-        $relationInsert->execute([
-            $savedId,
-            $childId,
-            'fulfills',
-            (int) $_SESSION['user_id']
-        ]);
+    if ($keptIds) {
+        $placeholders = implode(',', array_fill(0, count($keptIds), '?'));
+        $delete = $pdo->prepare("DELETE FROM artifacts WHERE project_id = ? AND id NOT IN ($placeholders)");
+        $delete->execute(array_merge([$projectId], $keptIds));
+    } else {
+        $pdo->prepare('DELETE FROM artifacts WHERE project_id = ?')->execute([$projectId]);
     }
 
-    /* JSON-Snapshots für bestehenden Frontend-Code aktuell halten. */
-    // 1. Alle potenziell betroffenen IDs sammeln (Aktuelles Element + alte & neue Verwandte)
-    $stmtOldRels = $pdo->prepare("SELECT parent_requirement_id, child_requirement_id FROM requirement_relations WHERE child_requirement_id = ? OR parent_requirement_id = ?");
-    $stmtOldRels->execute([$savedId, $savedId]);
+    $pdo->prepare(
+        'DELETE FROM artifact_links
+         WHERE source_id IN (SELECT id FROM artifacts WHERE project_id = ?)'
+    )->execute([$projectId]);
 
-    $affectedIds = [$savedId];
-    foreach ($stmtOldRels->fetchAll(PDO::FETCH_ASSOC) as $r) {
-        $affectedIds[] = $r['parent_requirement_id'];
-        $affectedIds[] = $r['child_requirement_id'];
-    }
-    $affectedIds = array_unique(array_merge($affectedIds, $parentIds, $childIds));
-
-    // 2. Für jede betroffene ID die neuen Parents/Children berechnen
-    $stmtGetParents = $pdo->prepare('SELECT p.req_key FROM requirement_relations r JOIN requirements p ON p.id = r.parent_requirement_id WHERE r.child_requirement_id = ? ORDER BY p.serial_number');
-    $stmtGetChildren = $pdo->prepare('SELECT c.req_key FROM requirement_relations r JOIN requirements c ON c.id = r.child_requirement_id WHERE r.parent_requirement_id = ? ORDER BY c.serial_number');
-
-    $stmtCheck = $pdo->prepare("SELECT parents, children FROM requirements WHERE id = ?");
-    $stmtUpdateRel = $pdo->prepare("UPDATE requirements SET parents = ?, children = ? WHERE id = ?");
-
-    // 3. MAGIC TRICK: Wir updaten nur, wenn sich WIRKLICH etwas geändert hat!
-    foreach ($affectedIds as $affId) {
-        $stmtCheck->execute([$affId]);
-        $currentRow = $stmtCheck->fetch(PDO::FETCH_ASSOC);
-        if (!$currentRow)
-            continue;
-
-        $stmtGetParents->execute([$affId]);
-        $newParentsArr = $stmtGetParents->fetchAll(PDO::FETCH_COLUMN);
-        $newParentsJson = empty($newParentsArr) ? "[]" : json_encode($newParentsArr, JSON_UNESCAPED_UNICODE);
-
-        $stmtGetChildren->execute([$affId]);
-        $newChildrenArr = $stmtGetChildren->fetchAll(PDO::FETCH_COLUMN);
-        $newChildrenJson = empty($newChildrenArr) ? "[]" : json_encode($newChildrenArr, JSON_UNESCAPED_UNICODE);
-
-        // Nur wenn die Links anders sind als vorher, lösen wir den Datenbank-Trigger aus!
-        if ($currentRow['parents'] !== $newParentsJson || $currentRow['children'] !== $newChildrenJson) {
-            $stmtUpdateRel->execute([$newParentsJson, $newChildrenJson, $affId]);
+    $validIds = array_fill_keys($keptIds, true);
+    $allowedLinks = ['parent_of', 'generates_risk', 'mitigated_by', 'depends_on'];
+    $linkInsert = $pdo->prepare(
+        'INSERT IGNORE INTO artifact_links (source_id, target_id, link_type) VALUES (?, ?, ?)'
+    );
+    foreach ($pendingLinks as [$sourceId, $link]) {
+        if (!is_array($link)) continue;
+        $targetId = trim((string) ($link['target_id'] ?? ''));
+        $linkType = trim((string) ($link['link_type'] ?? ''));
+        if ($sourceId !== $targetId && isset($validIds[$targetId]) && in_array($linkType, $allowedLinks, true)) {
+            $linkInsert->execute([$sourceId, $targetId, $linkType]);
         }
     }
 
     $pdo->commit();
-
-    requirement_json([
-        'success' => true,
-        'id' => $savedId,
-        'req_key' => $newKey,
-        'serial_number' => $serialNumber,
-        'type' => $type,
-        'message' => $id
-            ? 'Anforderung erfolgreich aktualisiert.'
-            : 'Anforderung erfolgreich angelegt.'
-    ]);
+    respond(['success' => true, 'document' => loadDocument($pdo, $projectId)]);
 } catch (Throwable $error) {
-    if (isset($pdo) && $pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
-
-    requirement_json([
-        'success' => false,
-        'error' => $error->getMessage()
-    ], 500);
+    if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
+    respond(['success' => false, 'error' => $error->getMessage()], 500);
 }

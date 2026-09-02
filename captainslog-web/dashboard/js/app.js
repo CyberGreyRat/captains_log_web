@@ -13,6 +13,11 @@ import {
 } from './requirements.js';
 
 import {
+    initCriterionTraceability
+} from './criterion-traceability.js';
+
+
+import {
     loadStakeholders,
     initStakeholderEvents
 } from './stakeholders.js';
@@ -135,7 +140,8 @@ function initializeModuleEvents() {
         initProjectTeamEvents,
         initReportsEvents,
         initAttachmentEvents,
-        initTestManagementEvents
+        initTestManagementEvents,
+        initCriterionTraceability
     ];
 
     initializers.forEach(initializer => {
