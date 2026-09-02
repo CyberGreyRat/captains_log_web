@@ -63,6 +63,12 @@ require_once __DIR__ . '/header.php';
 
         <button type="button"
             class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
+            data-panel="testmanagement">
+            Test Management
+        </button>
+
+        <button type="button"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
             data-panel="assets">
             Assets
         </button>
@@ -156,6 +162,10 @@ require_once __DIR__ . '/header.php';
 
     <section id="requirements" class="panel h-full min-h-0 w-full">
         <?php include __DIR__ . '/views/requirements.php'; ?>
+    </section>
+
+    <section id="testmanagement" class="panel h-full min-h-0 w-full">
+        <?php include __DIR__ . '/views/testmanagement.php'; ?>
     </section>
 
     <section id="assets" class="panel h-full min-h-0 w-full">

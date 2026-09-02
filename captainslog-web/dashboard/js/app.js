@@ -76,6 +76,9 @@ import {
     initAttachmentEvents
 } from './attachments.js';
 
+import { loadTestManagement, initTestManagementEvents } from './testmanagement.js';
+
+
 
 
 
@@ -90,7 +93,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         initializeProjectSwitch();
         initHistoryEvents();
         initReportsEvents();
-        
+        initTestManagementEvents();
+
 
         if (currentProjectId) {
             const projectSelect =
@@ -130,7 +134,8 @@ function initializeModuleEvents() {
         initGoalEvents,
         initProjectTeamEvents,
         initReportsEvents,
-        initAttachmentEvents
+        initAttachmentEvents,
+        initTestManagementEvents
     ];
 
     initializers.forEach(initializer => {
@@ -167,7 +172,8 @@ async function loadAllProjectData() {
         ['Historie', loadHistory],
         ['SBOM', loadSBOM],
         ['ISO 14001', loadIsoData],
-        ['Anhänge', loadAttachments]
+        ['Anhänge', loadAttachments],
+        ['Test Management', loadTestManagement]
     ];
 
 
@@ -411,6 +417,7 @@ function initializeTabNavigation() {
         sbom: loadSBOM,
         iso14001: loadIsoData,
         attachments: loadAttachments,
+        testmanagement: loadTestManagement
     };
 
     document
