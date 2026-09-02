@@ -89,7 +89,7 @@
 }
 
 /* Left document navigation */
-#v4 > .nav {
+#v4>.nav {
     min-width: 0;
     padding: 10px 9px;
     overflow: auto;
@@ -97,7 +97,7 @@
     background: var(--ds-surface);
 }
 
-#v4 > .nav header {
+#v4>.nav header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -105,7 +105,7 @@
     margin-bottom: 8px;
 }
 
-#v4 > .nav small {
+#v4>.nav small {
     display: block;
     color: var(--ds-muted);
     font-size: 12px;
@@ -113,7 +113,7 @@
     letter-spacing: .07em;
 }
 
-#v4 > .nav h2 {
+#v4>.nav h2 {
     margin: 1px 0 0;
     font-size: 16px;
     font-weight: 500;
@@ -140,61 +140,100 @@
 }
 
 #v4 .node {
-    display: block !important;
-    position: relative;
+    display: grid !important;
+
+    grid-template-columns:
+        max-content minmax(0, 1fr) max-content 44px;
+
+    align-items: center;
+    gap: 7px;
+
     width: 100%;
-    min-height: 27px;
+    min-height: 29px;
     margin: 0;
+
     padding-top: 3px !important;
-    padding-right: 47px !important;
+    padding-right: 5px !important;
     padding-bottom: 3px !important;
+
+    padding-left:
+        calc(5px + var(--tree-depth, 0) * 15px) !important;
+
     border: 0 !important;
-    border-bottom: 1px solid #edf0f2 !important;
+    border-bottom:
+        1px solid #edf0f2 !important;
+
     border-radius: 2px !important;
+
     background: transparent !important;
     color: var(--ds-text) !important;
+
     font-size: 14px;
     font-weight: 400 !important;
     line-height: 20px;
+
     text-align: left !important;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 #v4 .node:hover {
-    background: var(--ds-hover) !important;
+    background:
+        var(--ds-hover) !important;
 }
 
 #v4 .node.active {
-    background: var(--ds-selected) !important;
+    background:
+        var(--ds-selected) !important;
+
     color: #102f4b !important;
 }
 
-#v4 .node b {
-    margin-right: 5px;
+#v4 .node-key {
     color: var(--ds-accent);
-    font-family: Consolas, "Courier New", monospace;
-    font-size: 13px;
-    font-weight: 400;
-}
 
-#v4 .node .badge {
-    position: absolute;
-    top: 5px;
-    right: 4px;
-    float: none;
-    max-width: 43px;
-    padding: 0;
-    overflow: hidden;
-    border: 0;
-    background: transparent;
-    color: var(--ds-muted);
+    font-family:
+        Consolas,
+        "Courier New",
+        monospace;
+
     font-size: 12px;
     font-weight: 400;
-    line-height: 18px;
+
+    white-space: nowrap;
+}
+
+#v4 .node-title {
+    min-width: 0;
+    overflow: hidden;
+
+    color: var(--ds-text);
+    font-size: 14px;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#v4 .node-multiparent {
+    color: var(--ds-muted);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+#v4 .node-coverage {
+    min-width: 38px;
+
+    color: var(--ds-muted);
+    font-size: 12px;
+
     text-align: right;
     white-space: nowrap;
+}
+
+/*
+ * Alten absolut positionierten Badge ausblenden.
+ * Der neue Tree nutzt .node-coverage.
+ */
+#v4 .node .badge {
+    display: none !important;
 }
 
 #v4 .empty-message {
@@ -205,7 +244,7 @@
 }
 
 /* Main workspace */
-#v4 > main {
+#v4>main {
     min-width: 0;
     overflow: auto;
     background: var(--ds-bg);
@@ -239,7 +278,7 @@
     box-shadow: 0 1px 2px rgba(24, 35, 45, .05);
 }
 
-#v4 .sticky > div {
+#v4 .sticky>div {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -608,8 +647,8 @@
     background: #f8e8e9;
 }
 
-#v4 #v4Panel > button,
-#v4 #v4Panel .section > button {
+#v4 #v4Panel>button,
+#v4 #v4Panel .section>button {
     min-height: 30px;
     margin-top: 7px;
     padding: 4px 8px;
@@ -664,7 +703,7 @@
     padding: 2px 0;
 }
 
-#v4 .ds-checklist-row > input[type="checkbox"] {
+#v4 .ds-checklist-row>input[type="checkbox"] {
     width: 15px;
     height: 15px;
     min-height: 0;
@@ -867,10 +906,10 @@
     #v4 {
         display: block;
         height: auto;
-        overflow: visible;
+        S overflow: visible;
     }
 
-    #v4 > .nav {
+    #v4>.nav {
         max-height: 300px;
         border-right: 0;
         border-bottom: 1px solid var(--ds-border);
@@ -882,7 +921,7 @@
     }
 
     #v4 .sticky,
-    #v4 .sticky > div {
+    #v4 .sticky>div {
         flex-wrap: wrap;
     }
 
@@ -894,25 +933,295 @@
         padding: 35px 23px 50px;
     }
 }
+/* Definitiver Editor.js Lese- und Bearbeitungsmodus */
+#v4.is-reading .ce-toolbar,
+#v4.is-reading .ce-toolbar__plus,
+#v4.is-reading .ce-toolbar__settings-btn,
+#v4.is-reading .ce-inline-toolbar,
+#v4.is-reading .ce-conversion-toolbar,
+#v4.is-reading .ce-settings,
+#v4.is-reading .ce-popover,
+#v4.is-reading .ce-popover__container {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+#v4.is-reading #requirementsEditor,
+#v4.is-reading #requirementsEditor .ce-block,
+#v4.is-reading #requirementsEditor .ce-block__content {
+    cursor: default !important;
+}
+#v4.is-reading #requirementsEditor [contenteditable] {
+    caret-color: transparent !important;
+    cursor: default !important;
+    outline: none !important;
+}
+#v4.is-reading .ds-checklist-row > input,
+#v4.is-reading .ds-acceptance-rule,
+#v4.is-reading .ds-acceptance-threshold {
+    pointer-events: none !important;
+}
+#v4.is-editing .paper {
+    border-color: #8faec8;
+    box-shadow: inset 3px 0 0 var(--ds-accent), 0 1px 4px rgba(24,35,45,.10);
+}
+#v4.is-editing .ce-block {
+    position: relative;
+    margin: 1px -8px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+#v4.is-editing .ce-block:hover { background: #f4f8fb; }
+#v4.is-editing .ce-block:focus-within {
+    background: #eaf3fa;
+    box-shadow: inset 3px 0 0 #4d7fa8;
+}
+#v4.is-editing .sticky {
+    border-bottom-color: #8faec8;
+    background: #edf4f9;
+    box-shadow: inset 3px 0 0 var(--ds-accent);
+}
 
 
-/* Read/Edit mode and corrected document tree */
-#v4{grid-template-columns:minmax(360px,26vw) minmax(0,1fr)}
-#v4>.nav{border-left:4px solid #0d3158;padding-left:16px}
-#v4 .node{display:grid!important;grid-template-columns:max-content minmax(0,1fr) 44px;align-items:center;gap:7px;min-height:29px;padding:3px 5px 3px calc(5px + var(--tree-depth,0)*14px)!important;overflow:visible;white-space:normal}
-#v4 .node-key{color:var(--ds-accent);font-family:Consolas,"Courier New",monospace;font-size:12px;white-space:nowrap}
-#v4 .node-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
-#v4 .node-coverage{color:var(--ds-muted);font-size:12px;text-align:right;white-space:nowrap}
-#v4 .node .badge{display:none!important}
-#v4 .grid{grid-template-columns:minmax(620px,1fr) 325px;justify-content:stretch}
-#v4.is-reading #v4Title{cursor:default;border-color:transparent;background:transparent}
-#v4.is-reading .ce-toolbar,#v4.is-reading .ce-inline-toolbar,#v4.is-reading .ce-conversion-toolbar,#v4.is-reading .ce-settings{display:none!important}
-#v4.is-reading #requirementsEditor [contenteditable]{cursor:default;outline:none!important}
-#v4.is-reading .ce-block:hover,#v4.is-reading .ce-block--selected{background:transparent!important}
-#v4.is-reading .ds-acceptance-text,#v4.is-reading .ds-acceptance-title,#v4.is-reading .ds-checklist-text{border-color:transparent!important;background:transparent!important;cursor:default}
-#v4.is-reading .paper{background:#fff}
-#v4.is-editing .paper{box-shadow:inset 3px 0 0 #d7e6f2,0 1px 3px rgba(24,35,45,.08)}
-#v4 #v4Edit{border-color:#6e879e;background:#f4f7f9;color:#173f63}
-#v4 #v4CancelEdit{background:#fff;color:#44515d}
-@media(max-width:1200px){#v4{grid-template-columns:minmax(320px,30vw) minmax(0,1fr)}}
-@media(max-width:900px){#v4{grid-template-columns:280px minmax(0,1fr)}#v4 .grid{grid-template-columns:1fr}}
+
+/* =========================================================
+   MEHR BLATTRAND UND DUNKLERER BEARBEITUNGSBEREICH
+========================================================= */
+
+/* Dokumentfläche links und rechts um 25 px verbreitern */
+#v4 .paper {
+    padding-left: 73px;
+    padding-right: 73px;
+}
+
+/*
+ * Editor.js-Werkzeuge bleiben innerhalb
+ * der weißen Dokumentfläche sichtbar.
+ */
+#v4.is-editing .paper {
+    overflow: visible;
+
+    border-color: #7899b5;
+
+    box-shadow:
+        inset 3px 0 0 var(--ds-accent),
+        0 2px 7px rgba(24, 35, 45, 0.16);
+}
+
+/*
+ * Umgebung außerhalb des Blattes im
+ * Bearbeitungsmodus etwas dunkler.
+ */
+#v4.is-editing > main {
+    background: #cfd6dc;
+}
+
+#v4.is-editing .grid {
+    background: #cfd6dc;
+}
+
+/*
+ * Der Inspector bleibt hell und gut lesbar.
+ */
+#v4.is-editing .inspector {
+    background: var(--ds-surface);
+}
+
+/*
+ * Toolbar des Dokuments ebenfalls leicht abheben.
+ */
+#v4.is-editing .sticky {
+    border-bottom-color: #7899b5;
+    background: #e5edf3;
+
+    box-shadow:
+        inset 3px 0 0 var(--ds-accent);
+}
+
+/*
+ * Plus- und Sechs-Punkte-Schaltfläche
+ * etwas vom Blattrand nach innen holen.
+ */
+#v4.is-editing .ce-toolbar__content {
+    max-width: 100% !important;
+}
+
+#v4.is-editing .ce-toolbar__plus,
+#v4.is-editing .ce-toolbar__settings-btn {
+    border: 1px solid #9baab7;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(24, 35, 45, 0.10);
+}
+
+/* Aktiver Block bleibt sichtbar hervorgehoben */
+#v4.is-editing .ce-block:focus-within {
+    background: #e5f0f8;
+
+    box-shadow:
+        inset 3px 0 0 #3f739e;
+}
+
+
+
+
+
+
+/* =========================================================
+   BLAU-GRAUE ARBEITSUMGEBUNG IM BEARBEITUNGSMODUS
+========================================================= */
+
+#v4.is-editing {
+    --ds-edit-workspace: #c8d2db;
+    --ds-edit-surface: #d5dde4;
+    --ds-edit-toolbar: #dce7ef;
+
+    background: var(--ds-edit-workspace);
+}
+
+/* Gesamter Bereich hinter Dokument und Inspector */
+#v4.is-editing > main,
+#v4.is-editing .grid {
+    background: var(--ds-edit-workspace);
+}
+
+/* Linker Dokumentbaum leicht dunkler */
+#v4.is-editing > .nav {
+    border-right-color: #8195a6;
+    background: var(--ds-edit-surface);
+}
+
+/* Kopfbereich des Dokumentbaums */
+#v4.is-editing > .nav header {
+    background: transparent;
+}
+
+/* Suche weiterhin gut lesbar */
+#v4.is-editing #v4Search {
+    border-color: #95a6b5;
+    background: #f7f9fa;
+}
+
+/* Baumzeilen auf dem blau-grauen Hintergrund */
+#v4.is-editing .node {
+    border-bottom-color: #bdc8d1 !important;
+}
+
+#v4.is-editing .node:hover {
+    background: #e4ebf0 !important;
+}
+
+#v4.is-editing .node.active {
+    background: #c6dced !important;
+}
+
+/* Toolbar über dem Dokument */
+#v4.is-editing .sticky {
+    border-bottom-color: #819aaf;
+    background: var(--ds-edit-toolbar);
+
+    box-shadow:
+        inset 3px 0 0 var(--ds-accent),
+        0 1px 3px rgba(22, 43, 61, 0.12);
+}
+
+/* Das eigentliche Blatt bleibt weiß */
+#v4.is-editing .paper {
+    border-color: #7892a8;
+    background: #ffffff;
+
+    box-shadow:
+        inset 3px 0 0 var(--ds-accent),
+        0 3px 10px rgba(22, 43, 61, 0.18);
+}
+
+/* Inspector leicht vom Hintergrund abheben */
+#v4.is-editing .inspector {
+    border-color: #879aa9;
+    background: #f7f9fa;
+
+    box-shadow:
+        0 2px 6px rgba(22, 43, 61, 0.12);
+}
+
+#v4.is-editing .inspector nav {
+    border-bottom-color: #96a8b6;
+    background: #dce4ea;
+}
+
+#v4.is-editing #v4Panel {
+    background: #f7f9fa;
+}
+
+/* Eingabefelder im Inspector bleiben weiß */
+#v4.is-editing #v4Panel input,
+#v4.is-editing #v4Panel select,
+#v4.is-editing #v4Panel textarea {
+    border-color: #9aaab7;
+    background: #ffffff;
+}
+
+/* Aktueller Editorblock */
+#v4.is-editing .ce-block:hover {
+    background: #f0f6fa;
+}
+
+#v4.is-editing .ce-block:focus-within {
+    background: #e3f0f8;
+
+    box-shadow:
+        inset 3px 0 0 #3f739e;
+}
+
+/* Akzeptanzkriterien etwas klarer vom Blatt trennen */
+#v4.is-editing .ds-acceptance {
+    border-color: #91a5b5;
+    border-left-color: var(--ds-accent);
+    background: #f7fafc;
+}
+
+
+
+/* Größerer Dokumenttitel in der Kopfleiste */
+#v4 .sticky {
+    min-height: 54px;
+    padding: 6px 12px;
+}
+
+#v4 #v4Key {
+    flex: 0 0 auto;
+
+    color: var(--ds-accent);
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 42px;
+}
+
+#v4 #v4Title {
+    width: min(900px, 65vw);
+    height: 42px;
+    padding: 4px 8px;
+
+    border: 1px solid transparent;
+    background: transparent;
+    color: #18212a;
+
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+/* Im Lesemodus wie eine normale Überschrift */
+#v4.is-reading #v4Title {
+    cursor: default;
+    border-color: transparent;
+    background: transparent;
+}
+
+/* Im Bearbeitungsmodus Eingabefeld sichtbar machen */
+#v4.is-editing #v4Title:hover,
+#v4.is-editing #v4Title:focus {
+    border-color: #8faec8;
+    background: #fff;
+}
