@@ -21,6 +21,7 @@ $username = $_SESSION['username'] ?? 'Gast';
     <link rel="stylesheet" href="css/document-studio.css">
     <link rel="stylesheet" href="css/acceptance-criteria-tool.css">
     <link rel="stylesheet" href="css/criterion-traceability.css">
+    <link rel="stylesheet" href="css/risks.css">
 </head>
 
 <body class="cl-body">

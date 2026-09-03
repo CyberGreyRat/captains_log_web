@@ -1,0 +1,38 @@
+/* Clean risk repair. Replace the previous risks.css completely. */
+
+/* Main list */
+#risks .cl-table-container{min-height:520px;max-height:calc(100vh - 275px);overflow:auto}
+#risks .cl-table{width:100%;min-width:1260px;table-layout:fixed}
+#risks .cl-table th,#risks .cl-table td{padding:9px 7px;vertical-align:top}
+#risks .cl-table th:nth-child(1){width:72px}#risks .cl-table th:nth-child(2){width:54px}#risks .cl-table th:nth-child(3){width:205px}
+#risks .cl-table th:nth-child(4),#risks .cl-table th:nth-child(5){width:23px;padding:2px;text-align:center}
+#risks .cl-table th:nth-child(6){width:29px;padding:2px;text-align:center}
+#risks .cl-table td:nth-child(4),#risks .cl-table td:nth-child(5),#risks .cl-table td:nth-child(6){padding:2px;text-align:center}
+#risks .cl-table th:nth-child(7){width:126px}#risks .cl-table th:nth-child(8){width:70px}#risks .cl-table th:nth-child(9){width:260px}#risks .cl-table th:nth-child(10){width:215px}#risks .cl-table th:nth-child(11){width:220px}#risks .cl-table th:nth-child(12){width:88px}
+#risks .risk-score{display:inline-flex;width:27px;height:27px;align-items:center;justify-content:center;border-radius:4px;font-weight:800}
+#risks .risk-score-low{background:#b8e986;color:#18390d}#risks .risk-score-medium{background:#f4d467;color:#533f00}#risks .risk-score-high{background:#efa058;color:#5e2900}#risks .risk-score-critical{background:#d84f4b;color:#fff}
+
+/* Expand/collapse: preview and full text are mutually exclusive */
+#risks .risk-expand summary{cursor:pointer;list-style:none;line-height:1.42}
+#risks .risk-expand summary::-webkit-details-marker{display:none}
+#risks .risk-more{margin-left:6px;color:#125b8c;font-size:11px;font-weight:800}
+#risks .risk-full-text{display:none;line-height:1.5;white-space:normal}
+#risks .risk-expand[open] summary{display:none}
+#risks .risk-expand[open] .risk-full-text{display:block}
+#risks .risk-expand[open] .risk-full-text::after{content:'Weniger';display:block;width:max-content;margin-top:7px;color:#125b8c;font-size:11px;font-weight:800;cursor:pointer}
+
+/* Compact footer legend */
+#risks .cl-panel-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:40px;padding:6px 14px}
+#risks .risk-mini-legend{display:flex;flex-wrap:wrap;gap:5px}
+#risks .risk-mini{padding:2px 7px;border:1px solid;border-radius:999px;font-size:10px;font-weight:800}
+#risks .risk-mini-low{border-color:#80c85e;background:#edf9e6;color:#285d14}#risks .risk-mini-medium{border-color:#deb83e;background:#fff8dc;color:#705700}#risks .risk-mini-high{border-color:#df8d43;background:#fff0e2;color:#763800}#risks .risk-mini-critical{border-color:#d85b57;background:#ffebe9;color:#8b211e}
+
+/* Modal content uses original Tailwind layout, only widths and text areas are strengthened */
+#modalRisk .cl-modal-header{flex:0 0 auto}
+#modalRisk #formRisk>div:nth-child(2){box-sizing:border-box;width:100%;min-width:0;overflow-x:hidden;overflow-y:auto}
+#modalRisk fieldset{min-width:0}
+#modalRisk .cl-textarea{min-height:120px;line-height:1.5}
+#modalRisk #risk_title{min-height:90px}
+#modalRisk #risk_cause,#modalRisk #risk_malfunction,#modalRisk #risk_effect,#modalRisk #risk_mitigation,#modalRisk #risk_decision,#modalRisk #risk_residual_reason{min-height:140px}
+#modalRisk #risk_w,#modalRisk #risk_e,#modalRisk #risk_residual_w,#modalRisk #risk_residual_e{padding-left:2px;padding-right:2px;text-align:center}
+#modalRisk #risk_initial_score,#modalRisk #risk_residual_score{padding-left:2px;padding-right:2px}

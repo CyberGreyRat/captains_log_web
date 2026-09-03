@@ -58,13 +58,13 @@ try {
         'cause' => trim((string)($data['cause'] ?? '')),
         'malfunction' => trim((string)($data['malfunction'] ?? '')),
         'effect' => trim((string)($data['effect'] ?? '')),
-        'w' => $w, 'e' => $e, 'risk_score' => $w*$e,
+        'w' => $w, 'e' => $e, 'risk_score' => max(1,(int)($data['risk_score']??1)), 'risk_formula' => trim((string)($data['risk_formula']??'')), 'risk_formula_version' => max(1,(int)($data['risk_formula_version']??1)),
         'review_date' => trim((string)($data['review_date'] ?? '')),
         'workflow_status' => $workflowStatus,
         'decision' => trim((string)($data['decision'] ?? '')),
         'mitigation_plan' => trim((string)($data['mitigation_plan'] ?? '')),
         'implementation_status' => trim((string)($data['implementation_status'] ?? 'open')),
-        'residual_w' => $rw, 'residual_e' => $re, 'residual_score' => $rw*$re,
+        'residual_w' => $rw, 'residual_e' => $re, 'residual_score' => max(1,(int)($data['residual_score']??1)),
         'residual_accepted' => !empty($data['residual_accepted']),
         'residual_reason' => trim((string)($data['residual_reason'] ?? ''))
     ];

@@ -1,7 +1,7 @@
 // dashboard/js/risks.js
 import { currentProjectId } from './state.js';
 
-const RISK_MODULE_VERSION = '2026-08-31.2-team-responsible';
+const RISK_MODULE_VERSION = '2026-09-03.4-clean-repair';
 console.info(`[Captain's Log] risks.js ${RISK_MODULE_VERSION} geladen`);
 
 let pendingArchiveRiskId = null;
@@ -14,6 +14,26 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&'
 const parseAttrs = risk => typeof risk.attributes === 'object' && risk.attributes !== null ? risk.attributes : (() => { try { return JSON.parse(risk.attributes || '{}') || {}; } catch { return {}; } })();
 const value = id => document.getElementById(id)?.value || '';
 const setValue = (id, newValue) => { const element = document.getElementById(id); if (element) element.value = newValue ?? ''; };
+const RISK_FORMULA = 'AUFRUNDEN(RUNDEN(-0,0207*(W*E)^2+1,07043*(W*E)+0,03856;0)/3;0)';
+const RISK_FORMULA_VERSION = 1;
+function calculateRiskNumber(w, e) {
+    const product = Math.max(1, Number(w) || 1) * Math.max(1, Number(e) || 1);
+    return Math.max(1, Math.ceil(Math.round(-0.0207 * product ** 2 + 1.07043 * product + 0.03856) / 3));
+}
+function riskLevel(score) {
+    if (score >= 7) return 'critical';
+    if (score >= 5) return 'high';
+    if (score >= 3) return 'medium';
+    return 'low';
+}
+function expandableRiskText(text, limit = 100) {
+    const full = String(text || '').trim();
+    if (!full) return '<span class="risk-empty-text">-</span>';
+    if (full.length <= limit) return `<span>${esc(full)}</span>`;
+    const short = full.slice(0, limit).trimEnd() + '…';
+    return `<details class="risk-expand"><summary><span class="risk-preview">${esc(short)}</span><span class="risk-more">Mehr</span></summary><div class="risk-full-text">${esc(full)}</div></details>`;
+}
+
 
 // =============================================================================
 // VERANTWORTLICHE AUS DEM AKTIVEN PROJEKTTEAM
@@ -116,16 +136,15 @@ export async function loadRisks() {
 }
 
 function renderRiskTable() {
-    const tbody = document.getElementById('riskTableBody'); const map = document.getElementById('riskMapPoints');
-    if (!tbody || !map) return;
-    tbody.innerHTML = ''; map.innerHTML = '';
+    const tbody = document.getElementById('riskTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
     if (!loadedRisks.length) { tbody.innerHTML = '<tr><td colspan="12" class="p-6 text-center italic text-slate-400">Keine aktiven Risiken erfasst.</td></tr>'; return; }
     loadedRisks.forEach((risk, index) => {
-        const a = parseAttrs(risk), w = Number(a.w) || 1, e = Number(a.e) || 1, score = w * e;
-        const color = score >= 15 ? 'bg-red-600 text-white' : score >= 10 ? 'bg-orange-500 text-white' : score >= 5 ? 'bg-amber-400 text-slate-900' : 'bg-emerald-500 text-white';
+        const a = parseAttrs(risk), w = Number(a.w) || 1, e = Number(a.e) || 1, score = Number(a.risk_score) || calculateRiskNumber(w, e);
+        const color = `risk-score risk-score-${riskLevel(score)}`;
         const person = getResponsibleName(risk.source_contact, a);
-        tbody.insertAdjacentHTML('beforeend', `<tr class="border-b border-slate-200 hover:bg-slate-50"><td class="p-3 text-xs">${new Date(risk.created_at || Date.now()).toLocaleDateString('de-DE')}</td><td class="p-3 font-mono text-xs font-bold">${esc(risk.req_key)}</td><td class="p-3"><div class="font-bold">${esc(risk.title)}</div><div class="text-[10px] uppercase text-slate-400">${esc(a.risk_type || 'technical_product')} · ${esc(a.workflow_status || 'open')}</div></td><td class="p-3 text-center">${w}</td><td class="p-3 text-center">${e}</td><td class="p-3 text-center"><span class="inline-flex h-7 min-w-7 items-center justify-center rounded ${color}">${score}</span></td><td class="p-3 text-xs">${esc(person)}</td><td class="p-3 text-xs">${a.review_date ? new Date(a.review_date).toLocaleDateString('de-DE') : '-'}</td><td class="max-w-xs truncate p-3 text-xs" title="${esc(a.mitigation_plan || '')}">${esc(a.mitigation_plan || '')}</td><td class="max-w-xs truncate p-3 text-xs">${esc(a.decision || '')}</td><td class="max-w-xs truncate p-3 text-xs">${esc(a.effect || '')}</td><td class="p-3 text-right"><div class="flex justify-end gap-2"><button type="button" onclick="window.editRisk(${Number(risk.id)})" class="text-blue-700 text-xs font-bold hover:underline">Bearbeiten</button><button type="button" onclick="window.archiveRisk(${Number(risk.id)})" class="text-red-600 text-xs font-bold hover:underline">Archivieren</button></div></td></tr>`);
-        const x = ((w - 1) * 20) + 10, y = 100 - (((e - 1) * 20) + 10); map.insertAdjacentHTML('beforeend', `<button type="button" onclick="window.editRisk(${Number(risk.id)})" class="absolute flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full ${color} text-xs font-bold shadow" style="left:${x}%;top:${y}%" title="${esc(risk.req_key + ' ' + risk.title)}">${index + 1}</button>`);
+        tbody.insertAdjacentHTML('beforeend', `<tr class="border-b border-slate-200 hover:bg-slate-50"><td class="p-3 text-xs">${new Date(risk.created_at || Date.now()).toLocaleDateString('de-DE')}</td><td class="p-3 font-mono text-xs font-bold">${esc(risk.req_key)}</td><td class="p-3"><div class="font-bold">${esc(risk.title)}</div><div class="text-[10px] uppercase text-slate-400">${esc(a.risk_type || 'technical_product')} · ${esc(a.workflow_status || 'open')}</div></td><td class="p-3 text-center">${w}</td><td class="p-3 text-center">${e}</td><td class="p-3 text-center"><span class="inline-flex h-7 min-w-7 items-center justify-center rounded ${color}">${score}</span></td><td class="p-3 text-xs">${esc(person)}</td><td class="p-3 text-xs">${a.review_date ? new Date(a.review_date).toLocaleDateString('de-DE') : '-'}</td><td class="p-3 text-xs">${expandableRiskText(a.mitigation_plan)}</td><td class="p-3 text-xs">${expandableRiskText(a.decision)}</td><td class="p-3 text-xs">${expandableRiskText(a.effect)}</td><td class="p-3 text-right"><div class="flex justify-end gap-2"><button type="button" onclick="window.editRisk(${Number(risk.id)})" class="text-blue-700 text-xs font-bold hover:underline">Bearbeiten</button><button type="button" onclick="window.archiveRisk(${Number(risk.id)})" class="text-red-600 text-xs font-bold hover:underline">Archivieren</button></div></td></tr>`);
     });
 }
 
@@ -144,10 +163,10 @@ function renderAllLists() { renderGroup('requirements', 'riskReqList', 'riskReqS
 // =============================================================================
 // FORMULAR ÖFFNEN, BEWERTEN UND SPEICHERN
 // =============================================================================
-function updateScores() { document.getElementById('risk_initial_score').textContent = String((Number(value('risk_w')) || 1) * (Number(value('risk_e')) || 1)); document.getElementById('risk_residual_score').textContent = String((Number(value('risk_residual_w')) || 1) * (Number(value('risk_residual_e')) || 1)); }
+function updateScores() { document.getElementById('risk_initial_score').textContent = String(calculateRiskNumber(value('risk_w'), value('risk_e'))); document.getElementById('risk_residual_score').textContent = String(calculateRiskNumber(value('risk_residual_w'), value('risk_residual_e'))); }
 async function openRisk(risk = null) { document.getElementById('formRisk').reset(); setValue('risk_id', risk?.id || ''); const a = risk ? parseAttrs(risk) : {}; setValue('risk_type', a.risk_type || 'technical_product'); setValue('risk_workflow_status', a.workflow_status || 'open'); setValue('risk_title', risk?.title || ''); setValue('risk_cause', a.cause || ''); setValue('risk_malfunction', a.malfunction || ''); setValue('risk_effect', a.effect || ''); setValue('risk_w', a.w || 1); setValue('risk_e', a.e || 1); populateResponsibleSelect(risk?.source_contact || ''); setValue('risk_date', a.review_date || ''); setValue('risk_implementation_status', a.implementation_status || 'open'); setValue('risk_mitigation', a.mitigation_plan || ''); setValue('risk_decision', a.decision || ''); setValue('risk_residual_w', a.residual_w || a.w || 1); setValue('risk_residual_e', a.residual_e || a.e || 1); document.getElementById('risk_residual_accepted').checked = Boolean(a.residual_accepted); setValue('risk_residual_reason', a.residual_reason || ''); document.getElementById('riskModalTitle').textContent = risk ? `Risiko bearbeiten (${risk.req_key})` : 'Neues Risiko erfassen'; updateScores(); document.getElementById('modalRisk').classList.remove('hidden'); try { await loadContext(risk?.id || 0); } catch (error) { alert(error.message); } }
 function closeRisk() { document.getElementById('modalRisk').classList.add('hidden'); }
-async function saveRisk(event) { event.preventDefault(); const button = event.submitter; button.disabled = true; const payload = { id: value('risk_id'), project_id: currentProjectId, title: value('risk_title'), risk_type: value('risk_type'), cause: value('risk_cause'), malfunction: value('risk_malfunction'), effect: value('risk_effect'), w: Number(value('risk_w')), e: Number(value('risk_e')), responsible: value('risk_responsible'), review_date: value('risk_date'), workflow_status: value('risk_workflow_status'), implementation_status: value('risk_implementation_status'), mitigation_plan: value('risk_mitigation'), decision: value('risk_decision'), residual_w: Number(value('risk_residual_w')), residual_e: Number(value('risk_residual_e')), residual_accepted: document.getElementById('risk_residual_accepted').checked, residual_reason: value('risk_residual_reason'), requirement_ids: [...selected.requirements], verification_ids: [...selected.verification], task_ids: [...selected.tasks], issue_ids: [...selected.issues] }; try { const response = await fetch('../api/set_risk.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); const data = await response.json(); if (!response.ok || !data.success) throw new Error(data.error || 'Risiko konnte nicht gespeichert werden.'); closeRisk(); await loadRisks(); } catch (error) { alert('Fehler: ' + error.message); } finally { button.disabled = false; } }
+async function saveRisk(event) { event.preventDefault(); const button = event.submitter; button.disabled = true; const payload = { id: value('risk_id'), project_id: currentProjectId, title: value('risk_title'), risk_type: value('risk_type'), cause: value('risk_cause'), malfunction: value('risk_malfunction'), effect: value('risk_effect'), w: Number(value('risk_w')), e: Number(value('risk_e')), risk_score: calculateRiskNumber(value('risk_w'), value('risk_e')), risk_formula: RISK_FORMULA, risk_formula_version: RISK_FORMULA_VERSION, responsible: value('risk_responsible'), review_date: value('risk_date'), workflow_status: value('risk_workflow_status'), implementation_status: value('risk_implementation_status'), mitigation_plan: value('risk_mitigation'), decision: value('risk_decision'), residual_w: Number(value('risk_residual_w')), residual_e: Number(value('risk_residual_e')), residual_score: calculateRiskNumber(value('risk_residual_w'), value('risk_residual_e')), residual_accepted: document.getElementById('risk_residual_accepted').checked, residual_reason: value('risk_residual_reason'), requirement_ids: [...selected.requirements], verification_ids: [...selected.verification], task_ids: [...selected.tasks], issue_ids: [...selected.issues] }; try { const response = await fetch('../api/set_risk.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); const data = await response.json(); if (!response.ok || !data.success) throw new Error(data.error || 'Risiko konnte nicht gespeichert werden.'); closeRisk(); await loadRisks(); } catch (error) { alert('Fehler: ' + error.message); } finally { button.disabled = false; } }
 
 // =============================================================================
 // EVENTS, BEARBEITUNG UND ARCHIVIERUNG

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/document_studio_common.php';
+require_once __DIR__ . '/document_history_lib.php';
 $u = uid();
 try {
     $action = $_GET['action'] ?? '';
@@ -81,6 +82,8 @@ try {
                 $typeName = 'text';
             $ins->execute([uuid4(), $id, null, $typeName, json_encode($b['data'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $i]);
         }
+        $createdSnapshot = documentSnapshot($pdo, $id);
+        documentWriteHistory($pdo, $createdSnapshot, 'CREATE', $u);
         $pdo->commit();
         out(['success' => true, 'id' => $id, 'key' => $display], 201);
     }
@@ -92,6 +95,7 @@ try {
             out(['success' => false, 'error' => 'Blöcke fehlen.'], 422);
         $pdo->beginTransaction();
         $before = doc($pdo, $id);
+        $oldSnapshot = documentSnapshot($pdo, $id);
         $normalized = [];
         foreach (array_values($blocks) as $b) {
             $data = is_array($b['data'] ?? null) ? $b['data'] : [];
@@ -135,8 +139,10 @@ try {
             $pdo->prepare("DELETE FROM requirement_document_blocks WHERE document_id=? AND id NOT IN($marks)")->execute(array_merge([$id], $keep));
         } else
             $pdo->prepare('DELETE FROM requirement_document_blocks WHERE document_id=?')->execute([$id]);
+        $savedSnapshot = documentSnapshot($pdo, $id);
+        documentWriteHistory($pdo, $savedSnapshot, 'UPDATE', $u, $oldSnapshot);
         $pdo->commit();
-        out(['success' => true, 'revision' => $revision]);
+        out(['success' => true, 'revision' => $revision, 'updated_at' => $savedSnapshot['document']['updated_at'] ?? null]);
     }
     out(['success' => false, 'error' => 'Unbekannte Aktion.'], 400);
 } catch (Throwable $e) {

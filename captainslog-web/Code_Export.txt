@@ -2,9 +2,9 @@
 CODE-EXPORT
 ============================================================
 Projekt:       C:\xampp\htdocs\captainslog-web
-Erstellt:      2026-09-02 09:56:48
+Erstellt:      2026-09-02 14:24:31
 Dateitypen:    JavaScript (*.js), PHP (*.php)
-Dateien:       151
+Dateien:       156
 
 ============================================================
 DATEIUEBERSICHT
@@ -14,23 +14,26 @@ api\api_execute_test_run_v2.php | 22 Zeilen | 942 Bytes
 api\api_set_test_case_links.php | 11 Zeilen | 562 Bytes
 api\attachment_common.php | 34 Zeilen | 1720 Bytes
 api\cli_pull.php | 74 Zeilen | 2349 Bytes
+api\coverage_lib.php | 5 Zeilen | 3703 Bytes
 api\create_requirement_document.php | 5 Zeilen | 2801 Bytes
+api\criterion_traceability.php | 179 Zeilen | 10977 Bytes
 api\delete_attachment.php | 3 Zeilen | 758 Bytes
-api\delete_document.php | 141 Zeilen | 4049 Bytes
+api\delete_document.php | 2 Zeilen | 1905 Bytes
 api\delete_issue.php | 8 Zeilen | 797 Bytes
 api\delete_requirement.php | 28 Zeilen | 1050 Bytes
 api\delete_requirement_import_profile.php | 3 Zeilen | 464 Bytes
 api\delete_task.php | 20 Zeilen | 838 Bytes
-api\document_coverage.php | 6 Zeilen | 3174 Bytes
-api\document_entity_catalog.php | 9 Zeilen | 2253 Bytes
-api\document_file.php | 1 Zeilen | 834 Bytes
-api\document_links.php | 5 Zeilen | 2498 Bytes
+api\document_coverage.php | 2 Zeilen | 293 Bytes
+api\document_entity_catalog.php | 9 Zeilen | 2089 Bytes
+api\document_file.php | 2 Zeilen | 861 Bytes
+api\document_links.php | 5 Zeilen | 2877 Bytes
+api\document_risk.php | 4 Zeilen | 1025 Bytes
 api\document_studio.php | 6 Zeilen | 5533 Bytes
-api\document_studio_common.php | 10 Zeilen | 1716 Bytes
-api\document_studio_v4.php | 5 Zeilen | 7405 Bytes
+api\document_studio_common.php | 70 Zeilen | 2153 Bytes
+api\document_studio_v4.php | 146 Zeilen | 9494 Bytes
 api\document_templates_v4.php | 1 Zeilen | 493 Bytes
-api\document_test_links.php | 4 Zeilen | 1428 Bytes
-api\document_types.php | 4 Zeilen | 1481 Bytes
+api\document_test_links.php | 5 Zeilen | 1950 Bytes
+api\document_types.php | 1 Zeilen | 446 Bytes
 api\docx_template_service.php | 251 Zeilen | 9919 Bytes
 api\download_attachment.php | 3 Zeilen | 831 Bytes
 api\execute_requirements_import.php | 122 Zeilen | 5706 Bytes
@@ -100,10 +103,10 @@ api\set_usecase.php | 60 Zeilen | 2254 Bytes
 api\set_userstories.php | 62 Zeilen | 2432 Bytes
 api\sync_requirement_relations.php | 96 Zeilen | 2387 Bytes
 api\toggle_subtask.php | 74 Zeilen | 1774 Bytes
-api\upload_document_file.php | 1 Zeilen | 1923 Bytes
+api\upload_document_file.php | 2 Zeilen | 1853 Bytes
 api\upload_report_logo.php | 25 Zeilen | 1646 Bytes
 api\use_acceptance_criteria_template.php | 17 Zeilen | 787 Bytes
-api\verification_common.php | 7 Zeilen | 1076 Bytes
+api\verification_common.php | 8 Zeilen | 1116 Bytes
 api\verify_criterion.php | 54 Zeilen | 5806 Bytes
 api\web_create_project.php | 58 Zeilen | 2124 Bytes
 api\web_get_projects.php | 20 Zeilen | 531 Bytes
@@ -111,26 +114,28 @@ config\audit_context.php | 33 Zeilen | 944 Bytes
 config\db.php | 49 Zeilen | 1657 Bytes
 dashboard\admin_users.php | 259 Zeilen | 13606 Bytes
 dashboard\cu.php | 15 Zeilen | 625 Bytes
-dashboard\header.php | 118 Zeilen | 4874 Bytes
-dashboard\index.php | 393 Zeilen | 13671 Bytes
+dashboard\header.php | 50 Zeilen | 2512 Bytes
+dashboard\index.php | 29 Zeilen | 4589 Bytes
 dashboard\js\acceptance_criteria_suggestions.js | 101 Zeilen | 6774 Bytes
 dashboard\js\api.js | 51 Zeilen | 1680 Bytes
-dashboard\js\app.js | 687 Zeilen | 14771 Bytes
+dashboard\js\app.js | 693 Zeilen | 14885 Bytes
 dashboard\js\assets.js | 379 Zeilen | 10343 Bytes
 dashboard\js\attachments.js | 14 Zeilen | 6932 Bytes
+dashboard\js\criterion-traceability.js | 334 Zeilen | 10181 Bytes
 dashboard\js\dashboard.js | 188 Zeilen | 8935 Bytes
 dashboard\js\dashboard_tc_linking.js | 14 Zeilen | 551 Bytes
 dashboard\js\goals.js | 399 Zeilen | 11663 Bytes
 dashboard\js\history.js | 309 Zeilen | 13678 Bytes
 dashboard\js\iso14001.js | 296 Zeilen | 14167 Bytes
 dashboard\js\issues.js | 1709 Zeilen | 51325 Bytes
+dashboard\js\layout.js | 1 Zeilen | 688 Bytes
 dashboard\js\project_plan.js | 628 Zeilen | 33326 Bytes
 dashboard\js\project_team.js | 169 Zeilen | 9465 Bytes
 dashboard\js\reports.js | 217 Zeilen | 10133 Bytes
 dashboard\js\requirement_evidence.js | 7 Zeilen | 2506 Bytes
 dashboard\js\requirement_identity_type_fix.js | 264 Zeilen | 6678 Bytes
 dashboard\js\requirement_type_source_ui.js | 311 Zeilen | 9017 Bytes
-dashboard\js\requirements.js | 24 Zeilen | 15702 Bytes
+dashboard\js\requirements.js | 819 Zeilen | 44166 Bytes
 dashboard\js\requirements_import.js | 398 Zeilen | 19574 Bytes
 dashboard\js\risks.js | 158 Zeilen | 16389 Bytes
 dashboard\js\sbom.js | 119 Zeilen | 5723 Bytes
@@ -152,7 +157,7 @@ dashboard\views\issues.php | 600 Zeilen | 24397 Bytes
 dashboard\views\project_plan.php | 528 Zeilen | 22667 Bytes
 dashboard\views\project_team.php | 126 Zeilen | 7336 Bytes
 dashboard\views\reports.php | 50 Zeilen | 5534 Bytes
-dashboard\views\requirements.php | 209 Zeilen | 5859 Bytes
+dashboard\views\requirements.php | 213 Zeilen | 6083 Bytes
 dashboard\views\risks.php | 464 Zeilen | 22734 Bytes
 dashboard\views\sbom.php | 18 Zeilen | 1305 Bytes
 dashboard\views\stakeholders.php | 541 Zeilen | 20248 Bytes
@@ -345,6 +350,18 @@ echo json_encode([
 ENDE DATEI: api\cli_pull.php
 
 ============================================================
+DATEI: api\coverage_lib.php
+============================================================
+<?php
+function coverageLeaves(PDO$p,string$root):array{$seen=[];$result=[];$walk=function(string$id)use(&$walk,&$seen,&$result,$p){if(isset($seen[$id]))return;$seen[$id]=1;$q=$p->prepare("SELECT target_document_id FROM requirement_document_links WHERE source_document_id=? AND link_type='parent_of'");$q->execute([$id]);$children=$q->fetchAll(PDO::FETCH_COLUMN);if(!$children){$result[]=$id;return;}foreach($children as$c)$walk($c);};$walk($root);return array_values(array_unique($result));}
+function coverageParents(PDO$p,string$id):array{$seen=[];$queue=[$id];$q=$p->prepare("SELECT source_document_id FROM requirement_document_links WHERE target_document_id=? AND link_type='parent_of'");while($queue){$x=array_shift($queue);$q->execute([$x]);foreach($q->fetchAll(PDO::FETCH_COLUMN)as$parent)if(!isset($seen[$parent])){$seen[$parent]=1;$queue[]=$parent;}}return array_keys($seen);}
+function coverageCalculate(PDO$p,string$id):array{$q=$p->prepare('SELECT revision FROM requirement_documents WHERE id=?');$q->execute([$id]);$revision=$q->fetchColumn();if($revision===false)throw new RuntimeException('Dokument nicht gefunden.');$leafIds=coverageLeaves($p,$id)?:[$id];$s=['leaf_count'=>count($leafIds),'covered_count'=>0,'executed_count'=>0,'passed_count'=>0,'failed_count'=>0,'blocked_count'=>0,'outdated_count'=>0];foreach($leafIds as$leaf){$d=$p->prepare('SELECT revision FROM requirement_documents WHERE id=?');$d->execute([$leaf]);$leafRev=(int)$d->fetchColumn();$t=$p->prepare('SELECT result,document_revision FROM document_test_links WHERE document_id=? ORDER BY executed_at DESC,updated_at DESC');$t->execute([$leaf]);$rows=$t->fetchAll(PDO::FETCH_ASSOC);if(!$rows)continue;$s['covered_count']++;$valid=array_values(array_filter($rows,fn($r)=>(int)$r['document_revision']===$leafRev));if(!$valid){$s['outdated_count']++;continue;}$results=array_column($valid,'result');if(array_filter($results,fn($r)=>$r!=='not_run'))$s['executed_count']++;if(in_array('failed',$results,true))$s['failed_count']++;elseif(in_array('blocked',$results,true))$s['blocked_count']++;elseif(in_array('passed',$results,true))$s['passed_count']++;}$n=max(1,$s['leaf_count']);$s['test_coverage_percent']=round($s['covered_count']/$n*100,2);$s['coverage_percent']=round($s['executed_count']/$n*100,2);$s['passed_percent']=round($s['passed_count']/$n*100,2);if($s['outdated_count'])$status='Outdated';elseif($s['failed_count'])$status='Failed';elseif($s['passed_count']===$s['leaf_count'])$status='Passed';elseif($s['covered_count']===0)$status='Not Covered';else$status='Partial';$s['verification_status']=$status;$s['revision']=(int)$revision;$up=$p->prepare('INSERT INTO document_verification_snapshots(document_id,revision,leaf_count,covered_count,executed_count,passed_count,failed_count,blocked_count,outdated_count,coverage_percent,passed_percent,verification_status)VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE revision=VALUES(revision),leaf_count=VALUES(leaf_count),covered_count=VALUES(covered_count),executed_count=VALUES(executed_count),passed_count=VALUES(passed_count),failed_count=VALUES(failed_count),blocked_count=VALUES(blocked_count),outdated_count=VALUES(outdated_count),coverage_percent=VALUES(coverage_percent),passed_percent=VALUES(passed_percent),verification_status=VALUES(verification_status)');$up->execute([$id,$s['revision'],$s['leaf_count'],$s['covered_count'],$s['executed_count'],$s['passed_count'],$s['failed_count'],$s['blocked_count'],$s['outdated_count'],$s['coverage_percent'],$s['passed_percent'],$status]);return$s;}
+function coverageRecalculateChain(PDO$p,string$id):void{coverageCalculate($p,$id);foreach(coverageParents($p,$id)as$parent)coverageCalculate($p,$parent);}
+
+
+ENDE DATEI: api\coverage_lib.php
+
+============================================================
 DATEI: api\create_requirement_document.php
 ============================================================
 <?php
@@ -355,6 +372,192 @@ $pdo->beginTransaction();$pdo->prepare('INSERT INTO requirement_document_sequenc
 
 
 ENDE DATEI: api\create_requirement_document.php
+
+============================================================
+DATEI: api\criterion_traceability.php
+============================================================
+<?php
+declare(strict_types=1);
+require_once __DIR__ . '/document_studio_common.php';
+$userId = uid();
+function ctCriteria(PDO $pdo, string $documentId): array
+{
+    $q = $pdo->prepare("SELECT id,content FROM requirement_document_blocks WHERE document_id=? AND block_type='acceptanceCriteria' ORDER BY sort_order,id");
+    $q->execute([$documentId]);
+    $items = [];
+    foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $block) {
+        $data = json_decode($block['content'] ?? '{}', true) ?: [];
+        foreach (($data['items'] ?? []) as $criterion) {
+            if (empty($criterion['id']))
+                continue;
+            $items[] = ['id' => (string) $criterion['id'], 'text' => (string) ($criterion['text'] ?? ''), 'revision' => max(1, (int) ($criterion['revision'] ?? 1)), 'rule' => (string) ($data['rule'] ?? 'ALL'), 'block_id' => $block['id']];
+        }
+    }
+    return $items;
+}
+function ctCriterion(PDO $pdo, string $documentId, string $criterionId): ?array
+{
+    foreach (ctCriteria($pdo, $documentId) as $c)
+        if ($c['id'] === $criterionId)
+            return $c;
+    return null;
+}
+function ctStatus(PDO $pdo, string $documentId, string $criterionId, array &$seen = []): array
+{
+    $key = $documentId . ':' . $criterionId;
+    if (isset($seen[$key]))
+        return ['status' => 'open', 'reason' => 'Zyklus'];
+    $seen[$key] = 1;
+    $criterion = ctCriterion($pdo, $documentId, $criterionId);
+    if (!$criterion)
+        return ['status' => 'open', 'reason' => 'Kriterium fehlt'];
+    $e = $pdo->prepare('SELECT result,criterion_revision FROM document_criterion_evidence WHERE document_id=? AND criterion_id=? ORDER BY updated_at DESC');
+    $e->execute([$documentId, $criterionId]);
+    $evidence = $e->fetchAll(PDO::FETCH_ASSOC);
+    if ($evidence) {
+        $valid = array_values(array_filter($evidence, fn($x) => (int) $x['criterion_revision'] === (int) $criterion['revision']));
+        if (!$valid)
+            return ['status' => 'outdated', 'reason' => 'Nur Nachweise älterer Revisionen'];
+        $results = array_column($valid, 'result');
+        if (in_array('failed', $results, true))
+            return ['status' => 'failed', 'reason' => 'Aktueller Test fehlgeschlagen'];
+        if (in_array('blocked', $results, true))
+            return ['status' => 'blocked', 'reason' => 'Aktueller Test blockiert'];
+        if (in_array('passed', $results, true))
+            return ['status' => 'passed', 'reason' => 'Aktueller Test bestanden'];
+    }
+    $q = $pdo->prepare('SELECT child_document_id,child_criterion_id,aggregation_rule FROM document_criterion_links WHERE parent_document_id=? AND parent_criterion_id=?');
+    $q->execute([$documentId, $criterionId]);
+    $links = $q->fetchAll(PDO::FETCH_ASSOC);
+    if (!$links)
+        return ['status' => 'open', 'reason' => 'Kein Child-Kriterium oder Testnachweis'];
+    $states = [];
+    foreach ($links as $l)
+        $states[] = ctStatus($pdo, $l['child_document_id'], $l['child_criterion_id'], $seen)['status'];
+    $rule = $links[0]['aggregation_rule'] ?? 'ALL';
+    if (in_array('failed', $states, true))
+        return ['status' => 'failed', 'reason' => 'Mindestens ein Child-Kriterium fehlgeschlagen'];
+    if ($rule === 'ANY' && in_array('passed', $states, true))
+        return ['status' => 'passed', 'reason' => 'Mindestens ein Child-Kriterium bestanden'];
+    if ($rule === 'ALL' && count(array_filter($states, fn($s) => $s === 'passed')) === count($states))
+        return ['status' => 'passed', 'reason' => 'Alle Child-Kriterien bestanden'];
+    if (array_filter($states, fn($s) => in_array($s, ['passed', 'blocked', 'outdated'], true)))
+        return ['status' => 'covered', 'reason' => 'Child-Kriterien teilweise nachgewiesen'];
+    return ['status' => 'covered', 'reason' => 'Child-Kriterien zugeordnet'];
+}
+function ctRecalculate(PDO $pdo, string $documentId): void
+{
+    $documents = [$documentId];
+    $queue = [$documentId];
+    $p = $pdo->prepare("SELECT source_document_id FROM requirement_document_links WHERE target_document_id=? AND link_type='parent_of'");
+    while ($queue) {
+        $id = array_shift($queue);
+        $p->execute([$id]);
+        foreach ($p->fetchAll(PDO::FETCH_COLUMN) as $parent)
+            if (!in_array($parent, $documents, true)) {
+                $documents[] = $parent;
+                $queue[] = $parent;
+            }
+    }
+    foreach ($documents as $docId) {
+        $criteria = ctCriteria($pdo, $docId);
+        if (!$criteria)
+            continue;
+        $counts = ['covered' => 0, 'executed' => 0, 'passed' => 0, 'failed' => 0, 'blocked' => 0, 'outdated' => 0];
+        foreach ($criteria as $c) {
+            $seen = [];
+            $status = ctStatus($pdo, $docId, $c['id'], $seen)['status'];
+            if ($status !== 'open')
+                $counts['covered']++;
+            if (in_array($status, ['passed', 'failed', 'blocked'], true))
+                $counts['executed']++;
+            if (isset($counts[$status]))
+                $counts[$status]++;
+        }
+        $total = count($criteria);
+        $coverage = round($counts['executed'] / $total * 100, 2);
+        $passed = round($counts['passed'] / $total * 100, 2);
+        $status = $counts['outdated'] ? 'Outdated' : ($counts['failed'] ? 'Failed' : ($counts['passed'] === $total ? 'Passed' : ($counts['covered'] ? 'Partial' : 'Not Covered')));
+        $r = $pdo->prepare('SELECT revision FROM requirement_documents WHERE id=?');
+        $r->execute([$docId]);
+        $revision = (int) $r->fetchColumn();
+        $up = $pdo->prepare('INSERT INTO document_verification_snapshots(document_id,revision,leaf_count,covered_count,executed_count,passed_count,failed_count,blocked_count,outdated_count,coverage_percent,passed_percent,verification_status)VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE revision=VALUES(revision),leaf_count=VALUES(leaf_count),covered_count=VALUES(covered_count),executed_count=VALUES(executed_count),passed_count=VALUES(passed_count),failed_count=VALUES(failed_count),blocked_count=VALUES(blocked_count),outdated_count=VALUES(outdated_count),coverage_percent=VALUES(coverage_percent),passed_percent=VALUES(passed_percent),verification_status=VALUES(verification_status)');
+        $up->execute([$docId, $revision, $total, $counts['covered'], $counts['executed'], $counts['passed'], $counts['failed'], $counts['blocked'], $counts['outdated'], $coverage, $passed, $status]);
+    }
+}
+try {
+    $method = $_SERVER['REQUEST_METHOD'];
+    $action = $_GET['action'] ?? 'context';
+    if ($method === 'GET' && $action === 'context') {
+        $documentId = trim((string) ($_GET['document_id'] ?? ''));
+        $doc = doc($pdo, $documentId);
+        $criteria = ctCriteria($pdo, $documentId);
+        $parents = [];
+        $q = $pdo->prepare("SELECT d.id,d.requirement_key,d.title FROM requirement_document_links l JOIN requirement_documents d ON d.id=l.source_document_id WHERE l.target_document_id=? AND l.link_type='parent_of'");
+        $q->execute([$documentId]);
+        foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $p) {
+            $p['criteria'] = ctCriteria($pdo, $p['id']);
+            $parents[] = $p;
+        }
+        $m = $pdo->prepare('SELECT * FROM document_criterion_links WHERE child_document_id=?');
+        $m->execute([$documentId]);
+        $maps = $m->fetchAll(PDO::FETCH_ASSOC);
+        $t = $pdo->prepare("SELECT id,result,COALESCE(JSON_UNQUOTE(JSON_EXTRACT(metadata,'$.label')),CONCAT('Testnachweis ',id))label,document_revision FROM document_test_links WHERE document_id=? ORDER BY executed_at DESC,created_at DESC");
+        $t->execute([$documentId]);
+        $tests = $t->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($criteria as &$c) {
+            $seen = [];
+            $c += ctStatus($pdo, $documentId, $c['id'], $seen);
+        }
+        out(['success' => true, 'document' => $doc, 'criteria' => $criteria, 'parents' => $parents, 'mappings' => $maps, 'test_links' => $tests]);
+    }
+    if ($method === 'POST') {
+        $x = body();
+        $documentId = trim((string) ($x['document_id'] ?? ''));
+        $doc = doc($pdo, $documentId);
+        if ($action === 'map') {
+            $childId = trim((string) ($x['child_criterion_id'] ?? ''));
+            $parentDoc = trim((string) ($x['parent_document_id'] ?? ''));
+            $parentId = trim((string) ($x['parent_criterion_id'] ?? ''));
+            if (!ctCriterion($pdo, $documentId, $childId) || !ctCriterion($pdo, $parentDoc, $parentId))
+                out(['success' => false, 'error' => 'Kriterium nicht gefunden.'], 422);
+            $pdo->prepare('INSERT INTO document_criterion_links(id,project_id,parent_document_id,parent_criterion_id,child_document_id,child_criterion_id,aggregation_rule,created_by)VALUES(?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE aggregation_rule=VALUES(aggregation_rule)')->execute([uuid4(), $doc['project_id'], $parentDoc, $parentId, $documentId, $childId, in_array($x['aggregation_rule'] ?? 'ALL', ['ALL', 'ANY'], true) ? $x['aggregation_rule'] : 'ALL', $userId]);
+            ctRecalculate($pdo, $documentId);
+            out(['success' => true], 201);
+        }
+        if ($action === 'evidence') {
+            $criterionId = trim((string) ($x['criterion_id'] ?? ''));
+            $testLinkId = trim((string) ($x['document_test_link_id'] ?? ''));
+            $criterion = ctCriterion($pdo, $documentId, $criterionId);
+            if (!$criterion)
+                out(['success' => false, 'error' => 'Kriterium nicht gefunden.'], 422);
+            $q = $pdo->prepare('SELECT result FROM document_test_links WHERE id=? AND document_id=?');
+            $q->execute([$testLinkId, $documentId]);
+            $result = $q->fetchColumn();
+            if ($result === false)
+                out(['success' => false, 'error' => 'Testnachweis nicht gefunden.'], 404);
+            $pdo->prepare('INSERT INTO document_criterion_evidence(id,project_id,document_id,criterion_id,criterion_revision,document_test_link_id,result,created_by)VALUES(?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE criterion_revision=VALUES(criterion_revision),result=VALUES(result),updated_at=CURRENT_TIMESTAMP')->execute([uuid4(), $doc['project_id'], $documentId, $criterionId, $criterion['revision'], $testLinkId, $result, $userId]);
+            ctRecalculate($pdo, $documentId);
+            out(['success' => true], 201);
+        }
+    }
+    if ($method === 'DELETE') {
+        $x = body();
+        if ($action === 'map')
+            $pdo->prepare('DELETE FROM document_criterion_links WHERE id=?')->execute([$x['id'] ?? '']);
+        else
+            $pdo->prepare('DELETE FROM document_criterion_evidence WHERE id=?')->execute([$x['id'] ?? '']);
+        if (!empty($x['document_id']))
+            ctRecalculate($pdo, (string) $x['document_id']);
+        out(['success' => true]);
+    }
+    out(['success' => false, 'error' => 'Methode nicht erlaubt.'], 405);
+} catch (Throwable $e) {
+    out(['success' => false, 'error' => $e->getMessage()], 500);
+}
+
+
+ENDE DATEI: api\criterion_traceability.php
 
 ============================================================
 DATEI: api\delete_attachment.php
@@ -370,146 +573,7 @@ ENDE DATEI: api\delete_attachment.php
 DATEI: api\delete_document.php
 ============================================================
 <?php
-
-declare(strict_types=1);
-
-ini_set('display_errors', '0');
-error_reporting(E_ALL);
-session_start();
-
-require_once __DIR__ . '/../config/db.php';
-
-header('Content-Type: application/json; charset=utf-8');
-
-function respond(array $data, int $status = 200): never
-{
-    http_response_code($status);
-    echo json_encode(
-        $data,
-        JSON_UNESCAPED_UNICODE |
-        JSON_UNESCAPED_SLASHES |
-        JSON_INVALID_UTF8_SUBSTITUTE
-    );
-    exit;
-}
-
-try {
-    if (empty($_SESSION['user_id'])) {
-        respond(['success' => false, 'error' => 'Nicht angemeldet.'], 401);
-    }
-
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        header('Allow: POST');
-        respond(['success' => false, 'error' => 'Methode nicht erlaubt.'], 405);
-    }
-
-    $input = json_decode(file_get_contents('php://input'), true);
-    if (!is_array($input)) {
-        respond(['success' => false, 'error' => 'Ungültiges JSON.'], 400);
-    }
-
-    $documentId = trim((string) ($input['id'] ?? ''));
-    $confirmationKey = trim((string) ($input['confirmation_key'] ?? ''));
-
-    if ($documentId === '' || $confirmationKey === '') {
-        respond([
-            'success' => false,
-            'error' => 'Dokument-ID und Bestätigungskennung sind erforderlich.'
-        ], 422);
-    }
-
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->beginTransaction();
-
-    $documentQuery = $pdo->prepare(
-        'SELECT id, project_id, requirement_key, title
-         FROM requirement_documents
-         WHERE id = ?
-         FOR UPDATE'
-    );
-    $documentQuery->execute([$documentId]);
-    $document = $documentQuery->fetch(PDO::FETCH_ASSOC);
-
-    if (!$document) {
-        $pdo->rollBack();
-        respond(['success' => false, 'error' => 'Dokument nicht gefunden.'], 404);
-    }
-
-    if (!hash_equals((string) $document['requirement_key'], $confirmationKey)) {
-        $pdo->rollBack();
-        respond([
-            'success' => false,
-            'error' => 'Die Bestätigungskennung stimmt nicht überein.'
-        ], 409);
-    }
-
-    $fileQuery = $pdo->prepare(
-        'SELECT relative_path
-         FROM requirement_document_files
-         WHERE document_id = ?'
-    );
-    $fileQuery->execute([$documentId]);
-    $relativePaths = $fileQuery->fetchAll(PDO::FETCH_COLUMN);
-
-    /*
-     * Abhängige Datensätze werden durch die vorhandenen ON DELETE CASCADE
-     * Constraints entfernt: Blöcke, Relations, Entity-Links, Dateien,
-     * Testlinks und Verification-Snapshots.
-     */
-    $delete = $pdo->prepare(
-        'DELETE FROM requirement_documents
-         WHERE id = ?'
-    );
-    $delete->execute([$documentId]);
-
-    if ($delete->rowCount() !== 1) {
-        throw new RuntimeException('Dokument konnte nicht gelöscht werden.');
-    }
-
-    $pdo->commit();
-
-    /* Physische Dateien erst nach erfolgreichem Commit entfernen. */
-    $uploadBase = realpath(__DIR__ . '/../uploads/documents');
-    $deletedFiles = 0;
-
-    if ($uploadBase !== false) {
-        foreach ($relativePaths as $relativePath) {
-            $absolutePath = realpath(__DIR__ . '/../' . ltrim((string) $relativePath, '/\\'));
-
-            if (
-                $absolutePath !== false &&
-                str_starts_with($absolutePath, $uploadBase . DIRECTORY_SEPARATOR) &&
-                is_file($absolutePath) &&
-                @unlink($absolutePath)
-            ) {
-                $deletedFiles++;
-            }
-        }
-
-        $documentDirectory = $uploadBase . DIRECTORY_SEPARATOR .
-            $document['project_id'] . DIRECTORY_SEPARATOR . $documentId;
-
-        if (is_dir($documentDirectory)) {
-            @rmdir($documentDirectory);
-        }
-    }
-
-    respond([
-        'success' => true,
-        'deleted_id' => $documentId,
-        'deleted_key' => $document['requirement_key'],
-        'deleted_files' => $deletedFiles
-    ]);
-} catch (Throwable $error) {
-    if (isset($pdo) && $pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
-
-    respond([
-        'success' => false,
-        'error' => $error->getMessage()
-    ], 500);
-}
+declare(strict_types=1);ini_set('display_errors','0');error_reporting(E_ALL);session_start();require_once __DIR__.'/../config/db.php';header('Content-Type: application/json; charset=utf-8');function respond(array$d,int$s=200):never{http_response_code($s);echo json_encode($d,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_INVALID_UTF8_SUBSTITUTE);exit;}try{if(empty($_SESSION['user_id']))respond(['success'=>false,'error'=>'Nicht angemeldet.'],401);if($_SERVER['REQUEST_METHOD']!=='POST')respond(['success'=>false,'error'=>'Methode nicht erlaubt.'],405);$x=json_decode(file_get_contents('php://input'),true);if(!is_array($x))respond(['success'=>false,'error'=>'Ungültiges JSON.'],400);$id=trim((string)($x['id']??''));$key=trim((string)($x['confirmation_key']??''));$pdo->beginTransaction();$q=$pdo->prepare('SELECT id,project_id,requirement_key FROM requirement_documents WHERE id=? FOR UPDATE');$q->execute([$id]);$d=$q->fetch(PDO::FETCH_ASSOC);if(!$d){$pdo->rollBack();respond(['success'=>false,'error'=>'Dokument nicht gefunden.'],404);}if(!hash_equals((string)$d['requirement_key'],$key)){$pdo->rollBack();respond(['success'=>false,'error'=>'Bestätigungskennung stimmt nicht überein.'],409);}$f=$pdo->prepare('SELECT relative_path FROM requirement_document_files WHERE document_id=?');$f->execute([$id]);$paths=$f->fetchAll(PDO::FETCH_COLUMN);$pdo->prepare('DELETE FROM requirement_documents WHERE id=?')->execute([$id]);$pdo->commit();$base=realpath(__DIR__.'/../uploads/documents');$count=0;if($base)foreach($paths as$rel){$path=realpath(__DIR__.'/../'.ltrim((string)$rel,'/\\'));if($path&&str_starts_with($path,$base.DIRECTORY_SEPARATOR)&&is_file($path)&&@unlink($path))$count++;}respond(['success'=>true,'deleted_id'=>$id,'deleted_files'=>$count]);}catch(Throwable$e){if(isset($pdo)&&$pdo->inTransaction())$pdo->rollBack();respond(['success'=>false,'error'=>$e->getMessage()],500);}
 
 
 ENDE DATEI: api\delete_document.php
@@ -604,11 +668,7 @@ ENDE DATEI: api\delete_task.php
 DATEI: api\document_coverage.php
 ============================================================
 <?php
-require_once __DIR__.'/verification_common.php';vuser();
-function leaves(PDO$p,string$root):array{$seen=[];$result=[];$walk=function(string$id)use(&$walk,&$seen,&$result,$p){if(isset($seen[$id]))return;$seen[$id]=1;$q=$p->prepare("SELECT target_document_id FROM requirement_document_links WHERE source_document_id=? AND link_type='parent_of'");$q->execute([$id]);$children=$q->fetchAll(PDO::FETCH_COLUMN);if(!$children){$result[]=$id;return;}foreach($children as$c)$walk($c);};$walk($root);return array_values(array_unique($result));}
-function calculate(PDO$p,string$id):array{$root=vdoc($p,$id);$leafIds=leaves($p,$id);if(!$leafIds)$leafIds=[$id];$stats=['leaf_count'=>count($leafIds),'covered_count'=>0,'executed_count'=>0,'passed_count'=>0,'failed_count'=>0,'blocked_count'=>0,'outdated_count'=>0];foreach($leafIds as$leaf){$d=vdoc($p,$leaf);$q=$p->prepare('SELECT result,document_revision FROM document_test_links WHERE document_id=? ORDER BY executed_at DESC,updated_at DESC');$q->execute([$leaf]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);if(!$rows)continue;$stats['covered_count']++;$valid=array_filter($rows,fn($r)=>(int)$r['document_revision']===(int)$d['revision']);if(!$valid){$stats['outdated_count']++;continue;}$results=array_column($valid,'result');if(array_filter($results,fn($r)=>$r!=='not_run'))$stats['executed_count']++;if(in_array('failed',$results,true))$stats['failed_count']++;elseif(in_array('blocked',$results,true))$stats['blocked_count']++;elseif(in_array('passed',$results,true))$stats['passed_count']++;}
-$n=max(1,$stats['leaf_count']);$stats['coverage_percent']=round($stats['executed_count']/$n*100,2);$stats['passed_percent']=round($stats['passed_count']/$n*100,2);if($stats['outdated_count']>0)$status='Outdated';elseif($stats['failed_count']>0)$status='Failed';elseif($stats['passed_count']===$stats['leaf_count'])$status='Passed';elseif($stats['covered_count']===0)$status='Not Covered';else$status='Partial';$stats['verification_status']=$status;$stats['revision']=(int)$root['revision'];$up=$p->prepare('INSERT INTO document_verification_snapshots(document_id,revision,leaf_count,covered_count,executed_count,passed_count,failed_count,blocked_count,outdated_count,coverage_percent,passed_percent,verification_status)VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE revision=VALUES(revision),leaf_count=VALUES(leaf_count),covered_count=VALUES(covered_count),executed_count=VALUES(executed_count),passed_count=VALUES(passed_count),failed_count=VALUES(failed_count),blocked_count=VALUES(blocked_count),outdated_count=VALUES(outdated_count),coverage_percent=VALUES(coverage_percent),passed_percent=VALUES(passed_percent),verification_status=VALUES(verification_status)');$up->execute([$id,$stats['revision'],$stats['leaf_count'],$stats['covered_count'],$stats['executed_count'],$stats['passed_count'],$stats['failed_count'],$stats['blocked_count'],$stats['outdated_count'],$stats['coverage_percent'],$stats['passed_percent'],$status]);return$stats;}
-try{$id=trim((string)($_GET['document_id']??''));vout(['success'=>true,'coverage'=>calculate($pdo,$id)]);}catch(Throwable$e){vout(['success'=>false,'error'=>$e->getMessage()],500);}
+require_once __DIR__.'/verification_common.php';require_once __DIR__.'/coverage_lib.php';vuser();try{$id=trim((string)($_GET['document_id']??''));vout(['success'=>true,'coverage'=>coverageCalculate($pdo,$id)]);}catch(Throwable$e){vout(['success'=>false,'error'=>$e->getMessage()],500);}
 
 
 ENDE DATEI: api\document_coverage.php
@@ -616,35 +676,50 @@ ENDE DATEI: api\document_coverage.php
 ============================================================
 DATEI: api\document_entity_catalog.php
 ============================================================
-<?php require_once __DIR__.'/document_studio_common.php';uid();try{$pid=trim((string)($_GET['project_id']??''));$type=$_GET['type']??'';project($pdo,$pid);$rows=[];
-if($type==='risk'){$q=$pdo->prepare("SELECT id,req_key item_key,title,status FROM requirements WHERE project_id=? AND type='RISK' ORDER BY req_key");$q->execute([$pid]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);}
+<?php
+require_once __DIR__.'/document_studio_common.php';uid();try{$pid=trim((string)($_GET['project_id']??''));$type=$_GET['type']??'';project($pdo,$pid);$rows=[];
+if($type==='risk'){$q=$pdo->prepare("SELECT id,requirement_key item_key,title,status,'document' source_type FROM requirement_documents WHERE project_id=? AND requirement_type='RISK' ORDER BY requirement_key");$q->execute([$pid]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);}
 elseif($type==='issue'){$q=$pdo->prepare('SELECT id,issue_key item_key,title,status FROM issues WHERE project_id=? ORDER BY issue_key');$q->execute([$pid]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);}
-elseif($type==='task'){$q=$pdo->prepare("SELECT id,COALESCE(wbs_code,CAST(id AS CHAR))item_key,title,CASE WHEN completed_at IS NULL THEN 'Open' ELSE 'Closed' END status FROM project_tasks WHERE project_id=? ORDER BY wbs_code,id");$q->execute([$pid]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);}
-elseif($type==='person'){$q=$pdo->prepare("SELECT s.id,CAST(s.id AS CHAR)item_key,s.name title,COALESCE(s.role,'Stakeholder')status FROM stakeholders s WHERE s.project_id=? UNION SELECT u.id,CAST(u.id AS CHAR),u.username,COALESCE(pm.project_role,'Team') FROM project_members pm JOIN users u ON u.id=pm.user_id WHERE pm.project_id=?");$q->execute([$pid,$pid]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);}
-elseif($type==='test_case'){$q=$pdo->prepare("SELECT id,req_key item_key,title,COALESCE(status,'open')status,'requirement' source_type FROM requirements WHERE project_id=? AND type IN('TC','TEST') ORDER BY req_key");$q->execute([$pid]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);}
-elseif($type==='test_run'){$q=$pdo->prepare("SELECT id,run_key item_key,title,result status,'test_run' source_type FROM test_runs WHERE project_id=? ORDER BY executed_at DESC,id DESC");$q->execute([$pid]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);}
-elseif($type==='test_document'){$q=$pdo->prepare("SELECT id,requirement_key item_key,title,status,'document' source_type FROM requirement_documents WHERE project_id=? AND requirement_type IN('TC','TR','TEST','TST') ORDER BY requirement_key");$q->execute([$pid]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);}
+elseif($type==='task'){$q=$pdo->prepare("SELECT id,COALESCE(wbs_code,CAST(id AS CHAR))item_key,title,CONCAT(progress_pct,'%')status FROM project_tasks WHERE project_id=? AND parent_id IS NULL ORDER BY wbs_code,id");$q->execute([$pid]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);}
+elseif($type==='person'){$q=$pdo->prepare("SELECT u.id,CAST(u.id AS CHAR)item_key,u.username title,COALESCE(pm.project_role,'Team')status FROM project_members pm JOIN users u ON u.id=pm.user_id WHERE pm.project_id=? AND pm.is_active=1 ORDER BY u.username");$q->execute([$pid]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);}
+elseif($type==='test_case'){$q=$pdo->prepare("SELECT id,requirement_key item_key,title,status,'document' source_type,'not_run' test_result FROM requirement_documents WHERE project_id=? AND requirement_type IN('TC','TEST','TST') ORDER BY requirement_key");$q->execute([$pid]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);}
+elseif($type==='test_run'){$q=$pdo->prepare("SELECT id,requirement_key item_key,title,status,'document_run' source_type,COALESCE(JSON_UNQUOTE(JSON_EXTRACT(metadata,'$.test_result')),'not_run')test_result FROM requirement_documents WHERE project_id=? AND requirement_type='TR' ORDER BY updated_at DESC,requirement_key");$q->execute([$pid]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);}
 else out(['success'=>false,'error'=>'Unbekannter Katalog.'],422);out(['success'=>true,'items'=>$rows]);}catch(Throwable$e){out(['success'=>false,'error'=>$e->getMessage()],500);}
+
 
 ENDE DATEI: api\document_entity_catalog.php
 
 ============================================================
 DATEI: api\document_file.php
 ============================================================
-<?php require_once __DIR__.'/verification_common.php';vuser();try{$id=trim((string)($_GET['id']??''));$q=$pdo->prepare('SELECT * FROM requirement_document_files WHERE id=?');$q->execute([$id]);$f=$q->fetch(PDO::FETCH_ASSOC);if(!$f)vout(['success'=>false,'error'=>'Datei nicht gefunden.'],404);$path=realpath(__DIR__.'/../'.$f['relative_path']);$base=realpath(__DIR__.'/../uploads/documents');if(!$path||!$base||strpos($path,$base)!==0||!is_file($path))vout(['success'=>false,'error'=>'Datei fehlt.'],404);header_remove('Content-Type');header('Content-Type: '.($f['mime_type']?:'application/octet-stream'));header('Content-Length: '.filesize($path));header('Content-Disposition: inline; filename="'.rawurlencode($f['original_name']).'"');readfile($path);exit;}catch(Throwable$e){vout(['success'=>false,'error'=>$e->getMessage()],500);}
+<?php
+require_once __DIR__.'/verification_common.php';vuser();try{$id=trim((string)($_GET['id']??''));$q=$pdo->prepare('SELECT * FROM requirement_document_files WHERE id=?');$q->execute([$id]);$f=$q->fetch(PDO::FETCH_ASSOC);if(!$f)vout(['success'=>false,'error'=>'Datei nicht gefunden.'],404);$path=realpath(__DIR__.'/../'.$f['relative_path']);$base=realpath(__DIR__.'/../uploads/documents');if(!$path||!$base||!str_starts_with($path,$base.DIRECTORY_SEPARATOR)||!is_file($path))vout(['success'=>false,'error'=>'Datei fehlt.'],404);header_remove('Content-Type');header('Content-Type: '.($f['mime_type']?:'application/octet-stream'));header('Content-Length: '.filesize($path));header('Content-Disposition: inline; filename="'.rawurlencode($f['original_name']).'"');readfile($path);exit;}catch(Throwable$e){vout(['success'=>false,'error'=>$e->getMessage()],500);}
+
 
 ENDE DATEI: api\document_file.php
 
 ============================================================
 DATEI: api\document_links.php
 ============================================================
-<?php require_once __DIR__.'/document_studio_common.php';$u=uid();try{$kind=$_GET['kind']??'relation';
+<?php
+require_once __DIR__.'/document_studio_common.php';require_once __DIR__.'/coverage_lib.php';$u=uid();try{$kind=$_GET['kind']??'relation';
 if($_SERVER['REQUEST_METHOD']==='GET'){$id=trim((string)($_GET['document_id']??''));doc($pdo,$id);if($kind==='relation'){$q=$pdo->prepare("SELECT l.id,CASE WHEN l.target_document_id=? THEN 'parent' ELSE 'child' END role,o.id related_id,o.requirement_key,o.title,o.status FROM requirement_document_links l JOIN requirement_documents o ON o.id=CASE WHEN l.target_document_id=? THEN l.source_document_id ELSE l.target_document_id END WHERE l.link_type='parent_of' AND(l.source_document_id=? OR l.target_document_id=?) ORDER BY role,o.requirement_key");$q->execute([$id,$id,$id,$id]);out(['success'=>true,'items'=>$q->fetchAll(PDO::FETCH_ASSOC)]);}else{$q=$pdo->prepare('SELECT * FROM requirement_document_entity_links WHERE document_id=? ORDER BY entity_type,label');$q->execute([$id]);out(['success'=>true,'items'=>$q->fetchAll(PDO::FETCH_ASSOC)]);}}
-if($_SERVER['REQUEST_METHOD']==='POST'){$x=body();$id=trim((string)($x['document_id']??''));$d=doc($pdo,$id);if($kind==='relation'){$other=trim((string)($x['related_id']??''));$o=doc($pdo,$other);if($d['project_id']!==$o['project_id'])out(['success'=>false,'error'=>'Anderes Projekt.'],422);$role=$x['role']??'parent';$parent=$role==='parent'?$other:$id;$child=$role==='parent'?$id:$other;if(cycle($pdo,$parent,$child))out(['success'=>false,'error'=>'Zyklische Beziehung nicht erlaubt.'],409);$pdo->prepare("INSERT INTO requirement_document_links(id,project_id,source_document_id,target_document_id,link_type,created_by)VALUES(?,?,?,?,'parent_of',?)")->execute([uuid4(),$d['project_id'],$parent,$child,$u]);}else{$pdo->prepare('INSERT INTO requirement_document_entity_links(id,project_id,document_id,entity_type,entity_id,relation_type,label,metadata,created_by)VALUES(?,?,?,?,?,?,?,?,?)')->execute([uuid4(),$d['project_id'],$id,$x['entity_type'],$x['entity_id'],$x['relation_type']??'relates_to',$x['label']??'',json_encode($x['metadata']??[]),$u]);}out(['success'=>true],201);}
-if($_SERVER['REQUEST_METHOD']==='DELETE'){$x=body();$table=$kind==='relation'?'requirement_document_links':'requirement_document_entity_links';$pdo->prepare("DELETE FROM $table WHERE id=?")->execute([$x['id']??'']);out(['success'=>true]);}out(['success'=>false,'error'=>'Methode nicht erlaubt.'],405);
-}catch(PDOException$e){out(['success'=>false,'error'=>$e->getCode()==='23000'?'Verknüpfung existiert bereits.':$e->getMessage()],$e->getCode()==='23000'?409:500);}
+if($_SERVER['REQUEST_METHOD']==='POST'){$x=body();$id=trim((string)($x['document_id']??''));$d=doc($pdo,$id);if($kind==='relation'){$other=trim((string)($x['related_id']??''));$o=doc($pdo,$other);if($d['project_id']!==$o['project_id'])out(['success'=>false,'error'=>'Anderes Projekt.'],422);$role=$x['role']??'parent';$parent=$role==='parent'?$other:$id;$child=$role==='parent'?$id:$other;if(cycle($pdo,$parent,$child))out(['success'=>false,'error'=>'Zyklische Beziehung nicht erlaubt.'],409);$pdo->prepare("INSERT INTO requirement_document_links(id,project_id,source_document_id,target_document_id,link_type,created_by)VALUES(?,?,?,?,'parent_of',?)")->execute([uuid4(),$d['project_id'],$parent,$child,$u]);coverageRecalculateChain($pdo,$child);}else{$pdo->prepare('INSERT INTO requirement_document_entity_links(id,project_id,document_id,entity_type,entity_id,relation_type,label,metadata,created_by)VALUES(?,?,?,?,?,?,?,?,?)')->execute([uuid4(),$d['project_id'],$id,$x['entity_type'],$x['entity_id'],$x['relation_type']??'relates_to',$x['label']??'',json_encode($x['metadata']??[],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),$u]);}out(['success'=>true],201);}
+if($_SERVER['REQUEST_METHOD']==='DELETE'){$x=body();if($kind==='relation'){$q=$pdo->prepare('SELECT target_document_id FROM requirement_document_links WHERE id=?');$q->execute([$x['id']??'']);$child=$q->fetchColumn();$pdo->prepare('DELETE FROM requirement_document_links WHERE id=?')->execute([$x['id']??'']);if($child)coverageRecalculateChain($pdo,(string)$child);}else$pdo->prepare('DELETE FROM requirement_document_entity_links WHERE id=?')->execute([$x['id']??'']);out(['success'=>true]);}out(['success'=>false,'error'=>'Methode nicht erlaubt.'],405);}catch(PDOException$e){out(['success'=>false,'error'=>$e->getCode()==='23000'?'Verknüpfung existiert bereits.':$e->getMessage()],$e->getCode()==='23000'?409:500);}
+
 
 ENDE DATEI: api\document_links.php
+
+============================================================
+DATEI: api\document_risk.php
+============================================================
+<?php
+require_once __DIR__.'/document_studio_common.php';$u=uid();try{$id=trim((string)($_GET['document_id']??''));$d=doc($pdo,$id);if($d['requirement_type']!=='RISK')out(['success'=>false,'error'=>'Kein Risikodokument.'],422);$meta=json_decode($d['metadata']??'{}',true)?:[];
+if($_SERVER['REQUEST_METHOD']==='GET')out(['success'=>true,'risk'=>$meta['risk']??[]]);
+if($_SERVER['REQUEST_METHOD']==='POST'){$x=body();$risk=is_array($x['risk']??null)?$x['risk']:[];foreach(['w','e','residual_w','residual_e']as$k)$risk[$k]=max(1,min(5,(int)($risk[$k]??1)));$risk['risk_score']=$risk['w']*$risk['e'];$risk['residual_score']=$risk['residual_w']*$risk['residual_e'];$meta['risk']=$risk;$pdo->prepare('UPDATE requirement_documents SET metadata=?,updated_by=? WHERE id=?')->execute([json_encode($meta,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),$u,$id]);out(['success'=>true,'risk'=>$risk]);}out(['success'=>false,'error'=>'Methode nicht erlaubt.'],405);}catch(Throwable$e){out(['success'=>false,'error'=>$e->getMessage()],500);}
+
+
+ENDE DATEI: api\document_risk.php
 
 ============================================================
 DATEI: api\document_studio.php
@@ -662,15 +737,75 @@ ENDE DATEI: api\document_studio.php
 DATEI: api\document_studio_common.php
 ============================================================
 <?php
-declare(strict_types=1); ini_set('display_errors','0'); error_reporting(E_ALL); session_start();
-require_once __DIR__.'/../config/db.php'; header('Content-Type: application/json; charset=utf-8');
-function out(array $d,int $s=200):never{http_response_code($s);echo json_encode($d,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_INVALID_UTF8_SUBSTITUTE);exit;}
-function uid():int{if(empty($_SESSION['user_id']))out(['success'=>false,'error'=>'Nicht angemeldet.'],401);return(int)$_SESSION['user_id'];}
-function body():array{$d=json_decode(file_get_contents('php://input'),true);if(!is_array($d))out(['success'=>false,'error'=>'Ungültiges JSON.'],400);return$d;}
-function uuid4():string{$d=random_bytes(16);$d[6]=chr((ord($d[6])&15)|64);$d[8]=chr((ord($d[8])&63)|128);return vsprintf('%s%s-%s-%s-%s-%s%s%s',str_split(bin2hex($d),4));}
-function doc(PDO $p,string $id):array{$q=$p->prepare('SELECT * FROM requirement_documents WHERE id=?');$q->execute([$id]);$r=$q->fetch(PDO::FETCH_ASSOC);if(!$r)out(['success'=>false,'error'=>'Dokument nicht gefunden.'],404);return$r;}
-function project(PDO $p,string $id):void{$q=$p->prepare('SELECT id FROM projects WHERE id=?');$q->execute([$id]);if(!$q->fetchColumn())out(['success'=>false,'error'=>'Projekt nicht gefunden.'],404);}
-function cycle(PDO $p,string $parent,string $child):bool{if($parent===$child)return true;$seen=[];$queue=[$child];$q=$p->prepare("SELECT target_document_id FROM requirement_document_links WHERE source_document_id=? AND link_type='parent_of'");while($queue){$x=array_shift($queue);if(isset($seen[$x]))continue;$seen[$x]=1;if($x===$parent)return true;$q->execute([$x]);foreach($q->fetchAll(PDO::FETCH_COLUMN)as$n)$queue[]=$n;}return false;}
+declare(strict_types=1);
+ini_set('display_errors', '0');
+error_reporting(E_ALL);
+if (session_status() === PHP_SESSION_NONE)
+    session_start();
+require_once __DIR__ . '/../config/db.php';
+header('Content-Type: application/json; charset=utf-8');
+function out(array $d, int $s = 200): never
+{
+    http_response_code($s);
+    echo json_encode($d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    exit;
+}
+function uid(): int
+{
+    if (empty($_SESSION['user_id']))
+        out(['success' => false, 'error' => 'Nicht angemeldet.'], 401);
+    return (int) $_SESSION['user_id'];
+}
+function body(): array
+{
+    $d = json_decode(file_get_contents('php://input'), true);
+    if (!is_array($d))
+        out(['success' => false, 'error' => 'Ungültiges JSON.'], 400);
+    return $d;
+}
+function uuid4(): string
+{
+    $d = random_bytes(16);
+    $d[6] = chr((ord($d[6]) & 15) | 64);
+    $d[8] = chr((ord($d[8]) & 63) | 128);
+    return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($d), 4));
+}
+function doc(PDO $p, string $id): array
+{
+    $q = $p->prepare('SELECT * FROM requirement_documents WHERE id=?');
+    $q->execute([$id]);
+    $r = $q->fetch(PDO::FETCH_ASSOC);
+    if (!$r)
+        out(['success' => false, 'error' => 'Dokument nicht gefunden.'], 404);
+    return $r;
+}
+function project(PDO $p, string $id): void
+{
+    $q = $p->prepare('SELECT id FROM projects WHERE id=?');
+    $q->execute([$id]);
+    if (!$q->fetchColumn())
+        out(['success' => false, 'error' => 'Projekt nicht gefunden.'], 404);
+}
+function cycle(PDO $p, string $parent, string $child): bool
+{
+    if ($parent === $child)
+        return true;
+    $seen = [];
+    $queue = [$child];
+    $q = $p->prepare("SELECT target_document_id FROM requirement_document_links WHERE source_document_id=? AND link_type='parent_of'");
+    while ($queue) {
+        $x = array_shift($queue);
+        if (isset($seen[$x]))
+            continue;
+        $seen[$x] = 1;
+        if ($x === $parent)
+            return true;
+        $q->execute([$x]);
+        foreach ($q->fetchAll(PDO::FETCH_COLUMN) as $n)
+            $queue[] = $n;
+    }
+    return false;
+}
 
 
 ENDE DATEI: api\document_studio_common.php
@@ -678,11 +813,153 @@ ENDE DATEI: api\document_studio_common.php
 ============================================================
 DATEI: api\document_studio_v4.php
 ============================================================
-<?php require_once __DIR__.'/document_studio_common.php';$u=uid();try{$action=$_GET['action']??'';
-if($action==='list'){$pid=trim((string)($_GET['project_id']??''));project($pdo,$pid);$q=$pdo->prepare("SELECT d.id,d.requirement_key,d.requirement_type,d.document_type_id,d.title,d.status,d.priority,d.relevance,d.review_status,d.revision,COALESCE(t.is_chapter,0)is_chapter,COALESCE(v.coverage_percent,0)coverage_percent,COALESCE(v.verification_status,'Not Covered')verification_status FROM requirement_documents d LEFT JOIN document_types t ON t.id=d.document_type_id LEFT JOIN document_verification_snapshots v ON v.document_id=d.id WHERE d.project_id=? ORDER BY d.sort_order,d.requirement_key");$q->execute([$pid]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);$l=$pdo->prepare("SELECT source_document_id parent_id,target_document_id child_id FROM requirement_document_links WHERE project_id=? AND link_type='parent_of'");$l->execute([$pid]);$parents=[];foreach($l->fetchAll(PDO::FETCH_ASSOC)as$x)$parents[$x['child_id']][]=$x['parent_id'];foreach($rows as&$r)$r['parent_ids']=$parents[$r['id']]??[];out(['success'=>true,'documents'=>$rows]);}
-if($action==='get'){$id=trim((string)($_GET['id']??''));$d=doc($pdo,$id);$d['metadata']=json_decode($d['metadata']??'{}',true)?:[];$q=$pdo->prepare('SELECT id,editor_block_id,block_type,content FROM requirement_document_blocks WHERE document_id=? ORDER BY sort_order,id');$q->execute([$id]);$blocks=[];foreach($q->fetchAll(PDO::FETCH_ASSOC)as$r){$data=json_decode($r['content'],true)?:[];$data['_recordId']=$r['id'];if(in_array($r['block_type'],['image','file'],true)&&!empty($data['fileId']))$data['url']='../api/document_file.php?id='.rawurlencode($data['fileId']);$loadedType=$r['block_type']==='requirement'?'text':$r['block_type'];unset($data['status'],$data['priority']);if($loadedType==='heading')$data['level']=max(3,min(5,(int)($data['level']??3)));$b=['type'=>$loadedType,'data'=>$data];if($r['editor_block_id'])$b['id']=$r['editor_block_id'];$blocks[]=$b;}out(['success'=>true,'document'=>$d,'editor'=>['time'=>(int)(microtime(true)*1000),'blocks'=>$blocks,'version'=>'2.31.0']]);}
-if($action==='create'&&$_SERVER['REQUEST_METHOD']==='POST'){$x=body();$pid=trim((string)($x['project_id']??''));project($pdo,$pid);$typeId=trim((string)($x['document_type_id']??''));$q=$pdo->prepare('SELECT * FROM document_types WHERE id=? AND is_active=1 AND(project_id IS NULL OR project_id=?)');$q->execute([$typeId,$pid]);$type=$q->fetch(PDO::FETCH_ASSOC);if(!$type)out(['success'=>false,'error'=>'Dokumenttyp nicht gefunden.'],404);$title=trim((string)($x['title']??''));if($title==='')out(['success'=>false,'error'=>'Titel fehlt.'],422);$templateId=trim((string)($x['template_id']??''));$blocks=[];$defaults=['status'=>'Open','priority'=>'Medium','relevance'=>'Must','review_status'=>'New'];if($templateId!==''){$t=$pdo->prepare('SELECT blocks,default_metadata FROM requirement_document_templates WHERE id=? AND is_active=1 AND(project_id IS NULL OR project_id=?)');$t->execute([$templateId,$pid]);$template=$t->fetch(PDO::FETCH_ASSOC);if($template){$blocks=json_decode($template['blocks'],true)?:[];$defaults=array_replace($defaults,json_decode($template['default_metadata']??'{}',true)?:[]);}}$pdo->beginTransaction();$key=(string)$type['type_key'];$pdo->prepare('INSERT INTO requirement_document_sequences(project_id,requirement_type,last_number)VALUES(?,?,1)ON DUPLICATE KEY UPDATE last_number=last_number+1')->execute([$pid,$key]);$n=$pdo->prepare('SELECT last_number FROM requirement_document_sequences WHERE project_id=? AND requirement_type=? FOR UPDATE');$n->execute([$pid,$key]);$number=(int)$n->fetchColumn();$display=str_replace(['{TYPE}','{NUMBER:3}','{NUMBER:4}','{NUMBER}'],[$key,str_pad((string)$number,3,'0',STR_PAD_LEFT),str_pad((string)$number,4,'0',STR_PAD_LEFT),(string)$number],(string)$type['number_pattern']);$id=uuid4();$pdo->prepare('INSERT INTO requirement_documents(id,project_id,document_type_id,requirement_key,requirement_type,title,status,priority,relevance,review_status,revision,metadata,created_by,updated_by)VALUES(?,?,?,?,?,?,?,?,?,?,1,?,?,?)')->execute([$id,$pid,$typeId,$display,$key,$title,$defaults['status']??'Open',$defaults['priority']??'Medium',$defaults['relevance']??'Must',$defaults['review_status']??'New','{}',$u,$u]);$ins=$pdo->prepare('INSERT INTO requirement_document_blocks(id,document_id,block_type,content,sort_order)VALUES(?,?,?,?,?)');foreach(array_values($blocks)as$i=>$block){if(!is_array($block))continue;$blockType=(string)($block['type']??'text');if($blockType==='requirement')$blockType='text';$data=is_array($block['data']??null)?$block['data']:[];unset($data['status'],$data['priority']);if($blockType==='heading')$data['level']=max(3,min(5,(int)($data['level']??3)));$ins->execute([uuid4(),$id,$blockType,json_encode($data,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),$i]);}$pdo->commit();out(['success'=>true,'id'=>$id,'key'=>$display],201);}
-if($action==='save'&&$_SERVER['REQUEST_METHOD']==='POST'){$x=body();$id=trim((string)($x['id']??''));$blocks=$x['blocks']??null;if(!is_array($blocks))out(['success'=>false,'error'=>'Blöcke fehlen.'],422);$pdo->beginTransaction();$before=doc($pdo,$id);$fingerprint=hash('sha256',json_encode([$x['title']??'', $blocks],JSON_UNESCAPED_UNICODE));$oldFingerprint=$before['metadata']?((json_decode($before['metadata'],true)['content_fingerprint']??'')):'';$revision=(int)$before['revision']+($fingerprint!==$oldFingerprint?1:0);$meta=$x['metadata']??[];$meta['content_fingerprint']=$fingerprint;$pdo->prepare('UPDATE requirement_documents SET title=?,status=?,priority=?,relevance=?,review_status=?,revision=?,metadata=?,updated_by=? WHERE id=?')->execute([trim((string)($x['title']??'')),$x['status']??'Open',$x['priority']??'Medium',$x['relevance']??'Must',$x['review_status']??'New',$revision,json_encode($meta,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),$u,$id]);$o=$pdo->prepare('SELECT id FROM requirement_document_blocks WHERE document_id=?');$o->execute([$id]);$known=array_fill_keys($o->fetchAll(PDO::FETCH_COLUMN),1);$keep=[];$ins=$pdo->prepare('INSERT INTO requirement_document_blocks(id,document_id,editor_block_id,block_type,content,sort_order)VALUES(?,?,?,?,?,?)');$upd=$pdo->prepare('UPDATE requirement_document_blocks SET editor_block_id=?,block_type=?,content=?,sort_order=? WHERE id=? AND document_id=?');foreach(array_values($blocks)as$i=>$b){$data=$b['data']??[];$rid=trim((string)($data['_recordId']??''));unset($data['_recordId'],$data['url']);$json=json_encode($data,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);$eid=$b['id']??null;$type=$b['type']??'text';if(isset($known[$rid])){$upd->execute([$eid,$type,$json,$i,$rid,$id]);$keep[]=$rid;}else{$rid=uuid4();$ins->execute([$rid,$id,$eid,$type,$json,$i]);$keep[]=$rid;}}if($keep){$m=implode(',',array_fill(0,count($keep),'?'));$pdo->prepare("DELETE FROM requirement_document_blocks WHERE document_id=? AND id NOT IN($m)")->execute(array_merge([$id],$keep));}else$pdo->prepare('DELETE FROM requirement_document_blocks WHERE document_id=?')->execute([$id]);$pdo->commit();out(['success'=>true,'revision'=>$revision]);}out(['success'=>false,'error'=>'Aktion wird von V4 nicht bereitgestellt. Für create V3 document_studio.php sichern oder V4-Frontend verwenden.'],400);}catch(Throwable$e){if($pdo->inTransaction())$pdo->rollBack();out(['success'=>false,'error'=>$e->getMessage()],500);}
+<?php
+require_once __DIR__ . '/document_studio_common.php';
+$u = uid();
+try {
+    $action = $_GET['action'] ?? '';
+    if ($action === 'list') {
+        $pid = trim((string) ($_GET['project_id'] ?? ''));
+        project($pdo, $pid);
+        $q = $pdo->prepare("SELECT d.id,d.requirement_key,d.requirement_type,d.document_type_id,d.title,d.status,d.priority,d.relevance,d.review_status,d.revision,COALESCE(t.is_chapter,0)is_chapter,COALESCE(v.coverage_percent,0)coverage_percent,COALESCE(v.verification_status,'Not Covered')verification_status FROM requirement_documents d LEFT JOIN document_types t ON t.id=d.document_type_id LEFT JOIN document_verification_snapshots v ON v.document_id=d.id WHERE d.project_id=? ORDER BY d.sort_order,d.requirement_key");
+        $q->execute([$pid]);
+        $rows = $q->fetchAll(PDO::FETCH_ASSOC);
+        $l = $pdo->prepare("SELECT source_document_id parent_id,target_document_id child_id FROM requirement_document_links WHERE project_id=? AND link_type='parent_of'");
+        $l->execute([$pid]);
+        $parents = [];
+        foreach ($l->fetchAll(PDO::FETCH_ASSOC) as $x)
+            $parents[$x['child_id']][] = $x['parent_id'];
+        foreach ($rows as &$r)
+            $r['parent_ids'] = $parents[$r['id']] ?? [];
+        out(['success' => true, 'documents' => $rows]);
+    }
+    if ($action === 'get') {
+        $id = trim((string) ($_GET['id'] ?? ''));
+        $d = doc($pdo, $id);
+        $d['metadata'] = json_decode($d['metadata'] ?? '{}', true) ?: [];
+        $q = $pdo->prepare('SELECT id,editor_block_id,block_type,content FROM requirement_document_blocks WHERE document_id=? ORDER BY sort_order,id');
+        $q->execute([$id]);
+        $blocks = [];
+        $seen = [];
+        foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $data = json_decode($r['content'], true) ?: [];
+            $data['_recordId'] = $r['id'];
+            if (in_array($r['block_type'], ['image', 'file'], true) && !empty($data['fileId']))
+                $data['url'] = '../api/document_file.php?id=' . rawurlencode($data['fileId']);
+            $type = $r['block_type'] === 'requirement' ? 'text' : $r['block_type'];
+            unset($data['status'], $data['priority']);
+            if ($type === 'heading')
+                $data['level'] = max(3, min(5, (int) ($data['level'] ?? 3)));
+            $b = ['type' => $type, 'data' => $data];
+            $eid = (string) ($r['editor_block_id'] ?? '');
+            $blocks[] = $b;
+        }
+        out(['success' => true, 'document' => $d, 'editor' => ['time' => (int) (microtime(true) * 1000), 'blocks' => $blocks, 'version' => '2.31.0']]);
+    }
+    if ($action === 'create' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $x = body();
+        $pid = trim((string) ($x['project_id'] ?? ''));
+        project($pdo, $pid);
+        $typeId = trim((string) ($x['document_type_id'] ?? ''));
+        $q = $pdo->prepare('SELECT * FROM document_types WHERE id=? AND is_active=1 AND(project_id IS NULL OR project_id=?)');
+        $q->execute([$typeId, $pid]);
+        $type = $q->fetch(PDO::FETCH_ASSOC);
+        if (!$type)
+            out(['success' => false, 'error' => 'Dokumenttyp nicht gefunden.'], 404);
+        $title = trim((string) ($x['title'] ?? ''));
+        if ($title === '')
+            out(['success' => false, 'error' => 'Titel fehlt.'], 422);
+        $blocks = [];
+        $defaults = ['status' => 'Open', 'priority' => 'Medium', 'relevance' => 'Must', 'review_status' => 'New'];
+        $tid = trim((string) ($x['template_id'] ?? ''));
+        if ($tid !== '') {
+            $t = $pdo->prepare('SELECT blocks,default_metadata FROM requirement_document_templates WHERE id=? AND is_active=1 AND(project_id IS NULL OR project_id=?)');
+            $t->execute([$tid, $pid]);
+            if ($tpl = $t->fetch(PDO::FETCH_ASSOC)) {
+                $blocks = json_decode($tpl['blocks'], true) ?: [];
+                $defaults = array_replace($defaults, json_decode($tpl['default_metadata'] ?? '{}', true) ?: []);
+            }
+        }
+        $pdo->beginTransaction();
+        $key = (string) $type['type_key'];
+        $pdo->prepare('INSERT INTO requirement_document_sequences(project_id,requirement_type,last_number)VALUES(?,?,1)ON DUPLICATE KEY UPDATE last_number=last_number+1')->execute([$pid, $key]);
+        $n = $pdo->prepare('SELECT last_number FROM requirement_document_sequences WHERE project_id=? AND requirement_type=? FOR UPDATE');
+        $n->execute([$pid, $key]);
+        $num = (int) $n->fetchColumn();
+        $display = str_replace(['{TYPE}', '{NUMBER:3}', '{NUMBER:4}', '{NUMBER}'], [$key, str_pad((string) $num, 3, '0', STR_PAD_LEFT), str_pad((string) $num, 4, '0', STR_PAD_LEFT), (string) $num], (string) $type['number_pattern']);
+        $id = uuid4();
+        $pdo->prepare('INSERT INTO requirement_documents(id,project_id,document_type_id,requirement_key,requirement_type,title,status,priority,relevance,review_status,revision,metadata,created_by,updated_by)VALUES(?,?,?,?,?,?,?,?,?,?,1,?,?,?)')->execute([$id, $pid, $typeId, $display, $key, $title, $defaults['status'], $defaults['priority'], $defaults['relevance'], $defaults['review_status'], json_encode($defaults, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $u, $u]);
+        $ins = $pdo->prepare('INSERT INTO requirement_document_blocks(id,document_id,editor_block_id,block_type,content,sort_order)VALUES(?,?,?,?,?,?)');
+        foreach (array_values($blocks ?: [['type' => 'text', 'data' => ['text' => '']]]) as $i => $b) {
+            $typeName = $b['type'] ?? 'text';
+            if ($typeName === 'requirement')
+                $typeName = 'text';
+            $ins->execute([uuid4(), $id, null, $typeName, json_encode($b['data'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $i]);
+        }
+        $pdo->commit();
+        out(['success' => true, 'id' => $id, 'key' => $display], 201);
+    }
+    if ($action === 'save' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $x = body();
+        $id = trim((string) ($x['id'] ?? ''));
+        $blocks = $x['blocks'] ?? null;
+        if (!is_array($blocks))
+            out(['success' => false, 'error' => 'Blöcke fehlen.'], 422);
+        $pdo->beginTransaction();
+        $before = doc($pdo, $id);
+        $normalized = [];
+        foreach (array_values($blocks) as $b) {
+            $data = is_array($b['data'] ?? null) ? $b['data'] : [];
+            unset($data['_recordId'], $data['url']);
+            $normalized[] = ['type' => $b['type'] ?? 'text', 'data' => $data];
+        }
+        $fingerprint = hash('sha256', json_encode([$x['title'] ?? '', $normalized], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $oldMeta = json_decode($before['metadata'] ?? '{}', true) ?: [];
+        $revision = (int) $before['revision'] + ($fingerprint !== ($oldMeta['content_fingerprint'] ?? '') ? 1 : 0);
+        $meta = array_replace($oldMeta, is_array($x['metadata'] ?? null) ? $x['metadata'] : []);
+        $meta['content_fingerprint'] = $fingerprint;
+        $pdo->prepare('UPDATE requirement_documents SET title=?,status=?,priority=?,relevance=?,review_status=?,revision=?,metadata=?,updated_by=? WHERE id=?')->execute([trim((string) ($x['title'] ?? '')), $x['status'] ?? 'Open', $x['priority'] ?? 'Medium', $x['relevance'] ?? 'Must', $x['review_status'] ?? 'New', $revision, json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $u, $id]);
+        $o = $pdo->prepare('SELECT id FROM requirement_document_blocks WHERE document_id=?');
+        $o->execute([$id]);
+        $known = array_fill_keys($o->fetchAll(PDO::FETCH_COLUMN), 1);
+        $keep = [];
+        $usedEditor = [];
+        $ins = $pdo->prepare('INSERT INTO requirement_document_blocks(id,document_id,editor_block_id,block_type,content,sort_order)VALUES(?,?,?,?,?,?)');
+        $upd = $pdo->prepare('UPDATE requirement_document_blocks SET editor_block_id=?,block_type=?,content=?,sort_order=? WHERE id=? AND document_id=?');
+        foreach (array_values($blocks) as $i => $b) {
+            $data = is_array($b['data'] ?? null) ? $b['data'] : [];
+            $rid = trim((string) ($data['_recordId'] ?? ''));
+            unset($data['_recordId'], $data['url']);
+            $eid = trim((string) ($b['id'] ?? ''));
+            $eid = null;
+            $typeName = $b['type'] ?? 'text';
+            if ($typeName === 'requirement')
+                $typeName = 'text';
+            $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            if (isset($known[$rid])) {
+                $upd->execute([$eid, $typeName, $json, $i, $rid, $id]);
+                $keep[] = $rid;
+            } else {
+                $rid = uuid4();
+                $ins->execute([$rid, $id, $eid, $typeName, $json, $i]);
+                $keep[] = $rid;
+            }
+        }
+        if ($keep) {
+            $marks = implode(',', array_fill(0, count($keep), '?'));
+            $pdo->prepare("DELETE FROM requirement_document_blocks WHERE document_id=? AND id NOT IN($marks)")->execute(array_merge([$id], $keep));
+        } else
+            $pdo->prepare('DELETE FROM requirement_document_blocks WHERE document_id=?')->execute([$id]);
+        $pdo->commit();
+        out(['success' => true, 'revision' => $revision]);
+    }
+    out(['success' => false, 'error' => 'Unbekannte Aktion.'], 400);
+} catch (Throwable $e) {
+    if (isset($pdo) && $pdo->inTransaction())
+        $pdo->rollBack();
+    out(['success' => false, 'error' => $e->getMessage()], 500);
+}
+
 
 ENDE DATEI: api\document_studio_v4.php
 
@@ -696,20 +973,19 @@ ENDE DATEI: api\document_templates_v4.php
 ============================================================
 DATEI: api\document_test_links.php
 ============================================================
-<?php require_once __DIR__.'/verification_common.php';$u=vuser();try{
-if($_SERVER['REQUEST_METHOD']==='GET'){$id=trim((string)($_GET['document_id']??''));vdoc($pdo,$id);$q=$pdo->prepare('SELECT * FROM document_test_links WHERE document_id=? ORDER BY executed_at DESC,created_at DESC');$q->execute([$id]);vout(['success'=>true,'links'=>$q->fetchAll(PDO::FETCH_ASSOC)]);}
-if($_SERVER['REQUEST_METHOD']==='POST'){$x=vbody();$id=trim((string)($x['document_id']??''));$d=vdoc($pdo,$id);$result=$x['result']??'not_run';if(!in_array($result,['not_run','passed','failed','blocked'],true))vout(['success'=>false,'error'=>'Ungültiges Ergebnis.'],422);$q=$pdo->prepare('INSERT INTO document_test_links(id,project_id,document_id,test_case_id,test_run_id,document_revision,link_type,result,executed_at,metadata,created_by)VALUES(?,?,?,?,?,?,?,?,?,?,?)');$q->execute([vuuid(),$d['project_id'],$id,$x['test_case_id']??null,$x['test_run_id']??null,(int)$d['revision'],$x['link_type']??'verifies',$result,$x['executed_at']??null,json_encode($x['metadata']??[],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),$u]);vout(['success'=>true],201);}
-if($_SERVER['REQUEST_METHOD']==='DELETE'){$x=vbody();$pdo->prepare('DELETE FROM document_test_links WHERE id=?')->execute([$x['id']??'']);vout(['success'=>true]);}vout(['success'=>false,'error'=>'Methode nicht erlaubt.'],405);}catch(Throwable$e){vout(['success'=>false,'error'=>$e->getMessage()],500);}
+<?php
+require_once __DIR__.'/verification_common.php';require_once __DIR__.'/coverage_lib.php';$u=vuser();try{
+if($_SERVER['REQUEST_METHOD']==='GET'){$id=trim((string)($_GET['document_id']??''));vdoc($pdo,$id);$q=$pdo->prepare('SELECT * FROM document_test_links WHERE document_id=? ORDER BY executed_at DESC,created_at DESC');$q->execute([$id]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);foreach($rows as&$r){$m=json_decode($r['metadata']??'{}',true)?:[];$r['label']=$m['label']??($r['test_run_id']?'Testlauf '.$r['test_run_id']:'Testfall '.$r['test_case_id']);$r['metadata']=$m;}vout(['success'=>true,'links'=>$rows]);}
+if($_SERVER['REQUEST_METHOD']==='POST'){$x=vbody();$id=trim((string)($x['document_id']??''));$d=vdoc($pdo,$id);$result=$x['result']??'not_run';if(!in_array($result,['not_run','passed','failed','blocked'],true))vout(['success'=>false,'error'=>'Ungültiges Ergebnis.'],422);$q=$pdo->prepare('INSERT INTO document_test_links(id,project_id,document_id,test_case_id,test_run_id,document_revision,link_type,result,executed_at,metadata,created_by)VALUES(?,?,?,?,?,?,?,?,?,?,?)');$q->execute([vuuid(),$d['project_id'],$id,$x['test_case_id']??null,$x['test_run_id']??null,(int)$d['revision'],$x['link_type']??'verifies',$result,$x['executed_at']??($result==='not_run'?null:date('Y-m-d H:i:s')),json_encode($x['metadata']??[],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),$u]);coverageRecalculateChain($pdo,$id);vout(['success'=>true],201);}
+if($_SERVER['REQUEST_METHOD']==='DELETE'){$x=vbody();$q=$pdo->prepare('SELECT document_id FROM document_test_links WHERE id=?');$q->execute([$x['id']??'']);$documentId=$q->fetchColumn();$pdo->prepare('DELETE FROM document_test_links WHERE id=?')->execute([$x['id']??'']);if($documentId)coverageRecalculateChain($pdo,(string)$documentId);vout(['success'=>true]);}vout(['success'=>false,'error'=>'Methode nicht erlaubt.'],405);}catch(Throwable$e){vout(['success'=>false,'error'=>$e->getMessage()],500);}
+
 
 ENDE DATEI: api\document_test_links.php
 
 ============================================================
 DATEI: api\document_types.php
 ============================================================
-<?php require_once __DIR__.'/document_studio_common.php';$u=uid();try{
-if($_SERVER['REQUEST_METHOD']==='GET'){$pid=trim((string)($_GET['project_id']??''));$q=$pdo->prepare('SELECT * FROM document_types WHERE is_active=1 AND(project_id IS NULL OR project_id=?) ORDER BY is_chapter DESC,is_requirement DESC,name');$q->execute([$pid]);out(['success'=>true,'types'=>$q->fetchAll(PDO::FETCH_ASSOC)]);}
-if($_SERVER['REQUEST_METHOD']==='POST'){$d=body();$pid=trim((string)($d['project_id']??''));project($pdo,$pid);$key=strtoupper(trim((string)($d['type_key']??'')));$name=trim((string)($d['name']??''));if(!preg_match('/^[A-Z0-9_]{1,20}$/',$key)||$name==='')out(['success'=>false,'error'=>'Kürzel: 1-20 Zeichen A-Z, 0-9 oder _. Name ist Pflicht.'],422);$q=$pdo->prepare('INSERT INTO document_types(id,project_id,type_key,name,description,number_pattern,color,icon,is_requirement,is_chapter,created_by)VALUES(?,?,?,?,?,?,?,?,?,?,?)');$id=uuid4();$q->execute([$id,$pid,$key,$name,trim((string)($d['description']??'')),trim((string)($d['number_pattern']??'{TYPE}-{NUMBER:3}')),trim((string)($d['color']??'#315f92')),trim((string)($d['icon']??'document')),!empty($d['is_requirement'])?1:0,!empty($d['is_chapter'])?1:0,$u]);out(['success'=>true,'id'=>$id],201);}out(['success'=>false,'error'=>'Methode nicht erlaubt.'],405);
-}catch(PDOException$e){out(['success'=>false,'error'=>$e->getCode()==='23000'?'Dieses Kürzel existiert bereits.':$e->getMessage()],$e->getCode()==='23000'?409:500);}
+<?php require_once __DIR__.'/document_studio_common.php';uid();try{$pid=trim((string)($_GET['project_id']??''));project($pdo,$pid);$q=$pdo->prepare('SELECT * FROM document_types WHERE is_active=1 AND(project_id IS NULL OR project_id=?) ORDER BY is_chapter DESC,is_requirement DESC,name');$q->execute([$pid]);out(['success'=>true,'types'=>$q->fetchAll(PDO::FETCH_ASSOC)]);}catch(Throwable$e){out(['success'=>false,'error'=>$e->getMessage()],500);}
 
 ENDE DATEI: api\document_types.php
 
@@ -6475,7 +6751,9 @@ ENDE DATEI: api\toggle_subtask.php
 ============================================================
 DATEI: api\upload_document_file.php
 ============================================================
-<?php require_once __DIR__.'/document_studio_common.php';$u=uid();header('Content-Type: application/json; charset=utf-8');try{if($_SERVER['REQUEST_METHOD']!=='POST')out(['success'=>false,'error'=>'Methode nicht erlaubt.'],405);$id=trim((string)($_POST['document_id']??''));$d=doc($pdo,$id);if(empty($_FILES['file'])||$_FILES['file']['error']!==UPLOAD_ERR_OK)out(['success'=>false,'error'=>'Upload fehlgeschlagen.'],422);$f=$_FILES['file'];if($f['size']>20*1024*1024)out(['success'=>false,'error'=>'Maximal 20 MB.'],413);$mime=(new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name'])?:'application/octet-stream';$allow=['image/png','image/jpeg','image/webp','image/gif','application/pdf','text/plain','text/csv','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];if(!in_array($mime,$allow,true))out(['success'=>false,'error'=>'Dateityp nicht erlaubt: '.$mime],415);$ext=strtolower(pathinfo($f['name'],PATHINFO_EXTENSION));$stored=uuid4().($ext?'.'.$ext:'');$dir=__DIR__.'/../uploads/documents/'.$d['project_id'].'/'.$id;if(!is_dir($dir)&&!mkdir($dir,0775,true))throw new RuntimeException('Uploadordner konnte nicht erstellt werden.');$target=$dir.'/'.$stored;if(!move_uploaded_file($f['tmp_name'],$target))throw new RuntimeException('Datei konnte nicht gespeichert werden.');$fid=uuid4();$rel='uploads/documents/'.$d['project_id'].'/'.$id.'/'.$stored;$pdo->prepare('INSERT INTO requirement_document_files(id,project_id,document_id,original_name,stored_name,relative_path,mime_type,file_size,sha256,created_by)VALUES(?,?,?,?,?,?,?,?,?,?)')->execute([$fid,$d['project_id'],$id,$f['name'],$stored,$rel,$mime,$f['size'],hash_file('sha256',$target),$u]);out(['success'=>1,'file'=>['id'=>$fid,'url'=>'../'.$rel,'name'=>$f['name'],'size'=>$f['size'],'mime'=>$mime]]);}catch(Throwable$e){out(['success'=>false,'error'=>$e->getMessage()],500);}
+<?php
+require_once __DIR__.'/document_studio_common.php';$u=uid();try{if($_SERVER['REQUEST_METHOD']!=='POST')out(['success'=>false,'error'=>'Methode nicht erlaubt.'],405);$id=trim((string)($_POST['document_id']??''));$d=doc($pdo,$id);if(empty($_FILES['file'])||$_FILES['file']['error']!==UPLOAD_ERR_OK)out(['success'=>false,'error'=>'Upload fehlgeschlagen.'],422);$f=$_FILES['file'];if($f['size']>20*1024*1024)out(['success'=>false,'error'=>'Maximal 20 MB.'],413);$mime=(new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name'])?:'application/octet-stream';$allow=['image/png','image/jpeg','image/webp','image/gif','application/pdf','text/plain','text/csv','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];if(!in_array($mime,$allow,true))out(['success'=>false,'error'=>'Dateityp nicht erlaubt: '.$mime],415);$ext=strtolower(pathinfo($f['name'],PATHINFO_EXTENSION));$stored=uuid4().($ext?'.'.$ext:'');$dir=__DIR__.'/../uploads/documents/'.$d['project_id'].'/'.$id;if(!is_dir($dir)&&!mkdir($dir,0775,true))throw new RuntimeException('Uploadordner konnte nicht erstellt werden.');$target=$dir.'/'.$stored;if(!move_uploaded_file($f['tmp_name'],$target))throw new RuntimeException('Datei konnte nicht gespeichert werden.');$fid=uuid4();$rel='uploads/documents/'.$d['project_id'].'/'.$id.'/'.$stored;$pdo->prepare('INSERT INTO requirement_document_files(id,project_id,document_id,original_name,stored_name,relative_path,mime_type,file_size,sha256,created_by)VALUES(?,?,?,?,?,?,?,?,?,?)')->execute([$fid,$d['project_id'],$id,$f['name'],$stored,$rel,$mime,$f['size'],hash_file('sha256',$target),$u]);out(['success'=>true,'file'=>['id'=>$fid,'name'=>$f['name'],'size'=>$f['size'],'mime'=>$mime]]);}catch(Throwable$e){out(['success'=>false,'error'=>$e->getMessage()],500);}
+
 
 ENDE DATEI: api\upload_document_file.php
 
@@ -6539,7 +6817,8 @@ ENDE DATEI: api\use_acceptance_criteria_template.php
 DATEI: api\verification_common.php
 ============================================================
 <?php
-declare(strict_types=1);ini_set('display_errors','0');error_reporting(E_ALL);session_start();require_once __DIR__.'/../config/db.php';header('Content-Type: application/json; charset=utf-8');
+declare(strict_types=1);
+ini_set('display_errors','0');error_reporting(E_ALL);if(session_status()===PHP_SESSION_NONE)session_start();require_once __DIR__.'/../config/db.php';header('Content-Type: application/json; charset=utf-8');
 function vout(array$d,int$s=200):never{http_response_code($s);echo json_encode($d,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_INVALID_UTF8_SUBSTITUTE);exit;}
 function vuser():int{if(empty($_SESSION['user_id']))vout(['success'=>false,'error'=>'Nicht angemeldet.'],401);return(int)$_SESSION['user_id'];}
 function vbody():array{$d=json_decode(file_get_contents('php://input'),true);if(!is_array($d))vout(['success'=>false,'error'=>'Ungültiges JSON.'],400);return$d;}
@@ -7086,16 +7365,10 @@ ENDE DATEI: dashboard\cu.php
 DATEI: dashboard\header.php
 ============================================================
 <?php
-// Sicherstellen, dass die Session läuft, falls noch nicht geschehen
-if (session_status() === PHP_SESSION_NONE) {
+if (session_status() === PHP_SESSION_NONE)
     session_start();
-}
-
-if (!isset($projects)) {
-    $projects = $pdo->query("SELECT id, name FROM projects ORDER BY name ASC")->fetchAll();
-}
-
-// Hostname und Rolle aus der Session laden (mit Fallback)
+if (!isset($projects))
+    $projects = $pdo->query("SELECT id,name FROM projects ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
 $hostname = $_SESSION['hostname'] ?? 'Unknown';
 $role = $_SESSION['role'] ?? 'viewer';
 $username = $_SESSION['username'] ?? 'Gast';
@@ -7106,102 +7379,40 @@ $username = $_SESSION['username'] ?? 'Gast';
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Captain's Log - Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Captain's Log</title>
+    <link rel="shortcut icon" href="css/favicon.ico">
     <link rel="stylesheet" href="css/captains-theme.css">
-    <link rel="shortcut icon" href="css/favicon.ico" />
+    <link rel="stylesheet" href="css/app-shell.css">
+    <link rel="stylesheet" href="css/navigation.css">
     <link rel="stylesheet" href="css/document-studio.css">
-    <style>
-        .panel {
-            display: none;
-        }
-
-        .panel.show {
-            display: block;
-        }
-
-        .tab.active {
-            color: #1e3a8a;
-            border-color: #1e3a8a;
-            background: #eff6ff;
-        }
-    </style>
+    <link rel="stylesheet" href="css/acceptance-criteria-tool.css">
+    <link rel="stylesheet" href="css/criterion-traceability.css">
 </head>
 
-<body class="bg-slate-50 text-slate-800 flex flex-col h-screen overflow-hidden">
-
-    <!-- HEADER -->
-    <header class="border-t-4 border-amber-400 bg-[#0d3158] text-white shrink-0">
-        <div class="mx-auto flex h-24 max-w-screen-2xl items-center justify-between px-6">
-            <div class="flex items-center gap-4">
-                <a href="index.php" class="flex items-center gap-4 hover:opacity-80 transition cursor-pointer">
-                    <img src="css/logo.png" class="h-16 w-auto" alt="Captain's Log Logo">
-                    <div>
-                        <p class="text-xs uppercase tracking-[.2em] text-blue-200">Requirements · Risk · Verification
-                        </p>
-                        <h1 class="text-2xl font-bold">Captain's Log</h1>
-                    </div>
-                </a>
-            </div>
-
-            <div class="flex items-center gap-4">
-                <!-- Navigation Links (Profil & Admin) -->
-                <nav class="flex items-center gap-3 mr-2 text-sm border-r border-blue-400/40 pr-4">
-                    <a href="profile.php" class="hover:text-amber-300 transition">Profil</a>
-                    <?php if ($role === 'admin' || $role === 'editor'): ?>
-                        <a href="admin_users.php" class="text-amber-300 font-semibold hover:underline">Nutzerverwaltung</a>
-                    <?php endif; ?>
-                    <a href="index.php" class="hover:text-amber-300 transition">Home</a>
-                </nav>
-
-                <div class="user-info text-sm text-blue-100">
-                    Eingeloggt als: <strong class="text-white"><?php echo htmlspecialchars($username); ?></strong>
-                    @ <?php echo htmlspecialchars($hostname); ?>
-                </div>
-
-                <select id="projectSelect" class="text-slate-800 px-2 py-1 font-bold outline-none ">
-                    <option value="">-- Projekt wählen --</option>
-                    <?php foreach ($projects as $proj): ?>
-                        <option value="<?= $proj['id'] ?>"><?= htmlspecialchars($proj['name']) ?></option>
+<body class="cl-body">
+    <header class="cl-header">
+        <div class="cl-header-inner"><a href="index.php" class="cl-brand"><img src="css/logo.png"
+                    alt="Captain's Log"><span><small>REQUIREMENTS · RISK · VERIFICATION</small><strong>Captain's
+                        Log</strong></span></a>
+            <div class="cl-project"><label for="projectSelect">Projekt</label><select id="projectSelect">
+                    <option value="">-- Projekt wählen --</option><?php foreach ($projects as $proj): ?>
+                        <option value="<?= htmlspecialchars($proj['id']) ?>"><?= htmlspecialchars($proj['name']) ?></option>
                     <?php endforeach; ?>
-                </select>
-
-                <button type="button" onclick="window.openNewProjectModal()"
-                    class="rounded-md border border-white px-3 py-2 text-sm font-bold transition hover:bg-white hover:text-[#0d3158]">
-                    Neues Projekt
-                </button>
-
-                <a href="logout.php" class="text-sm text-red-300 hover:text-red-100 transition ml-2">Logout</a>
+                </select></div>
+            <div class="cl-user"><span class="cl-login">Angemeldet:
+                    <strong><?= htmlspecialchars($username) ?></strong><small><?= htmlspecialchars($hostname) ?></small></span>
+                <details class="cl-user-menu">
+                    <summary>Konto</summary>
+                    <div><a href="profile.php">Profil</a><?php if ($role === 'admin'): ?><a
+                                href="admin_users.php">Nutzerverwaltung</a><?php endif; ?><button type="button"
+                            data-open-project>Neues Projekt</button><a class="danger-link" href="logout.php">Logout</a>
+                    </div>
+                </details>
             </div>
         </div>
     </header>
-
-    <!-- Eckiger Ladebalken -->
-    <style>
-        @keyframes loading-slide {
-            0% {
-                transform: translateX(-100%);
-            }
-
-            100% {
-                transform: translateX(300%);
-            }
-        }
-
-        .animate-loading-bar {
-            animation: loading-slide 1.5s infinite linear;
-        }
-    </style>
-
-    <div id="loadingOverlay"
-        class="fixed inset-0 bg-slate-900/60 z-[9999] hidden flex items-center justify-center backdrop-blur-sm">
-        <div class="w-96 bg-white border-4 border-[#0d3158] p-8 shadow-2xl flex flex-col">
-            <h2 class="text-[#0d3158] font-bold text-lg uppercase tracking-[.2em] mb-4 text-center">Lade Projekt...</h2>
-            <!-- Der eigentliche Ladebalken -->
-            <div class="w-full h-6 bg-slate-200 overflow-hidden relative border border-slate-300">
-                <div class="absolute top-0 left-0 h-full bg-amber-400 w-1/3 animate-loading-bar"></div>
-            </div>
-        </div>
+    <div id="loadingOverlay" class="cl-overlay hidden">
+        <div class="cl-loading"><strong>Lade Projekt...</strong><i></i></div>
     </div>
 
 ENDE DATEI: dashboard\header.php
@@ -7210,398 +7421,34 @@ ENDE DATEI: dashboard\header.php
 DATEI: dashboard\index.php
 ============================================================
 <?php
-
-// dashboard/index.php
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-require_once __DIR__ . '/../config/db.php';
-
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
-    exit;
-}
-
-require_once __DIR__ . '/header.php';
-
-?>
-
-<!-- Globaler Loader -->
-<div id="globalLoader"
-    class="fixed inset-0 z-[9998] hidden items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-
-    <div class="flex w-full max-w-sm flex-col items-center rounded-lg border border-slate-300 bg-white p-8 shadow-2xl">
-
-        <div class="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-blue-950"></div>
-
-        <p class="mt-5 text-sm font-extrabold uppercase tracking-[0.16em] text-blue-950">
-            Synchronisiere Daten...
-        </p>
-    </div>
-</div>
-
-
-<!-- Benachrichtigungen -->
-<div id="notificationArea" class="fixed right-4 top-4 z-[9999] w-[min(92vw,520px)] space-y-3" aria-live="assertive"
-    aria-atomic="true">
-</div>
-
-
-<!-- Navigation -->
-<nav class="shrink-0 border-b border-slate-300 bg-white shadow-sm">
-
-    <div class="mx-auto flex max-w-screen-2xl overflow-x-auto px-6">
-
-        <button type="button"
-            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
-            data-panel="projectteam">
-            Projektteam
-        </button>
-
-        <button type="button"
-            class="tab active border-b-2 border-blue-900 bg-blue-50 px-4 py-3 font-bold text-blue-900 transition-colors"
-            data-panel="dashboard">
-            Dashboard
-        </button>
-
-        <button type="button"
-            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
-            data-panel="requirements">
-            Anforderungen
-        </button>
-
-        <button type="button"
-            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
-            data-panel="testmanagement">
-            Test Management
-        </button>
-
-        <button type="button"
-            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
-            data-panel="assets">
-            Assets
-        </button>
-
-        <button type="button"
-            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
-            data-panel="goals">
-            Ziele
-        </button>
-
-        <button type="button"
-            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
-            data-panel="projectplan">
-            Projektplan
-        </button>
-
-        <button type="button"
-            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
-            data-panel="issues">
-            Issues
-        </button>
-
-        <button type="button"
-            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
-            data-panel="risks">
-            Risiken
-        </button>
-
-        <button type="button"
-            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
-            data-panel="stakeholders">
-            Stakeholder
-        </button>
-
-        <button type="button"
-            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
-            data-panel="usecases">
-            Use Cases
-        </button>
-
-        <button type="button"
-            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
-            data-panel="userstories">
-            User Stories
-        </button>
-
-        <button type="button"
-            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
-            data-panel="history">
-            Historie
-        </button>
-
-        <button type="button"
-            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
-            data-panel="sbom">
-            SBOM
-        </button>
-
-        <button type="button"
-            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
-            data-panel="iso14001">
-            ISO 14001
-        </button>
-
-        <button type="button"
-            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
-            data-panel="attachments">
-            📎 Anhänge
-        </button>
-
-        <button type="button"
-            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
-            data-panel="reports">
-            Reports
-        </button>
-
-    </div>
-</nav>
-
-
-<!-- Hauptinhalt -->
-<main class="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 overflow-hidden p-6">
-
-    <section id="projectteam" class="panel h-full min-h-0 w-full">
-        <?php include __DIR__ . '/views/project_team.php'; ?>
-    </section>
-
-    <section id="dashboard" class="panel show h-full min-h-0 w-full">
-        <?php include __DIR__ . '/views/dashboard.php'; ?>
-    </section>
-
-    <section id="requirements" class="panel h-full min-h-0 w-full">
-        <?php include __DIR__ . '/views/requirements.php'; ?>
-    </section>
-
-    <section id="testmanagement" class="panel h-full min-h-0 w-full">
-        <?php include __DIR__ . '/views/testmanagement.php'; ?>
-    </section>
-
-    <section id="assets" class="panel h-full min-h-0 w-full">
-        <?php include __DIR__ . '/views/assets.php'; ?>
-    </section>
-
-    <section id="goals" class="panel h-full min-h-0 w-full">
-        <?php include __DIR__ . '/views/goals.php'; ?>
-    </section>
-
-    <section id="projectplan" class="panel h-full min-h-0 w-full">
-        <?php include __DIR__ . '/views/project_plan.php'; ?>
-    </section>
-
-    <section id="issues" class="panel h-full min-h-0 w-full">
-        <?php include __DIR__ . '/views/issues.php'; ?>
-    </section>
-
-    <section id="risks" class="panel h-full min-h-0 w-full">
-        <?php include __DIR__ . '/views/risks.php'; ?>
-    </section>
-
-    <section id="stakeholders" class="panel h-full min-h-0 w-full">
-        <?php include __DIR__ . '/views/stakeholders.php'; ?>
-    </section>
-
-    <section id="usecases" class="panel h-full min-h-0 w-full">
-        <?php include __DIR__ . '/views/usecases.php'; ?>
-    </section>
-
-    <section id="userstories" class="panel h-full min-h-0 w-full">
-        <?php include __DIR__ . '/views/userstories.php'; ?>
-    </section>
-
-    <section id="history" class="panel h-full min-h-0 w-full">
-        <?php include __DIR__ . '/views/history.php'; ?>
-    </section>
-
-    <section id="sbom" class="panel h-full min-h-0 w-full">
-        <?php include __DIR__ . '/views/sbom.php'; ?>
-    </section>
-
-    <section id="iso14001" class="panel h-full min-h-0 w-full">
-        <?php include __DIR__ . '/views/iso14001.php'; ?>
-    </section>
-
-    <section id="attachments" class="panel">
-        <?php require __DIR__ . '/views/attachments.php'; ?>
-    </section>
-
-    <section id="reports" class="panel h-full min-h-0 w-full">
-        <?php include __DIR__ . '/views/reports.php'; ?>
-    </section>
-
-</main>
-
-
-<!-- Neues Projekt -->
-<div id="newProjectModal"
-    class="fixed inset-0 z-[300] hidden items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
-
-    <!-- HIER IST DER REPARIERTE FORM-TAG INKLUSIVE STYLING -->
-    <form action="../api/web_create_project.php" method="POST" class="cl-modal max-w-md">
-
-        <div class="cl-modal-header">
-            <div>
-                <p class="cl-panel-eyebrow">
-                    Projektverwaltung
-                </p>
-                <h2 class="cl-modal-title">
-                    Neues Projekt erstellen
-                </h2>
-            </div>
-            <button type="button" data-close-modal="newProjectModal"
-                class="cl-button cl-button-secondary min-h-0 px-2.5 py-2" aria-label="Fenster schließen">
-                ✕
-            </button>
-        </div>
-
-        <div class="cl-modal-body space-y-5">
-            <label class="cl-label">
-                Projektname
-                <input name="name" type="text" required maxlength="255" autocomplete="off"
-                    placeholder="Name des neuen Projekts" class="cl-input text-base font-semibold">
-            </label>
-
-            <label class="cl-label">
-                Beschreibung
-                <textarea name="description" rows="4" placeholder="Kurze Beschreibung von Ziel und Inhalt"
-                    class="cl-textarea"></textarea>
-            </label>
-        </div>
-
-        <div class="cl-modal-footer">
-            <button type="button" data-close-modal="newProjectModal" class="cl-button cl-button-secondary">
-                Abbrechen
-            </button>
-            <button type="submit" class="cl-button cl-button-primary">
-                Projekt anlegen
-            </button>
-        </div>
-    </form>
-</div>
-
-
-<!-- Projektwechsel bestätigen -->
-<div id="projectSwitchModal"
-    class="fixed inset-0 z-[310] hidden items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-
-    <div class="cl-modal max-w-md">
-
-        <div class="cl-modal-header">
-
-            <div class="flex items-center gap-3">
-
-                <div
-                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-blue-700">
-
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z">
-                        </path>
-                    </svg>
-                </div>
-
-                <div>
-                    <p class="cl-panel-eyebrow">
-                        Arbeitsbereich wechseln
-                    </p>
-
-                    <h3 class="cl-modal-title">
-                        Projekt öffnen?
-                    </h3>
-                </div>
-            </div>
-        </div>
-
-        <div class="cl-modal-body">
-
-            <p class="text-sm leading-6 text-slate-700">
-                Möchtest du das Projekt
-
-                <span id="modalProjectName" class="font-bold text-blue-950">
-                </span>
-
-                öffnen?
-            </p>
-
-            <div class="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-                Nicht gespeicherte Änderungen können beim Wechsel verloren gehen.
-            </div>
-        </div>
-
-        <div class="cl-modal-footer">
-
-            <button id="modalCancelBtn" type="button" class="cl-button cl-button-secondary">
-                Abbrechen
-            </button>
-
-            <button id="modalConfirmBtn" type="button" class="cl-button cl-button-primary">
-                Projekt öffnen
-            </button>
-        </div>
-    </div>
-</div>
-
-
-<script>
-    window.showLoader = function () {
-        const loader = document.getElementById('globalLoader');
-
-        if (loader) {
-            loader.classList.remove('hidden');
-            loader.classList.add('flex');
-        }
-    };
-
-    window.hideLoader = function () {
-        const loader = document.getElementById('globalLoader');
-
-        if (loader) {
-            loader.classList.add('hidden');
-            loader.classList.remove('flex');
-        }
-    };
-
-    window.openNewProjectModal = function () {
-        const modal = document.getElementById('newProjectModal');
-
-        if (modal) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-    };
-
-    document
-        .querySelectorAll('[data-close-modal]')
-        .forEach(button => {
-            button.addEventListener('click', () => {
-                const modalId = button.dataset.closeModal;
-                const modal = document.getElementById(modalId);
-
-                if (modal) {
-                    modal.classList.add('hidden');
-                    modal.classList.remove('flex');
-                }
-            });
-        });
-
-    document
-        .getElementById('newProjectModal')
-        ?.addEventListener('click', function (event) {
-            if (event.target === this) {
-                this.classList.add('hidden');
-                this.classList.remove('flex');
-            }
-        });
-
-</script>
-<script type="module" src="js/app.js"></script>
-
-</body>
-
-</html>
+if(session_status()===PHP_SESSION_NONE)session_start();require_once __DIR__.'/../config/db.php';if(!isset($_SESSION['user_id'])){header('Location: login.php');exit;}require_once __DIR__.'/header.php';?>
+<div id="globalLoader" class="cl-overlay hidden"><div class="cl-loading"><strong>Synchronisiere Daten...</strong><i></i></div></div><div id="notificationArea" class="cl-notifications"></div>
+<nav class="cl-nav" aria-label="Hauptnavigation"><div class="cl-nav-inner">
+<button class="tab active" data-panel="dashboard">Dashboard</button><button class="tab" data-panel="requirements">Anforderungen</button><button class="tab" data-panel="risks">Risiken</button><button class="tab" data-panel="testmanagement">Tests</button><button class="tab" data-panel="projectplan">Projektplan</button>
+<details class="cl-nav-menu"><summary>Engineering</summary><div><button class="tab" data-panel="assets">Assets</button><button class="tab" data-panel="goals">Ziele</button><button class="tab" data-panel="stakeholders">Stakeholder</button><button class="tab" data-panel="usecases">Use Cases</button><button class="tab" data-panel="userstories">User Stories</button><button class="tab" data-panel="sbom">SBOM</button></div></details>
+<details class="cl-nav-menu"><summary>Nachweise</summary><div><button class="tab" data-panel="history">Historie</button><button class="tab" data-panel="iso14001">ISO 14001</button><button class="tab" data-panel="attachments">Anhänge</button><button class="tab" data-panel="reports">Reports</button></div></details>
+<details class="cl-nav-menu"><summary>Verwaltung</summary><div><button class="tab" data-panel="projectteam">Projektteam</button><button type="button" data-open-project>Neues Projekt</button><?php if(($_SESSION['role']??'viewer')==='admin'):?><a href="admin_users.php">Nutzerverwaltung</a><?php endif;?></div></details>
+</div></nav>
+<main class="cl-main"><section id="projectteam" class="panel"><?php include __DIR__.'/views/project_team.php'; ?></section>
+<section id="dashboard" class="panel show"><?php include __DIR__.'/views/dashboard.php'; ?></section>
+<section id="requirements" class="panel"><?php include __DIR__.'/views/requirements.php'; ?></section>
+<section id="testmanagement" class="panel"><?php include __DIR__.'/views/testmanagement.php'; ?></section>
+<section id="assets" class="panel"><?php include __DIR__.'/views/assets.php'; ?></section>
+<section id="goals" class="panel"><?php include __DIR__.'/views/goals.php'; ?></section>
+<section id="projectplan" class="panel"><?php include __DIR__.'/views/project_plan.php'; ?></section>
+<section id="issues" class="panel"><?php include __DIR__.'/views/issues.php'; ?></section>
+<section id="risks" class="panel"><?php include __DIR__.'/views/risks.php'; ?></section>
+<section id="stakeholders" class="panel"><?php include __DIR__.'/views/stakeholders.php'; ?></section>
+<section id="usecases" class="panel"><?php include __DIR__.'/views/usecases.php'; ?></section>
+<section id="userstories" class="panel"><?php include __DIR__.'/views/userstories.php'; ?></section>
+<section id="history" class="panel"><?php include __DIR__.'/views/history.php'; ?></section>
+<section id="sbom" class="panel"><?php include __DIR__.'/views/sbom.php'; ?></section>
+<section id="iso14001" class="panel"><?php include __DIR__.'/views/iso14001.php'; ?></section>
+<section id="attachments" class="panel"><?php include __DIR__.'/views/attachments.php'; ?></section>
+<section id="reports" class="panel"><?php include __DIR__.'/views/reports.php'; ?></section></main>
+<dialog id="newProjectModal" class="cl-dialog"><form id="newProjectForm"><header><h3>Neues Projekt</h3><button type="button" data-close-dialog="newProjectModal">×</button></header><label>Projektname<input id="newProjectName" name="name" required></label><label>Beschreibung<textarea id="newProjectDescription" name="description"></textarea></label><footer><button type="button" data-close-dialog="newProjectModal">Abbrechen</button><button type="submit" class="primary">Projekt anlegen</button></footer></form></dialog>
+<div id="projectSwitchModal" class="cl-modal hidden"><div><h3>Projekt öffnen?</h3><p>Möchtest du das Projekt <strong id="modalProjectName"></strong> öffnen?</p><p>Nicht gespeicherte Änderungen können beim Wechsel verloren gehen.</p><footer><button id="modalCancelBtn">Abbrechen</button><button id="modalConfirmBtn" class="primary">Projekt öffnen</button></footer></div></div>
+<script type="module" src="js/app.js?v=20260902-12"></script><script type="module" src="js/layout.js?v=20260902-1"></script></body></html>
 
 ENDE DATEI: dashboard\index.php
 
@@ -7788,6 +7635,11 @@ import {
 } from './requirements.js';
 
 import {
+    initCriterionTraceability
+} from './criterion-traceability.js';
+
+
+import {
     loadStakeholders,
     initStakeholderEvents
 } from './stakeholders.js';
@@ -7910,7 +7762,8 @@ function initializeModuleEvents() {
         initProjectTeamEvents,
         initReportsEvents,
         initAttachmentEvents,
-        initTestManagementEvents
+        initTestManagementEvents,
+        initCriterionTraceability
     ];
 
     initializers.forEach(initializer => {
@@ -8869,6 +8722,347 @@ window.openAttachmentModal=(entity_type,entity_id,entity_key='',entity_title='')
 
 
 ENDE DATEI: dashboard\js\attachments.js
+
+============================================================
+DATEI: dashboard\js\criterion-traceability.js
+============================================================
+// dashboard/js/criterion-traceability.js
+const API_URL = '../api/criterion_traceability.php';
+
+let initialized = false;
+let context = null;
+let observer = null;
+let loadingPromise = null;
+
+const escapeHtml = value => String(value ?? '').replace(
+    /[&<>"']/g,
+    character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[character]
+);
+
+function getCurrentDocumentId() {
+    return document.querySelector('#v4Tree .node.active')?.dataset.doc || null;
+}
+
+async function api(url, options = {}) {
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            Accept: 'application/json',
+            ...(options.body ? { 'Content-Type': 'application/json' } : {})
+        }
+    });
+
+    const text = await response.text();
+    let result;
+
+    try {
+        result = text ? JSON.parse(text) : null;
+    } catch {
+        throw new Error(`API liefert kein JSON (${response.status}): ${text.slice(0, 180)}`);
+    }
+
+    if (!response.ok || !result?.success) {
+        throw new Error(result?.error || `HTTP ${response.status}`);
+    }
+
+    return result;
+}
+
+function getDialog() {
+    let dialog = document.getElementById('ctDialog');
+
+    if (dialog) {
+        return dialog;
+    }
+
+    dialog = document.createElement('dialog');
+    dialog.id = 'ctDialog';
+    dialog.className = 'dlg ct-dialog';
+    dialog.innerHTML = `
+        <form method="dialog">
+            <h3 id="ctTitle">Kriterium zuordnen</h3>
+            <div id="ctBody"></div>
+            <div class="dlg-actions">
+                <button type="button" id="ctClose">Abbrechen</button>
+            </div>
+        </form>
+    `;
+
+    document.body.appendChild(dialog);
+    dialog.querySelector('#ctClose').addEventListener('click', () => dialog.close());
+
+    return dialog;
+}
+
+function statusSymbol(status) {
+    return ({
+        passed: '✓',
+        failed: '×',
+        covered: '◐',
+        outdated: '!',
+        blocked: '■',
+        open: '◇'
+    })[status] || '◇';
+}
+
+async function loadContext() {
+    const documentId = getCurrentDocumentId();
+
+    if (!documentId) {
+        return;
+    }
+
+    if (loadingPromise) {
+        return loadingPromise;
+    }
+
+    loadingPromise = api(
+        `${API_URL}?action=context&document_id=${encodeURIComponent(documentId)}`
+    );
+
+    try {
+        context = await loadingPromise;
+        decorateCriteria();
+    } finally {
+        loadingPromise = null;
+    }
+}
+
+function decorateCriteria() {
+    if (!context) {
+        return;
+    }
+
+    document
+        .querySelectorAll('#requirementsEditor .ds-acceptance-row')
+        .forEach(row => {
+            const criterionId = row.dataset.id;
+            const criterion = context.criteria?.find(item => item.id === criterionId);
+
+            if (!criterion) {
+                return;
+            }
+
+            const state = row.querySelector('.ds-acceptance-state');
+            if (state) {
+                state.className = `ds-acceptance-state is-${criterion.status}`;
+                state.textContent = statusSymbol(criterion.status);
+                state.title = criterion.reason || criterion.status;
+            }
+
+            let tools = row.querySelector('.ct-tools');
+            if (!tools) {
+                tools = document.createElement('span');
+                tools.className = 'ct-tools';
+                tools.contentEditable = 'false';
+                row.appendChild(tools);
+            }
+
+            const mapping = context.mappings?.find(
+                item => item.child_criterion_id === criterionId
+            );
+
+            tools.innerHTML = `
+                <button
+                    type="button"
+                    class="ct-map"
+                    data-criterion="${escapeHtml(criterionId)}"
+                    title="Parent-Kriterium zuordnen"
+                    contenteditable="false"
+                >↥</button>
+                <button
+                    type="button"
+                    class="ct-evidence"
+                    data-criterion="${escapeHtml(criterionId)}"
+                    title="Testnachweis zuordnen"
+                    contenteditable="false"
+                >✓</button>
+                ${mapping ? '<span class="ct-linked" title="Parent-Kriterium verknüpft">●</span>' : ''}
+            `;
+        });
+}
+
+function openMappingDialog(criterionId) {
+    if (!context) {
+        return;
+    }
+
+    const dialog = getDialog();
+    const options = [];
+
+    for (const parent of context.parents || []) {
+        for (const criterion of parent.criteria || []) {
+            options.push(`
+                <option value="${escapeHtml(parent.id)}|${escapeHtml(criterion.id)}">
+                    ${escapeHtml(parent.requirement_key)} · ${escapeHtml(criterion.text)}
+                </option>
+            `);
+        }
+    }
+
+    document.getElementById('ctTitle').textContent = 'Parent-Kriterium zuordnen';
+    document.getElementById('ctBody').innerHTML = options.length
+        ? `
+            <label class="field">
+                <span>Erfüllt</span>
+                <select id="ctParent">${options.join('')}</select>
+            </label>
+            <label class="field">
+                <span>Regel</span>
+                <select id="ctRule">
+                    <option value="ALL">Alle zugeordneten Children</option>
+                    <option value="ANY">Mindestens ein Child</option>
+                </select>
+            </label>
+            <button type="button" id="ctSaveMap">Zuordnung speichern</button>
+        `
+        : '<p>Das Dokument besitzt keinen direkten Parent mit Akzeptanzkriterien.</p>';
+
+    dialog.showModal();
+
+    document.getElementById('ctSaveMap')?.addEventListener('click', async () => {
+        try {
+            const [parentDocumentId, parentCriterionId] =
+                document.getElementById('ctParent').value.split('|');
+
+            await api(`${API_URL}?action=map`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    document_id: getCurrentDocumentId(),
+                    child_criterion_id: criterionId,
+                    parent_document_id: parentDocumentId,
+                    parent_criterion_id: parentCriterionId,
+                    aggregation_rule: document.getElementById('ctRule').value
+                })
+            });
+
+            dialog.close();
+            await loadContext();
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
+        }
+    }, { once: true });
+}
+
+function openEvidenceDialog(criterionId) {
+    if (!context) {
+        return;
+    }
+
+    const dialog = getDialog();
+    const tests = (context.test_links || []).filter(test => test.result !== 'not_run');
+
+    document.getElementById('ctTitle').textContent = 'Testnachweis zuordnen';
+    document.getElementById('ctBody').innerHTML = tests.length
+        ? `
+            <label class="field">
+                <span>Nachweis</span>
+                <select id="ctTest">
+                    ${tests.map(test => `
+                        <option value="${escapeHtml(test.id)}">
+                            ${escapeHtml(test.label)} · ${escapeHtml(test.result)}
+                        </option>
+                    `).join('')}
+                </select>
+            </label>
+            <button type="button" id="ctSaveEvidence">Nachweis übernehmen</button>
+        `
+        : '<p>Zuerst unter Verifikation einen ausgeführten Test Run mit Ergebnis verknüpfen.</p>';
+
+    dialog.showModal();
+
+    document.getElementById('ctSaveEvidence')?.addEventListener('click', async () => {
+        try {
+            await api(`${API_URL}?action=evidence`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    document_id: getCurrentDocumentId(),
+                    criterion_id: criterionId,
+                    document_test_link_id: document.getElementById('ctTest').value
+                })
+            });
+
+            dialog.close();
+            await loadContext();
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
+        }
+    }, { once: true });
+}
+
+function handleToolPointerDown(event) {
+    const mapButton = event.target.closest('.ct-map');
+    const evidenceButton = event.target.closest('.ct-evidence');
+
+    if (!mapButton && !evidenceButton) {
+        return;
+    }
+
+    // Editor.js captures mouse events inside editable blocks.
+    // Handle the action during capture and stop Editor.js from swallowing it.
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    if (mapButton) {
+        openMappingDialog(mapButton.dataset.criterion);
+    } else {
+        openEvidenceDialog(evidenceButton.dataset.criterion);
+    }
+}
+
+function handleDocumentSelection(event) {
+    if (event.target.closest('[data-doc]')) {
+        window.setTimeout(() => {
+            loadContext().catch(error => console.error(error));
+        }, 500);
+    }
+}
+
+export function initCriterionTraceability() {
+    if (initialized) {
+        return;
+    }
+
+    initialized = true;
+
+    // Capture phase is essential for controls injected into Editor.js blocks.
+    document.addEventListener('pointerdown', handleToolPointerDown, true);
+    document.addEventListener('mousedown', handleToolPointerDown, true);
+    document.addEventListener('click', handleDocumentSelection);
+
+    const editorRoot = document.getElementById('requirementsEditor');
+    if (editorRoot) {
+        observer = new MutationObserver(() => {
+            if (document.querySelector('#requirementsEditor .ds-acceptance-row')) {
+                window.clearTimeout(initCriterionTraceability.decorateTimer);
+                initCriterionTraceability.decorateTimer = window.setTimeout(() => {
+                    loadContext().catch(error => console.error(error));
+                }, 150);
+            }
+        });
+
+        observer.observe(editorRoot, {
+            childList: true,
+            subtree: true
+        });
+    }
+
+    window.setTimeout(() => {
+        loadContext().catch(error => console.error(error));
+    }, 600);
+}
+
+
+ENDE DATEI: dashboard\js\criterion-traceability.js
 
 ============================================================
 DATEI: dashboard\js\dashboard.js
@@ -11825,6 +12019,13 @@ window.closeIssueReportPanel = function () {
 ENDE DATEI: dashboard\js\issues.js
 
 ============================================================
+DATEI: dashboard\js\layout.js
+============================================================
+document.addEventListener('click',event=>{const open=event.target.closest('[data-open-project]');if(open){document.getElementById('newProjectModal')?.showModal();return}const close=event.target.closest('[data-close-dialog]');if(close){document.getElementById(close.dataset.closeDialog)?.close();return}if(event.target.closest('.cl-nav-menu .tab'))event.target.closest('.cl-nav-menu')?.removeAttribute('open')});document.addEventListener('click',event=>{document.querySelectorAll('.cl-nav-menu[open],.cl-user-menu[open]').forEach(menu=>{if(!menu.contains(event.target))menu.removeAttribute('open')})});window.openNewProjectModal=()=>document.getElementById('newProjectModal')?.showModal();
+
+ENDE DATEI: dashboard\js\layout.js
+
+============================================================
 DATEI: dashboard\js\project_plan.js
 ============================================================
 // dashboard/js/project_plan.js
@@ -13466,28 +13667,823 @@ DATEI: dashboard\js\requirements.js
 ============================================================
 // dashboard/js/requirements.js
 import { currentProjectId } from './state.js';
-const A='../api/';let editor=null,docs=[],types=[],templates=[],current=null,tab='meta',dirty=false,events=false,toolsLoaded=false,relations=[],entities=[],tests=[],coverage=null,pickerAction=null;const $=x=>document.getElementById(x),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function api(url,opt={}){const r=await fetch(url,{...opt,headers:{Accept:'application/json',...(opt.body&&!opt.form?{'Content-Type':'application/json'}:{})}}),t=await r.text();let d;try{d=JSON.parse(t)}catch{throw Error(`API ${r.status}: ${t.slice(0,180)}`)}if(!r.ok||!(d.success===true||d.success===1))throw Error(d.error||`HTTP ${r.status}`);return d}function state(v){$('reqSaveState').textContent=v}function draftKey(){return current?`captainslog:draft:${current.id}`:null}function changed(){dirty=true;state('Ungespeichert');clearTimeout(changed.t);changed.t=setTimeout(saveDraft,500)}async function saveDraft(){if(!editor||!current)return;try{localStorage.setItem(draftKey(),JSON.stringify({savedAt:Date.now(),title:$('v4Title').value,data:await editor.save()}))}catch{}}
-function script(src,key){if(window[key])return Promise.resolve();return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=no;document.head.append(s)})}async function loadTools(){if(toolsLoaded)return;await script('https://cdn.jsdelivr.net/npm/@editorjs/editorjs@2.31.0','EditorJS');await script('https://cdn.jsdelivr.net/npm/@editorjs/list@2.0.8','EditorjsList');await script('https://cdn.jsdelivr.net/npm/@editorjs/table@2.4.5','Table');toolsLoaded=true}
-class Text{constructor({data={}}){this.d=data}static get toolbox(){return{title:'Text',icon:'T'}}render(){this.e=document.createElement('div');this.e.className='ce-paragraph';this.e.contentEditable='true';this.e.innerHTML=this.d.text||'';return this.e}save(){return{...this.d,text:this.e.innerHTML}}static get sanitize(){return{text:{b:true,i:true,u:true,br:true,a:{href:true}}}}}
-class Heading{constructor({data={}}){this.d={...data,level:Math.max(3,Math.min(5,+data.level||3))}}static get toolbox(){return{title:'Überschrift',icon:'H'}}render(){this.e=document.createElement(`h${this.d.level}`);this.e.className='ce-header';this.e.contentEditable='true';this.e.innerHTML=this.d.text||'Überschrift';return this.e}save(){return{...this.d,text:this.e.innerHTML,level:this.d.level}}renderSettings(){return[3,4,5].map(n=>({icon:`H${n}`,label:`Überschrift ${n}`,onActivate:()=>{const el=document.createElement(`h${n}`);el.className='ce-header';el.contentEditable='true';el.innerHTML=this.e.innerHTML;this.e.replaceWith(el);this.e=el;this.d.level=n;changed()}}))}static get sanitize(){return{text:{b:true,i:true,u:true,br:true}}}}
-class LegacyRequirement extends Text{static get toolbox(){return{title:'Text (Legacy)',icon:'T'}}}
-class Upload{constructor({data={},config}){this.d=data;this.kind=config.kind}render(){this.e=document.createElement('div');this.e.style.cssText='border:2px dashed #ccd6e2;padding:15px;text-align:center';this.paint();return this.e}paint(){if(this.d.fileId){const url=`../api/document_file.php?id=${encodeURIComponent(this.d.fileId)}`;this.e.innerHTML=this.kind==='image'?`<img src="${url}" style="max-width:100%"><input value="${esc(this.d.caption||'')}" placeholder="Bildunterschrift">`:`<a href="${url}" target="_blank">${esc(this.d.name||'Datei öffnen')}</a>`;return}this.e.textContent=this.kind==='image'?'Bild ablegen oder klicken':'Datei ablegen oder klicken';const i=document.createElement('input');i.type='file';i.style.display='none';i.accept=this.kind==='image'?'image/*':'*/*';i.onchange=()=>this.send(i.files[0]);this.e.onclick=()=>i.click();this.e.ondragover=e=>e.preventDefault();this.e.ondrop=e=>{e.preventDefault();this.send(e.dataTransfer.files[0])};this.e.append(i)}async send(file){if(!file)return;const f=new FormData();f.append('document_id',current.id);f.append('file',file);const d=await api(`${A}upload_document_file.php`,{method:'POST',body:f,form:true});this.d={fileId:d.file.id,name:d.file.name,mime:d.file.mime,size:d.file.size};this.paint();changed()}save(){if(this.kind==='image'){const i=this.e.querySelector('input');if(i)this.d.caption=i.value}return this.d}}
-class ImageTool extends Upload{constructor(a){super({...a,config:{kind:'image'}})}static get toolbox(){return{title:'Bild',icon:'▧'}}}class FileTool extends Upload{constructor(a){super({...a,config:{kind:'file'}})}static get toolbox(){return{title:'Datei',icon:'📎'}}}
-function editorTools(){return{text:Text,requirement:LegacyRequirement,heading:Heading,list:{class:window.EditorjsList,inlineToolbar:true,config:{defaultStyle:'unordered'}},table:{class:window.Table,inlineToolbar:true,config:{rows:2,cols:3,withHeadings:true}},image:ImageTool,file:FileTool}}
-async function loadLists(){const[a,b,c]=await Promise.all([api(`${A}document_studio_v4.php?action=list&project_id=${encodeURIComponent(currentProjectId)}`),api(`${A}document_types.php?project_id=${encodeURIComponent(currentProjectId)}`),api(`${A}document_templates_v4.php?project_id=${encodeURIComponent(currentProjectId)}`)]);docs=a.documents||[];types=b.types||[];templates=c.templates||[];$('v4CreateType').innerHTML=types.map(x=>`<option value="${x.id}">${esc(x.type_key)} · ${esc(x.name)}</option>`).join('');$('v4CreateTemplate').innerHTML='<option value="">Leeres Dokument</option>'+templates.map(x=>`<option value="${x.id}" data-type="${esc(x.requirement_type)}">${esc(x.name)}</option>`).join('');tree()}
-function depth(id,seen=new Set()){if(seen.has(id))return 0;seen.add(id);const d=docs.find(x=>x.id===id),p=d?.parent_ids?.[0];return p?1+depth(p,seen):0}function tree(){const q=($('v4Search')?.value||'').toLowerCase();$('v4Tree').innerHTML=docs.filter(d=>`${d.requirement_key} ${d.title}`.toLowerCase().includes(q)).map(d=>`<button class="node ${current?.id===d.id?'active':''}" data-doc="${d.id}" style="padding-left:${6+depth(d.id)*17}px"><b>${esc(d.requirement_key)}</b> ${esc(d.title)}<span class="badge">${esc(d.verification_status)} ${Number(d.coverage_percent)}%</span></button>`).join('')||'<i>Keine Dokumente</i>'}
-async function loadSide(){const[r,e,t,c]=await Promise.all([api(`${A}document_links.php?kind=relation&document_id=${current.id}`),api(`${A}document_links.php?kind=entity&document_id=${current.id}`),api(`${A}document_test_links.php?document_id=${current.id}`),api(`${A}document_coverage.php?document_id=${current.id}`)]);relations=r.items||[];entities=e.items||[];tests=t.links||[];coverage=c.coverage;renderInspector();renderMargin()}
-function renderMargin(){$('v4Margin').innerHTML=`<span>${esc(current.status)}</span><span>${esc(current.priority)}</span><span>${esc(coverage?.verification_status||'Not Covered')} ${coverage?.coverage_percent||0}%</span>`}function cards(items,kind){return items.map(x=>`<div class="card"><span><b>${esc(x.requirement_key||x.item_key||'')}</b> ${esc(x.title||x.label||x.test_case_id||x.test_run_id||'Eintrag')}</span><button data-remove="${x.id}" data-kind="${kind}" title="Entfernen">×</button></div>`).join('')||'<i>Keine Einträge</i>'}
-function renderInspector(){const p=$('v4Panel');if(tab==='meta'){p.innerHTML=`<label class="field">Status<select id="iStatus"><option>Open</option><option>In Progress</option><option>Reviewed</option><option>Closed</option></select></label><label class="field">Priorität<select id="iPriority"><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select></label><label class="field">Relevanz<select id="iRelevance"><option>Must</option><option>Should</option><option>Could</option><option>Won't</option></select></label><label class="field">Review<select id="iReview"><option>New</option><option>In Review</option><option>Approved</option><option>Rejected</option></select></label><p>Revision: <b>${current.revision}</b></p>`;for(const[k,id]of[['status','iStatus'],['priority','iPriority'],['relevance','iRelevance'],['review_status','iReview']]){$(id).value=current[k];$(id).onchange=()=>{current[k]=$(id).value;changed();renderMargin()}}}else if(tab==='trace'){p.innerHTML=`<h3>Parents</h3>${cards(relations.filter(x=>x.role==='parent'),'relation')}<button data-pick-relation="parent">+ Parent auswählen</button><div class="section"><h3>Children</h3>${cards(relations.filter(x=>x.role==='child'),'relation')}<button data-pick-relation="child">+ Child auswählen</button></div><div class="section"><h3>Fachobjekte</h3>${cards(entities,'entity')}<button data-pick-entity="risk">+ Risiko</button> <button data-pick-entity="issue">+ Issue</button> <button data-pick-entity="task">+ Aufgabe</button> <button data-pick-entity="person">+ Person</button></div>`}else{p.innerHTML=`<h3>${esc(coverage.verification_status)}</h3><div class="coverage"><i style="width:${coverage.coverage_percent}%"></i></div><p>${coverage.executed_count} von ${coverage.leaf_count} Leaf-Anforderungen ausgeführt</p><p>Bestanden: ${coverage.passed_count}<br>Fehlgeschlagen: ${coverage.failed_count}<br>Veraltet: ${coverage.outdated_count}</p><div class="section"><h3>Testlinks</h3>${cards(tests,'test')}<button id="pickTest">+ Test auswählen</button></div>`}}
-async function openDoc(id){if(dirty&&!confirm('Ungespeicherte Änderungen verwerfen?'))return;const d=await api(`${A}document_studio_v4.php?action=get&id=${id}`);current=d.document;$('v4Empty').classList.add('hidden');$('v4Work').classList.remove('hidden');$('v4Key').textContent=current.requirement_key;$('v4Title').value=current.title;if(editor){try{await editor.isReady;editor.destroy?.()}catch{}}let data=d.editor;const raw=localStorage.getItem(`captainslog:draft:${id}`);if(raw){const draft=JSON.parse(raw);if(confirm('Lokalen Entwurf wiederherstellen?')){data=draft.data;$('v4Title').value=draft.title}}editor=new window.EditorJS({holder:'requirementsEditor',tools:editorTools(),defaultBlock:'text',data,onChange:changed});await editor.isReady;dirty=false;state('Gespeichert');await loadSide();tree()}
-export async function saveRequirements(){if(!editor||!current)return;try{state('Speichern ...');const out=await editor.save(),r=await api(`${A}document_studio_v4.php?action=save`,{method:'POST',body:JSON.stringify({id:current.id,title:$('v4Title').value,status:current.status,priority:current.priority,relevance:current.relevance,review_status:current.review_status,metadata:current.metadata||{},...out})});current.revision=r.revision;localStorage.removeItem(draftKey());dirty=false;state('Gespeichert');await loadLists();await loadSide()}catch(e){state('Fehler');alert(e.message)}}
-function showPicker(title,items,action){pickerAction=action;$('v4PickerTitle').textContent=title;$('v4PickerSearch').value='';$('v4PickerList').dataset.items=JSON.stringify(items);paintPicker(items);$('v4PickerDialog').showModal()}function paintPicker(items){const q=($('v4PickerSearch')?.value||'').toLowerCase();$('v4PickerList').innerHTML=items.filter(x=>`${x.item_key||x.requirement_key||''} ${x.title||''} ${x.status||''}`.toLowerCase().includes(q)).map((x,i)=>`<button type="button" class="picker-item" data-pick-index="${i}" data-pick-id="${esc(x.id)}"><b>${esc(x.item_key||x.requirement_key||x.id)}</b> · ${esc(x.title||'')}<small>${esc(x.status||'')}</small></button>`).join('')||'<p>Keine Treffer.</p>';}
-async function pickRelation(role){showPicker(role==='parent'?'Parent auswählen':'Child auswählen',docs.filter(d=>d.id!==current.id),async item=>{await api(`${A}document_links.php?kind=relation`,{method:'POST',body:JSON.stringify({document_id:current.id,related_id:item.id,role})});await loadLists();await loadSide()})}async function pickEntity(type){const d=await api(`${A}document_entity_catalog.php?project_id=${encodeURIComponent(currentProjectId)}&type=${type}`);showPicker(`${type} auswählen`,d.items||[],async item=>{await api(`${A}document_links.php?kind=entity`,{method:'POST',body:JSON.stringify({document_id:current.id,entity_type:type,entity_id:String(item.id),label:`${item.item_key||''} ${item.title}`,relation_type:'relates_to'})});await loadSide()})}
-async function pickTest(){const[tc,tr,td]=await Promise.all([api(`${A}document_entity_catalog.php?project_id=${encodeURIComponent(currentProjectId)}&type=test_case`),api(`${A}document_entity_catalog.php?project_id=${encodeURIComponent(currentProjectId)}&type=test_run`),api(`${A}document_entity_catalog.php?project_id=${encodeURIComponent(currentProjectId)}&type=test_document`)]);const items=[...(tc.items||[]),...(tr.items||[]),...(td.items||[])];showPicker('Testfall, Testlauf oder Testdokument auswählen',items,async item=>{const result=item.source_type==='test_run'?(item.status==='passed'?'passed':item.status==='failed'?'failed':item.status==='blocked'?'blocked':'not_run'):'not_run';await api(`${A}document_test_links.php`,{method:'POST',body:JSON.stringify({document_id:current.id,test_case_id:item.source_type==='requirement'?String(item.id):null,test_run_id:item.source_type==='test_run'?String(item.id):null,result,metadata:{source_type:item.source_type,source_document_id:item.source_type==='document'?item.id:null,label:`${item.item_key} ${item.title}`}})});await loadSide();await loadLists()})}
-async function createDoc(){const title=$('v4CreateTitle').value.trim();if(!title)throw Error('Titel fehlt.');const d=await api(`${A}document_studio_v4.php?action=create`,{method:'POST',body:JSON.stringify({project_id:currentProjectId,document_type_id:$('v4CreateType').value,template_id:$('v4CreateTemplate').value,title})});$('v4CreateDialog').close();$('v4CreateTitle').value='';await loadLists();await openDoc(d.id)}
-export async function loadRequirements(){if(!$('v4')||!currentProjectId)return;try{await loadTools();await loadLists()}catch(e){console.error(e);alert(e.message)}finally{window.hideLoader?.()}}
-export function initRequirementEvents(){if(events)return;events=true;document.addEventListener('click',async e=>{try{const d=e.target.closest('[data-doc]');if(d)return openDoc(d.dataset.doc);if(e.target.closest('#v4New'))return $('v4CreateDialog').showModal();if(e.target.closest('#v4CreateConfirm')){e.preventDefault();return createDoc()}const t=e.target.closest('[data-tab]');if(t){tab=t.dataset.tab;renderInspector();return}const pr=e.target.closest('[data-pick-relation]');if(pr)return pickRelation(pr.dataset.pickRelation);const pe=e.target.closest('[data-pick-entity]');if(pe)return pickEntity(pe.dataset.pickEntity);if(e.target.closest('#pickTest'))return pickTest();const chosen=e.target.closest('[data-pick-id]');if(chosen&&pickerAction){const all=JSON.parse($('v4PickerList').dataset.items||'[]'),item=all.find(x=>String(x.id)===chosen.dataset.pickId);if(item){await pickerAction(item);$('v4PickerDialog').close()}return}const rm=e.target.closest('[data-remove]');if(rm&&confirm('Eintrag entfernen?')){const endpoint=rm.dataset.kind==='test'?'document_test_links.php':`document_links.php?kind=${rm.dataset.kind}`;await api(`${A}${endpoint}`,{method:'DELETE',body:JSON.stringify({id:rm.dataset.remove})});await loadSide();await loadLists();return}if(e.target.closest('#reqSave'))return saveRequirements()}catch(x){console.error(x);alert(x.message)}});document.addEventListener('input',e=>{if(e.target.matches('#v4Search'))tree();if(e.target.matches('#v4PickerSearch'))paintPicker(JSON.parse($('v4PickerList').dataset.items||'[]'));if(e.target.matches('#v4Title'))changed()});document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'&&editor){e.preventDefault();saveRequirements()}});window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue=''}})}
+const A = '../api/'; let editor = null, docs = [], types = [], templates = [], current = null, tab = 'meta', dirty = false, events = false, toolsLoaded = false, relations = [], entities = [], tests = [], coverage = null, pickerAction = null, editMode = false, editorInitializing = false, lastLoadedData = null; const $ = x => document.getElementById(x), esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+async function api(url, opt = {}) { const r = await fetch(url, { ...opt, headers: { Accept: 'application/json', ...(opt.body && !opt.form ? { 'Content-Type': 'application/json' } : {}) } }), t = await r.text(); let d; try { d = JSON.parse(t) } catch { throw Error(`API ${r.status}: ${t.slice(0, 180)}`) } if (!r.ok || !(d.success === true || d.success === 1)) throw Error(d.error || `HTTP ${r.status}`); return d } function state(v) { $('reqSaveState').textContent = v } function draftKey() { return current ? `captainslog:draft:${current.id}` : null } function changed() { if (!editMode || editorInitializing) return; dirty = true; state('Ungespeichert'); clearTimeout(changed.t); changed.t = setTimeout(saveDraft, 500) } async function saveDraft() { if (!editor || !current) return; try { localStorage.setItem(draftKey(), JSON.stringify({ savedAt: Date.now(), title: $('v4Title').value, data: await editor.save() })) } catch { } }
+function script(src, key) { if (window[key]) return Promise.resolve(); return new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = no; document.head.append(s) }) } async function loadTools() { if (toolsLoaded) return; await script('https://cdn.jsdelivr.net/npm/@editorjs/editorjs@2.31.0', 'EditorJS'); await script('https://cdn.jsdelivr.net/npm/@editorjs/list@2.0.8', 'EditorjsList'); await script('https://cdn.jsdelivr.net/npm/@editorjs/table@2.4.5', 'Table'); toolsLoaded = true }
+function acUuid() {
+    if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+    return 'ac-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+}
+function acPlainLines(value) {
+    const raw = Array.isArray(value)
+        ? value.join('\n')
+        : String(value ?? '');
+
+    const box = document.createElement('div');
+
+    box.innerHTML = raw
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/(?:p|div|li)>/gi, '\n')
+        .replace(/<(?:p|div|li)[^>]*>/gi, '');
+
+    return (box.textContent || '')
+        .replace(/\u00a0/g, ' ')
+        .replace(/\r\n?/g, '\n')
+        .split(/\n+/)
+        .map(line => line.trim())
+        .filter(Boolean);
+}
+
+function splitAcceptanceCriteria(value) {
+    const lines = acPlainLines(value);
+    const criteria = [];
+
+    for (const line of lines) {
+        /*
+         * Normal case: one bullet per actual line.
+         * Fallback: Editor.js may flatten several " - item" bullets
+         * into one line. Hyphens inside 4-20-mA remain untouched,
+         * because a separator needs whitespace on both sides.
+         */
+        const parts = line.split(/\s+(?=[-*•–—☐☑◇]\s+)/u);
+
+        for (const part of parts) {
+            const criterion = part
+                .replace(/^\s*[-*•–—☐☑◇]\s*/u, '')
+                .trim();
+
+            if (criterion) criteria.push(criterion);
+        }
+    }
+
+    return criteria;
+}
+class Text {
+    static get isReadOnlySupported() { return true }
+    constructor({ data = {} }) { this.d = data }
+    static get toolbox() { return { title: 'Text', icon: 'T' } }
+    static get conversionConfig() {
+        return {
+            export: data => data.text || '',
+            import: value => ({
+                text: Array.isArray(value)
+                    ? value.join('<br>')
+                    : String(value ?? '')
+            })
+        };
+    } render() { this.e = document.createElement('div'); this.e.className = 'ce-paragraph'; this.e.contentEditable = 'true'; this.e.innerHTML = this.d.text || ''; return this.e }
+    save() { return { ...this.d, text: this.e.innerHTML } }
+    static get sanitize() { return { text: { b: true, i: true, u: true, br: true, a: { href: true } } } }
+}
+class Heading {
+    static get isReadOnlySupported() { return true }
+    constructor({ data = {} }) { this.d = { ...data, level: Math.max(3, Math.min(5, +data.level || 3)) } }
+    static get toolbox() { return { title: 'Überschrift', icon: 'H' } }
+    static get conversionConfig() { return { export: data => data.text || '', import: value => ({ text: String(value ?? ''), level: 3 }) } }
+    render() { this.e = document.createElement(`h${this.d.level}`); this.e.className = 'ce-header'; this.e.contentEditable = 'true'; this.e.innerHTML = this.d.text || 'Überschrift'; return this.e }
+    save() { return { ...this.d, text: this.e.innerHTML, level: this.d.level } }
+    renderSettings() { return [3, 4, 5].map(n => ({ icon: `H${n}`, label: `Überschrift ${n}`, onActivate: () => { const el = document.createElement(`h${n}`); el.className = 'ce-header'; el.contentEditable = 'true'; el.innerHTML = this.e.innerHTML; this.e.replaceWith(el); this.e = el; this.d.level = n; changed() } })) }
+    static get sanitize() { return { text: { b: true, i: true, u: true, br: true } } }
+}
+function focusEditableAtEnd(element) {
+    if (!element) return;
+    element.focus({ preventScroll: true });
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
+}
+function stopEditorEnter(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+}
+
+function splitEditableAtCaret(element) {
+    const selection = window.getSelection();
+
+    if (!selection || selection.rangeCount === 0) {
+        return '';
+    }
+
+    const activeRange = selection.getRangeAt(0);
+
+    if (!element.contains(activeRange.startContainer)) {
+        return '';
+    }
+
+    const tailRange = document.createRange();
+    tailRange.selectNodeContents(element);
+    tailRange.setStart(
+        activeRange.startContainer,
+        activeRange.startOffset
+    );
+
+    const tailFragment = tailRange.extractContents();
+    const holder = document.createElement('div');
+    holder.appendChild(tailFragment);
+
+    /* Leere Browser-Platzhalter am Ende des alten Eintrags entfernen. */
+    while (
+        element.lastChild &&
+        element.lastChild.nodeType === Node.ELEMENT_NODE &&
+        element.lastChild.tagName === 'BR'
+    ) {
+        element.lastChild.remove();
+    }
+
+    return holder.innerHTML
+        .replace(/^(?:<br\s*\/?>)+/i, '')
+        .replace(/^\s*[-*•–—☐☑◇]\s*/u, '');
+}
+
+class ChecklistTool {
+    static get isReadOnlySupported() { return true }
+    constructor({ data = {} }) { const src = Array.isArray(data.items) ? data.items : acPlainLines(data.text || ''); this.items = (src.length ? src : ['']).map(x => typeof x === 'string' ? { text: x, checked: false } : { text: String(x.text ?? ''), checked: Boolean(x.checked) }) }
+    static get toolbox() { return { title: 'Checkliste', icon: '☑' } }
+    static get conversionConfig() { return { export: data => (data.items || []).map(x => x.text || '').filter(Boolean).join('\n'), import: value => ({ items: (Array.isArray(value) ? value : acPlainLines(value)).map(text => ({ text: String(text), checked: false })) }) } }
+    render() { this.root = document.createElement('div'); this.root.className = 'ds-checklist'; this.items.forEach(x => this.add(x)); return this.root }
+    add(item, after = null) {
+        const row = document.createElement('div'); row.className = 'ds-checklist-row'; const check = document.createElement('input'); check.type = 'checkbox'; check.checked = !!item.checked; const text = document.createElement('div'); text.className = 'ds-checklist-text'; text.contentEditable = 'true'; text.innerHTML = item.text || ''; check.onchange = () => { row.classList.toggle('is-checked', check.checked); changed() }; text.onkeydown = e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                stopEditorEnter(e);
+                const trailingHtml = splitEditableAtCaret(text);
+                const newRow = this.add(
+                    { text: trailingHtml, checked: false },
+                    row
+                );
+                requestAnimationFrame(() => {
+                    focusEditableAtEnd(
+                        newRow.querySelector('.ds-checklist-text')
+                    );
+                });
+                changed();
+                return;
+            } else if (e.key === 'Backspace' && !text.textContent && this.root.children.length > 1) { e.preventDefault(); e.stopPropagation(); const target = row.previousElementSibling || row.nextElementSibling; row.remove(); requestAnimationFrame(() => focusEditableAtEnd(target?.querySelector('.ds-checklist-text'))); changed() }
+        }; row.classList.toggle('is-checked', check.checked); row.append(check, text); after ? after.insertAdjacentElement('afterend', row) : this.root.append(row); return row
+    }
+    save() { return { items: [...this.root.querySelectorAll('.ds-checklist-row')].map(row => ({ text: row.querySelector('.ds-checklist-text').innerHTML.trim(), checked: row.querySelector('input').checked })).filter(x => x.text || x.checked) } }
+    static get sanitize() { return { items: {}, text: { b: true, i: true, u: true, br: true, a: { href: true } } } }
+}
+class AcceptanceCriteriaTool {
+    static get isReadOnlySupported() { return true }
+    constructor({ data = {} }) {
+        const source = Array.isArray(data.items)
+            ? data.items.flatMap(item => {
+                if (typeof item === 'string') {
+                    return splitAcceptanceCriteria(item);
+                }
+
+                const parts = splitAcceptanceCriteria(item.text ?? '');
+
+                if (parts.length <= 1) return [item];
+
+                return parts.map((text, index) => ({
+                    ...item,
+                    id: index === 0 ? item.id : acUuid(),
+                    text,
+                    revision: index === 0 ? item.revision : 1,
+                    status: index === 0 ? item.status : 'open'
+                }));
+            })
+            : splitAcceptanceCriteria(data.text || '');
+        this.title = String(data.title || 'Akzeptanzkriterien');
+        this.rule = ['ALL', 'ANY', 'THRESHOLD'].includes(data.rule) ? data.rule : 'ALL';
+        this.threshold = Math.max(1, Number(data.threshold) || 1);
+        this.items = (source.length ? source : ['']).map(item => typeof item === 'string' ? { id: acUuid(), text: item, revision: 1, status: 'open' } : { id: String(item.id || acUuid()), text: String(item.text ?? ''), revision: Math.max(1, Number(item.revision) || 1), status: ['open', 'covered', 'passed', 'failed', 'outdated'].includes(item.status) ? item.status : 'open' });
+    }
+    static get toolbox() { return { title: 'Akzeptanzkriterien', icon: '◇' } }
+    static get conversionConfig() {
+        return {
+            export: data => (data.items || [])
+                .map(item => item.text || '')
+                .filter(Boolean)
+                .join('\n'),
+            import: value => ({
+                title: 'Akzeptanzkriterien',
+                rule: 'ALL',
+                threshold: 1,
+                items: splitAcceptanceCriteria(value).map(text => ({
+                    id: acUuid(),
+                    text,
+                    revision: 1,
+                    status: 'open'
+                }))
+            })
+        };
+    }
+    render() {
+        this.root = document.createElement('section'); this.root.className = 'ds-acceptance';
+        const head = document.createElement('div'); head.className = 'ds-acceptance-head';
+        const title = document.createElement('div'); title.className = 'ds-acceptance-title'; title.contentEditable = 'true'; title.textContent = this.title;
+        const badge = document.createElement('span'); badge.className = 'ds-acceptance-badge'; badge.textContent = 'SOLL-KRITERIEN';
+        head.append(title, badge); this.root.append(head);
+        const info = document.createElement('p'); info.className = 'ds-acceptance-info'; info.textContent = 'Status wird durch verknüpfte Test Runs bestimmt. Hier werden nur Kriterien definiert.'; this.root.append(info);
+        const rows = document.createElement('div'); rows.className = 'ds-acceptance-rows'; this.rows = rows; this.root.append(rows); this.items.forEach(item => this.add(item));
+        const foot = document.createElement('div'); foot.className = 'ds-acceptance-foot'; foot.innerHTML = '<span>Erfüllungsregel</span>';
+        const rule = document.createElement('select'); rule.className = 'ds-acceptance-rule'; rule.innerHTML = '<option value="ALL">Alle Kriterien</option><option value="ANY">Mindestens ein Kriterium</option><option value="THRESHOLD">Mindestanzahl</option>'; rule.value = this.rule;
+        const threshold = document.createElement('input'); threshold.type = 'number'; threshold.min = '1'; threshold.className = 'ds-acceptance-threshold'; threshold.value = String(this.threshold); threshold.hidden = this.rule !== 'THRESHOLD';
+        rule.onchange = () => { threshold.hidden = rule.value !== 'THRESHOLD'; changed() }; threshold.oninput = changed; foot.append(rule, threshold); this.root.append(foot); return this.root;
+    }
+    add(item, after = null) {
+        const row = document.createElement('div'); row.className = 'ds-acceptance-row'; row.dataset.id = item.id; row.dataset.revision = String(item.revision || 1); row.dataset.originalText = item.text || '';
+        const state = document.createElement('span'); state.className = `ds-acceptance-state is-${item.status || 'open'}`; state.title = this.label(item.status); state.textContent = this.symbol(item.status);
+        const text = document.createElement('div'); text.className = 'ds-acceptance-text'; text.contentEditable = 'true'; text.innerHTML = item.text || '';
+        const meta = document.createElement('span'); meta.className = 'ds-acceptance-meta'; meta.textContent = `R${item.revision || 1}`;
+        text.onkeydown = e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                stopEditorEnter(e);
+                const trailingHtml = splitEditableAtCaret(text);
+                const newRow = this.add(
+                    {
+                        id: acUuid(),
+                        text: trailingHtml,
+                        revision: 1,
+                        status: 'open'
+                    },
+                    row
+                );
+                requestAnimationFrame(() => {
+                    focusEditableAtEnd(
+                        newRow.querySelector('.ds-acceptance-text')
+                    );
+                });
+                changed();
+                return;
+            } else if (e.key === 'Backspace' && !text.textContent && this.rows.children.length > 1) { e.preventDefault(); e.stopPropagation(); const target = row.previousElementSibling || row.nextElementSibling; row.remove(); requestAnimationFrame(() => focusEditableAtEnd(target?.querySelector('.ds-acceptance-text'))); changed() }
+        };
+        row.append(state, text, meta); after ? after.insertAdjacentElement('afterend', row) : this.rows.append(row); return row;
+    }
+    symbol(status) { return ({ passed: '✓', failed: '×', covered: '◐', outdated: '!', open: '◇' })[status] || '◇' }
+    label(status) { return ({ passed: 'Bestanden', failed: 'Fehlgeschlagen', covered: 'Mit Testfall abgedeckt', outdated: 'Testnachweis veraltet', open: 'Noch nicht abgedeckt' })[status] || 'Offen' }
+    save() {
+        const title = this.root.querySelector('.ds-acceptance-title').textContent.trim() || 'Akzeptanzkriterien';
+        const rule = this.root.querySelector('.ds-acceptance-rule').value;
+        const threshold = Math.max(1, Number(this.root.querySelector('.ds-acceptance-threshold').value) || 1);
+        const items = [...this.rows.querySelectorAll('.ds-acceptance-row')].map(row => { const text = row.querySelector('.ds-acceptance-text').innerHTML.trim(); const old = row.dataset.originalText || ''; let revision = Math.max(1, Number(row.dataset.revision) || 1); let status = row.querySelector('.ds-acceptance-state').className.match(/is-(open|covered|passed|failed|outdated)/)?.[1] || 'open'; if (old && text !== old) { revision++; status = 'outdated' } return { id: row.dataset.id || acUuid(), text, revision, status } }).filter(item => item.text);
+        return { schemaVersion: 1, title, rule, threshold, items };
+    }
+    validate(data) { return Array.isArray(data.items) && data.items.every(item => item.id && typeof item.text === 'string') }
+    static get sanitize() { return { title: {}, items: {}, text: { b: true, i: true, u: true, br: true, a: { href: true } } } }
+}
+class LegacyRequirement extends Text { static get toolbox() { return { title: 'Text (Legacy)', icon: 'T' } } }
+class Upload { static get isReadOnlySupported() { return true } constructor({ data = {}, config }) { this.d = data; this.kind = config.kind } render() { this.e = document.createElement('div'); this.e.style.cssText = 'border:2px dashed #ccd6e2;padding:15px;text-align:center'; this.paint(); return this.e } paint() { if (this.d.fileId) { const url = `../api/document_file.php?id=${encodeURIComponent(this.d.fileId)}`; this.e.innerHTML = this.kind === 'image' ? `<img src="${url}" style="max-width:100%"><input value="${esc(this.d.caption || '')}" placeholder="Bildunterschrift">` : `<a href="${url}" target="_blank">${esc(this.d.name || 'Datei öffnen')}</a>`; return } this.e.textContent = this.kind === 'image' ? 'Bild ablegen oder klicken' : 'Datei ablegen oder klicken'; const i = document.createElement('input'); i.type = 'file'; i.style.display = 'none'; i.accept = this.kind === 'image' ? 'image/*' : '*/*'; i.onchange = () => this.send(i.files[0]); this.e.onclick = () => i.click(); this.e.ondragover = e => e.preventDefault(); this.e.ondrop = e => { e.preventDefault(); this.send(e.dataTransfer.files[0]) }; this.e.append(i) } async send(file) { if (!file) return; const f = new FormData(); f.append('document_id', current.id); f.append('file', file); const d = await api(`${A}upload_document_file.php`, { method: 'POST', body: f, form: true }); this.d = { fileId: d.file.id, name: d.file.name, mime: d.file.mime, size: d.file.size }; this.paint(); changed() } save() { if (this.kind === 'image') { const i = this.e.querySelector('input'); if (i) this.d.caption = i.value } return this.d } }
+class ImageTool extends Upload { constructor(a) { super({ ...a, config: { kind: 'image' } }) } static get toolbox() { return { title: 'Bild', icon: '▧' } } } class FileTool extends Upload { constructor(a) { super({ ...a, config: { kind: 'file' } }) } static get toolbox() { return { title: 'Datei', icon: '📎' } } }
+function editorTools() { return { text: Text, requirement: LegacyRequirement, heading: Heading, checklist: { class: ChecklistTool, inlineToolbar: true }, acceptanceCriteria: { class: AcceptanceCriteriaTool, inlineToolbar: true }, list: { class: window.EditorjsList, inlineToolbar: true, config: { defaultStyle: 'unordered' } }, table: { class: window.Table, inlineToolbar: true, config: { rows: 2, cols: 3, withHeadings: true } }, image: ImageTool, file: FileTool } }
+async function loadLists() { const [a, b, c] = await Promise.all([api(`${A}document_studio_v4.php?action=list&project_id=${encodeURIComponent(currentProjectId)}`), api(`${A}document_types.php?project_id=${encodeURIComponent(currentProjectId)}`), api(`${A}document_templates_v4.php?project_id=${encodeURIComponent(currentProjectId)}`)]); docs = a.documents || []; types = b.types || []; templates = c.templates || []; $('v4CreateType').innerHTML = types.map(x => `<option value="${x.id}">${esc(x.type_key)} · ${esc(x.name)}</option>`).join(''); $('v4CreateTemplate').innerHTML = '<option value="">Leeres Dokument</option>' + templates.map(x => `<option value="${x.id}" data-type="${esc(x.requirement_type)}">${esc(x.name)}</option>`).join(''); tree() }
+const TREE_TYPE_ORDER = {
+    GOAL: 10,
+    USR: 20,
+    SYS: 30,
+    HRS: 40,
+    SRS: 50,
+    SEC: 55,
+    SWC: 60,
+    TC: 70,
+    TEST: 70,
+    TST: 70,
+    TR: 80,
+    RISK: 90
+};
+
+function compareTreeDocuments(left, right) {
+    const leftType = String(
+        left.requirement_type || ''
+    ).toUpperCase();
+
+    const rightType = String(
+        right.requirement_type || ''
+    ).toUpperCase();
+
+    const leftOrder =
+        TREE_TYPE_ORDER[leftType] ?? 999;
+
+    const rightOrder =
+        TREE_TYPE_ORDER[rightType] ?? 999;
+
+    if (leftOrder !== rightOrder) {
+        return leftOrder - rightOrder;
+    }
+
+    return String(
+        left.requirement_key || ''
+    ).localeCompare(
+        String(right.requirement_key || ''),
+        'de',
+        {
+            numeric: true,
+            sensitivity: 'base'
+        }
+    );
+}
+
+function tree() {
+    const treeElement = $('v4Tree');
+
+    if (!treeElement) {
+        return;
+    }
+
+    const searchText = (
+        $('v4Search')?.value || ''
+    )
+        .trim()
+        .toLowerCase();
+
+    /*
+     * Schneller Zugriff auf Dokumente über die ID.
+     */
+    const documentsById = new Map(
+        docs.map(document => [
+            String(document.id),
+            document
+        ])
+    );
+
+    /*
+     * Ein Dokument kann technisch mehrere Parents besitzen.
+     * Im Baum verwenden wir den ersten gültigen Parent als
+     * primäre Position.
+     */
+    const primaryParentByChild = new Map();
+
+    for (const document of docs) {
+        const documentId =
+            String(document.id);
+
+        const validParentIds = (
+            document.parent_ids || []
+        )
+            .map(String)
+            .filter(parentId =>
+                parentId !== documentId &&
+                documentsById.has(parentId)
+            );
+
+        if (validParentIds.length > 0) {
+            primaryParentByChild.set(
+                documentId,
+                validParentIds[0]
+            );
+        }
+    }
+
+    /*
+     * Children je Parent sammeln.
+     */
+    const childrenByParent = new Map();
+    const rootDocuments = [];
+
+    for (const document of docs) {
+        const documentId =
+            String(document.id);
+
+        const parentId =
+            primaryParentByChild.get(documentId);
+
+        if (!parentId) {
+            rootDocuments.push(document);
+            continue;
+        }
+
+        if (!childrenByParent.has(parentId)) {
+            childrenByParent.set(
+                parentId,
+                []
+            );
+        }
+
+        childrenByParent
+            .get(parentId)
+            .push(document);
+    }
+
+    /*
+     * Nur Geschwister werden nach Typ und Kennung sortiert.
+     * Children bleiben immer direkt unter ihrem Parent.
+     */
+    rootDocuments.sort(
+        compareTreeDocuments
+    );
+
+    for (
+        const children
+        of childrenByParent.values()
+    ) {
+        children.sort(
+            compareTreeDocuments
+        );
+    }
+
+    /*
+     * Bei einer Suche müssen nicht nur die Treffer,
+     * sondern auch deren Parent-Ketten sichtbar bleiben.
+     */
+    let visibleDocumentIds = null;
+
+    if (searchText !== '') {
+        visibleDocumentIds = new Set();
+
+        const matchingDocuments =
+            docs.filter(document => {
+                const searchableText = [
+                    document.requirement_key,
+                    document.title,
+                    document.requirement_type,
+                    document.status,
+                    document.verification_status
+                ]
+                    .join(' ')
+                    .toLowerCase();
+
+                return searchableText.includes(
+                    searchText
+                );
+            });
+
+        for (
+            const matchingDocument
+            of matchingDocuments
+        ) {
+            let documentId =
+                String(matchingDocument.id);
+
+            let guard = 0;
+
+            /*
+             * Treffer plus alle Parents aufnehmen.
+             * guard verhindert Endlosschleifen bei
+             * fehlerhaften zyklischen Daten.
+             */
+            while (
+                documentId &&
+                guard <= docs.length
+            ) {
+                visibleDocumentIds.add(
+                    documentId
+                );
+
+                documentId =
+                    primaryParentByChild.get(
+                        documentId
+                    );
+
+                guard++;
+            }
+        }
+    }
+
+    const renderedDocumentIds =
+        new Set();
+
+    function renderDocument(
+        document,
+        level,
+        path
+    ) {
+        const documentId =
+            String(document.id);
+
+        /*
+         * Dokumente nicht doppelt anzeigen.
+         * Gleichzeitig Zyklen abfangen.
+         */
+        if (
+            renderedDocumentIds.has(
+                documentId
+            ) ||
+            path.has(documentId)
+        ) {
+            return '';
+        }
+
+        if (
+            visibleDocumentIds &&
+            !visibleDocumentIds.has(
+                documentId
+            )
+        ) {
+            return '';
+        }
+
+        renderedDocumentIds.add(
+            documentId
+        );
+
+        const nextPath =
+            new Set(path);
+
+        nextPath.add(documentId);
+
+        const coveragePercent =
+            Number(
+                document.coverage_percent || 0
+            );
+
+        const coverageText =
+            `${coveragePercent}%`;
+
+        const validParentCount = (
+            document.parent_ids || []
+        ).filter(parentId =>
+            documentsById.has(
+                String(parentId)
+            )
+        ).length;
+
+        const tooltip = [
+            `${document.requirement_key} · ${document.title}`,
+            `Typ: ${document.requirement_type}`,
+            `Status: ${document.status}`,
+            `Verifikation: ${document.verification_status ||
+            'Not Covered'
+            }`,
+            `Coverage: ${coverageText}`,
+            validParentCount > 1
+                ? `Parents: ${validParentCount}`
+                : ''
+        ]
+            .filter(Boolean)
+            .join('\n');
+
+        const children =
+            childrenByParent.get(
+                documentId
+            ) || [];
+
+        const childHtml = children
+            .map(child =>
+                renderDocument(
+                    child,
+                    level + 1,
+                    nextPath
+                )
+            )
+            .join('');
+
+        return `
+            <button
+                type="button"
+                class="node ${current?.id === document.id
+                ? 'active'
+                : ''
+            }"
+                data-doc="${esc(document.id)}"
+                title="${esc(tooltip)}"
+                style="--tree-depth:${level}"
+                role="treeitem"
+                aria-level="${level + 1}"
+            >
+                <span class="node-key">
+                    ${esc(
+                document.requirement_key
+            )}
+                </span>
+
+                <span class="node-title">
+                    ${esc(document.title)}
+                </span>
+
+                ${validParentCount > 1
+                ? `
+                            <span
+                                class="node-multiparent"
+                                title="${validParentCount
+                } Parents"
+                            >
+                                ↗${validParentCount}
+                            </span>
+                        `
+                : ''
+            }
+
+                <span class="node-coverage">
+                    ${coverageText}
+                </span>
+            </button>
+
+            ${childHtml}
+        `;
+    }
+
+    /*
+     * Alle regulären Wurzeln rekursiv ausgeben.
+     */
+    let html = rootDocuments
+        .map(document =>
+            renderDocument(
+                document,
+                0,
+                new Set()
+            )
+        )
+        .join('');
+
+    /*
+     * Falls fehlerhafte Beziehungen, Zyklen oder
+     * unvollständige Parent-Daten vorliegen, bleiben
+     * diese Dokumente trotzdem sichtbar.
+     */
+    const remainingDocuments = [
+        ...docs
+    ].sort(compareTreeDocuments);
+
+    for (
+        const document
+        of remainingDocuments
+    ) {
+        const documentId =
+            String(document.id);
+
+        if (
+            renderedDocumentIds.has(
+                documentId
+            )
+        ) {
+            continue;
+        }
+
+        if (
+            visibleDocumentIds &&
+            !visibleDocumentIds.has(
+                documentId
+            )
+        ) {
+            continue;
+        }
+
+        html += renderDocument(
+            document,
+            0,
+            new Set()
+        );
+    }
+
+    treeElement.innerHTML =
+        html ||
+        '<p class="empty-message">Keine Dokumente.</p>';
+}
+async function applyDocumentMode() {
+    const root = $('v4');
+    if (!root) return;
+
+    root.classList.toggle('is-editing', editMode);
+    root.classList.toggle('is-reading', !editMode);
+
+    if (editor?.readOnly && typeof editor.readOnly.toggle === 'function') {
+        try {
+            await editor.readOnly.toggle(!editMode);
+        } catch (error) {
+            console.warn('Editor.js readOnly konnte nicht umgeschaltet werden:', error);
+        }
+    }
+
+    const title = $('v4Title');
+    if (title) {
+        title.readOnly = !editMode;
+        title.tabIndex = editMode ? 0 : -1;
+    }
+
+    $('reqSave')?.classList.toggle('hidden', !editMode);
+    $('v4CancelEdit')?.classList.toggle('hidden', !editMode);
+    $('v4Edit')?.classList.toggle('hidden', editMode);
+    $('v4Delete')?.classList.toggle('hidden', !editMode);
+
+    document.querySelectorAll('#requirementsEditor [contenteditable]').forEach(element => {
+        element.contentEditable = editMode ? 'true' : 'false';
+        element.tabIndex = editMode ? 0 : -1;
+    });
+
+    document.querySelectorAll('#requirementsEditor input,#requirementsEditor select,#requirementsEditor textarea').forEach(element => {
+        element.disabled = !editMode;
+        element.tabIndex = editMode ? 0 : -1;
+    });
+
+    document.querySelectorAll('#v4Panel input,#v4Panel select,#v4Panel textarea').forEach(element => {
+        element.disabled = !editMode;
+        element.tabIndex = editMode ? 0 : -1;
+    });
+
+    state(editMode ? (dirty ? 'Ungespeichert' : 'Bearbeitungsmodus') : 'Lesemodus');
+}
+
+async function enterEditMode() {
+    if (!current || !editor) return;
+    editMode = true;
+    dirty = false;
+    await applyDocumentMode();
+    setTimeout(() => { applyDocumentMode(); }, 80);
+}
+async function cancelEditMode() {
+    if (!current) return;
+    if (dirty && !confirm('Ungespeicherte Änderungen verwerfen?')) return;
+    localStorage.removeItem(draftKey()); dirty = false; editMode = false; await openDoc(current.id, true);
+}
+
+async function loadSide() { const [r, e, t, c] = await Promise.all([api(`${A}document_links.php?kind=relation&document_id=${current.id}`), api(`${A}document_links.php?kind=entity&document_id=${current.id}`), api(`${A}document_test_links.php?document_id=${current.id}`), api(`${A}document_coverage.php?document_id=${current.id}`)]); relations = r.items || []; entities = e.items || []; tests = t.links || []; coverage = c.coverage; renderInspector(); renderMargin() }
+function renderMargin() { $('v4Margin').innerHTML = `<span>${esc(current.status)}</span><span>${esc(current.priority)}</span><span>${esc(coverage?.verification_status || 'Not Covered')} ${coverage?.coverage_percent || 0}%</span>` } function cards(items, kind) { return items.map(x => `<div class="card"><span><b>${esc(x.requirement_key || x.item_key || '')}</b> ${esc(x.title || x.label || x.test_case_id || x.test_run_id || 'Eintrag')}</span><button data-remove="${x.id}" data-kind="${kind}" title="Entfernen">×</button></div>`).join('') || '<i>Keine Einträge</i>' }
+function renderInspector() { const p = $('v4Panel'); if (tab === 'meta') { p.innerHTML = `<label class="field">Status<select id="iStatus"><option>Open</option><option>In Progress</option><option>Reviewed</option><option>Closed</option></select></label><label class="field">Priorität<select id="iPriority"><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select></label><label class="field">Relevanz<select id="iRelevance"><option>Must</option><option>Should</option><option>Could</option><option>Won't</option></select></label><label class="field">Review<select id="iReview"><option>New</option><option>In Review</option><option>Approved</option><option>Rejected</option></select></label><p>Revision: <b>${current.revision}</b></p>`; for (const [k, id] of [['status', 'iStatus'], ['priority', 'iPriority'], ['relevance', 'iRelevance'], ['review_status', 'iReview']]) { $(id).value = current[k]; $(id).onchange = () => { current[k] = $(id).value; changed(); renderMargin() } } } else if (tab === 'trace') { p.innerHTML = `<h3>Parents</h3>${cards(relations.filter(x => x.role === 'parent'), 'relation')}<button data-pick-relation="parent">+ Parent auswählen</button><div class="section"><h3>Children</h3>${cards(relations.filter(x => x.role === 'child'), 'relation')}<button data-pick-relation="child">+ Child auswählen</button></div><div class="section"><h3>Fachobjekte</h3>${cards(entities, 'entity')}<button data-pick-entity="risk">+ Risiko</button> <button data-pick-entity="issue">+ Issue</button> <button data-pick-entity="task">+ Aufgabe</button> <button data-pick-entity="person">+ Person</button></div>` } else { p.innerHTML = `<h3>${esc(coverage.verification_status)}</h3><div class="coverage"><i style="width:${coverage.coverage_percent}%"></i></div><p>${coverage.executed_count} von ${coverage.leaf_count} Leaf-Anforderungen ausgeführt</p><p>Bestanden: ${coverage.passed_count}<br>Fehlgeschlagen: ${coverage.failed_count}<br>Veraltet: ${coverage.outdated_count}</p><div class="section"><h3>Testlinks</h3>${cards(tests, 'test')}<button id="pickTest">+ Test auswählen</button></div>` } }
+async function openDoc(id, force = false) {
+    if (!force && editMode && dirty && !confirm('Ungespeicherte Änderungen verwerfen?')) return;
+    editorInitializing = true; editMode = false; dirty = false;
+    const d = await api(`${A}document_studio_v4.php?action=get&id=${id}`); current = d.document; lastLoadedData = d.editor;
+    $('v4Empty').classList.add('hidden'); $('v4Work').classList.remove('hidden'); $('v4Key').textContent = current.requirement_key; $('v4Title').value = current.title;
+    if (editor) { try { await editor.isReady; editor.destroy?.() } catch { } }
+    let data = d.editor; let restored = false; const raw = localStorage.getItem(`captainslog:draft:${id}`);
+    if (raw && !force) { const draft = JSON.parse(raw); if (confirm('Lokalen Entwurf wiederherstellen?')) { data = draft.data; $('v4Title').value = draft.title; restored = true } }
+    editor = new window.EditorJS({ holder: 'requirementsEditor', tools: editorTools(), defaultBlock: 'text', data, readOnly: true, onChange: changed }); await editor.isReady;
+    editorInitializing = false; editMode = restored; dirty = restored; applyDocumentMode(); await loadSide(); applyDocumentMode(); tree();
+}
+async function deleteCurrentDocument() {
+    if (!current) return;
+
+    const confirmationId = String(current.requirement_key || current.id);
+    const typedId = window.prompt(
+        `Dokument endgültig löschen?\n\nZum Bestätigen exakt ${confirmationId} eingeben:`
+    );
+
+    if (typedId === null) return;
+
+    if (typedId.trim() !== confirmationId) {
+        window.alert('Die eingegebene Dokument-ID stimmt nicht überein. Das Dokument wurde nicht gelöscht.');
+        return;
+    }
+
+    if (dirty && !window.confirm('Ungespeicherte Änderungen werden ebenfalls verworfen. Fortfahren?')) {
+        return;
+    }
+
+    state('Löschen ...');
+
+    await api(`${A}delete_document.php`, {
+        method: 'POST',
+        body: JSON.stringify({
+            id: current.id,
+            confirmation_key: confirmationId
+        })
+    });
+
+    localStorage.removeItem(draftKey());
+
+    if (editor) {
+        try {
+            await editor.isReady;
+            editor.destroy?.();
+        } catch (error) {
+            console.warn('Editor konnte nach dem Löschen nicht vollständig geschlossen werden:', error);
+        }
+    }
+
+    editor = null;
+    current = null;
+    dirty = false;
+    editMode = false;
+    editorInitializing = false;
+
+    $('v4Work')?.classList.add('hidden');
+    $('v4Empty')?.classList.remove('hidden');
+    state('Bereit');
+
+    await loadLists();
+}
+
+export async function saveRequirements() { if (!editor || !current) return; try { state('Speichern ...'); const out = await editor.save(), r = await api(`${A}document_studio_v4.php?action=save`, { method: 'POST', body: JSON.stringify({ id: current.id, title: $('v4Title').value, status: current.status, priority: current.priority, relevance: current.relevance, review_status: current.review_status, metadata: current.metadata || {}, ...out }) }); current.revision = r.revision; localStorage.removeItem(draftKey()); dirty = false; editMode = false; state('Gespeichert'); await loadLists(); await loadSide(); applyDocumentMode() } catch (e) { state('Fehler'); alert(e.message) } }
+function showPicker(title, items, action) { pickerAction = action; $('v4PickerTitle').textContent = title; $('v4PickerSearch').value = ''; $('v4PickerList').dataset.items = JSON.stringify(items); paintPicker(items); $('v4PickerDialog').showModal() } function paintPicker(items) { const q = ($('v4PickerSearch')?.value || '').toLowerCase(); $('v4PickerList').innerHTML = items.filter(x => `${x.item_key || x.requirement_key || ''} ${x.title || ''} ${x.status || ''}`.toLowerCase().includes(q)).map((x, i) => `<button type="button" class="picker-item" data-pick-index="${i}" data-pick-id="${esc(x.id)}"><b>${esc(x.item_key || x.requirement_key || x.id)}</b> · ${esc(x.title || '')}<small>${esc(x.status || '')}</small></button>`).join('') || '<p>Keine Treffer.</p>'; }
+async function pickRelation(role) { showPicker(role === 'parent' ? 'Parent auswählen' : 'Child auswählen', docs.filter(d => d.id !== current.id), async item => { await api(`${A}document_links.php?kind=relation`, { method: 'POST', body: JSON.stringify({ document_id: current.id, related_id: item.id, role }) }); await loadLists(); await loadSide() }) } async function pickEntity(type) { const d = await api(`${A}document_entity_catalog.php?project_id=${encodeURIComponent(currentProjectId)}&type=${type}`); showPicker(`${type} auswählen`, d.items || [], async item => { await api(`${A}document_links.php?kind=entity`, { method: 'POST', body: JSON.stringify({ document_id: current.id, entity_type: type, entity_id: String(item.id), label: `${item.item_key || ''} ${item.title}`, relation_type: 'relates_to' }) }); await loadSide() }) }
+async function pickTest() { const [tc, tr, td] = await Promise.all([api(`${A}document_entity_catalog.php?project_id=${encodeURIComponent(currentProjectId)}&type=test_case`), api(`${A}document_entity_catalog.php?project_id=${encodeURIComponent(currentProjectId)}&type=test_run`), api(`${A}document_entity_catalog.php?project_id=${encodeURIComponent(currentProjectId)}&type=test_document`)]); const items = [...(tc.items || []), ...(tr.items || []), ...(td.items || [])]; showPicker('Testfall, Testlauf oder Testdokument auswählen', items, async item => { const result = item.source_type === 'test_run' ? (item.status === 'passed' ? 'passed' : item.status === 'failed' ? 'failed' : item.status === 'blocked' ? 'blocked' : 'not_run') : 'not_run'; await api(`${A}document_test_links.php`, { method: 'POST', body: JSON.stringify({ document_id: current.id, test_case_id: item.source_type === 'requirement' ? String(item.id) : null, test_run_id: item.source_type === 'test_run' ? String(item.id) : null, result, metadata: { source_type: item.source_type, source_document_id: item.source_type === 'document' ? item.id : null, label: `${item.item_key} ${item.title}` } }) }); await loadSide(); await loadLists() }) }
+async function createDoc() { const title = $('v4CreateTitle').value.trim(); if (!title) throw Error('Titel fehlt.'); const d = await api(`${A}document_studio_v4.php?action=create`, { method: 'POST', body: JSON.stringify({ project_id: currentProjectId, document_type_id: $('v4CreateType').value, template_id: $('v4CreateTemplate').value, title }) }); $('v4CreateDialog').close(); $('v4CreateTitle').value = ''; await loadLists(); await openDoc(d.id) }
+export async function loadRequirements() { if (!$('v4') || !currentProjectId) return; try { await loadTools(); await loadLists() } catch (e) { console.error(e); alert(e.message) } finally { window.hideLoader?.() } }
+export function initRequirementEvents() {
+    if (events) return; events = true;
+    document.addEventListener('pointerdown', event => {
+        if (editMode) return;
+        if (!event.target.closest('#requirementsEditor')) return;
+        if (event.target.closest('.ce-toolbar,.ce-toolbar__plus,.ce-toolbar__settings-btn,.ce-popover,.ce-popover-item,[contenteditable],.ds-checklist-row input,.ds-acceptance-rule,.ds-acceptance-threshold')) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+        }
+    }, true); document.addEventListener('click', async e => { try { const d = e.target.closest('[data-doc]'); if (d) return openDoc(d.dataset.doc); if (e.target.closest('#v4Edit')) { await enterEditMode(); return; } if (e.target.closest('#v4CancelEdit')) return cancelEditMode(); if (e.target.closest('#v4Delete')) return deleteCurrentDocument(); if (e.target.closest('#v4New')) return $('v4CreateDialog').showModal(); if (e.target.closest('#v4CreateConfirm')) { e.preventDefault(); return createDoc() } const t = e.target.closest('[data-tab]'); if (t) { tab = t.dataset.tab; renderInspector(); return } const pr = e.target.closest('[data-pick-relation]'); if (pr) return pickRelation(pr.dataset.pickRelation); const pe = e.target.closest('[data-pick-entity]'); if (pe) return pickEntity(pe.dataset.pickEntity); if (e.target.closest('#pickTest')) return pickTest(); const chosen = e.target.closest('[data-pick-id]'); if (chosen && pickerAction) { const all = JSON.parse($('v4PickerList').dataset.items || '[]'), item = all.find(x => String(x.id) === chosen.dataset.pickId); if (item) { await pickerAction(item); $('v4PickerDialog').close() } return } const rm = e.target.closest('[data-remove]'); if (rm && confirm('Eintrag entfernen?')) { const endpoint = rm.dataset.kind === 'test' ? 'document_test_links.php' : `document_links.php?kind=${rm.dataset.kind}`; await api(`${A}${endpoint}`, { method: 'DELETE', body: JSON.stringify({ id: rm.dataset.remove }) }); await loadSide(); await loadLists(); return } if (e.target.closest('#reqSave')) return saveRequirements() } catch (x) { console.error(x); alert(x.message) } }); document.addEventListener('input', e => { if (e.target.matches('#v4Search')) tree(); if (e.target.matches('#v4PickerSearch')) paintPicker(JSON.parse($('v4PickerList').dataset.items || '[]')); if (e.target.matches('#v4Title')) changed() }); document.addEventListener('keydown', async e => {
+        if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+
+        const key = e.key.toLowerCase();
+
+        if (key === 'e' && current && editor) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!editMode) await enterEditMode();
+            return;
+        }
+
+        if (key === 's' && editor && current && editMode) {
+            e.preventDefault();
+            e.stopPropagation();
+            await saveRequirements();
+        }
+    }); window.addEventListener('beforeunload', e => { if (editMode && dirty) { e.preventDefault(); e.returnValue = '' } })
+}
 
 
 ENDE DATEI: dashboard\js\requirements.js
@@ -16968,6 +17964,10 @@ DATEI: dashboard\views\requirements.php
                 </div>
 
                 <div>
+                    <button id="v4Edit" type="button" title="Dokument bearbeiten">✎ Bearbeiten</button>
+
+                    <button id="v4CancelEdit" type="button" class="secondary hidden">Bearbeitung abbrechen</button>
+
                     <button
                         id="v4Delete"
                         type="button"
