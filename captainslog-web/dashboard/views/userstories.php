@@ -144,9 +144,7 @@
     id="modalUserStory"
     class="cl-modal-overlay hidden">
 
-    <form
-        id="formUserStory"
-        class="cl-modal max-w-3xl">
+    <form id="formUserStory" class="mx-auto flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded bg-white shadow-2xl">
 
         <!-- Modalkopf -->
         <div class="cl-modal-header">

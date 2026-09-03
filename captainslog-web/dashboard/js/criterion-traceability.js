@@ -1,6 +1,5 @@
 // dashboard/js/criterion-traceability.js
 const API_URL = '../api/criterion_traceability.php';
-
 let initialized = false;
 let context = null;
 let observer = null;
@@ -29,47 +28,55 @@ async function api(url, options = {}) {
             ...(options.body ? { 'Content-Type': 'application/json' } : {})
         }
     });
-
     const text = await response.text();
     let result;
-
     try {
         result = text ? JSON.parse(text) : null;
     } catch {
         throw new Error(`API liefert kein JSON (${response.status}): ${text.slice(0, 180)}`);
     }
-
     if (!response.ok || !result?.success) {
         throw new Error(result?.error || `HTTP ${response.status}`);
     }
-
     return result;
 }
 
 function getDialog() {
-    let dialog = document.getElementById('ctDialog');
+    let overlay = document.getElementById('ctDialogOverlay');
+    if (overlay) return overlay;
 
-    if (dialog) {
-        return dialog;
-    }
-
-    dialog = document.createElement('dialog');
-    dialog.id = 'ctDialog';
-    dialog.className = 'dlg ct-dialog';
-    dialog.innerHTML = `
-        <form method="dialog">
-            <h3 id="ctTitle">Kriterium zuordnen</h3>
-            <div id="ctBody"></div>
-            <div class="dlg-actions">
-                <button type="button" id="ctClose">Abbrechen</button>
+    overlay = document.createElement('div');
+    overlay.id = 'ctDialogOverlay';
+    overlay.className = 'cl-modal-overlay hidden fixed inset-0 z-[350] items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm';
+    overlay.innerHTML = `
+        <form id="ctDialogForm" class="cl-modal mx-auto flex max-h-[94vh] w-full max-w-2xl flex-col overflow-hidden rounded bg-white shadow-2xl">
+            <div class="cl-modal-header shrink-0 flex items-start justify-between border-b border-slate-300 bg-[#eef2f6] px-6 py-4">
+                <div>
+                    <p class="cl-panel-eyebrow mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Zuweisung</p>
+                    <h2 id="ctTitle" class="cl-modal-title text-xl font-extrabold text-blue-950">Kriterium zuordnen</h2>
+                </div>
+                <button type="button" id="ctCloseIcon" class="cl-button cl-button-secondary min-h-0 px-2.5 py-2 bg-white">✖</button>
+            </div>
+            
+            <div id="ctBody" class="cl-modal-body min-h-0 flex-1 overflow-y-auto p-6 space-y-4"></div>
+            
+            <div class="cl-modal-footer flex shrink-0 justify-end gap-3 border-t border-slate-300 bg-slate-100 p-4" id="ctFooterActions">
+                <button type="button" id="ctCloseBtn" class="cl-button cl-button-secondary bg-white px-5 py-2 text-xs font-bold uppercase">Abbrechen</button>
             </div>
         </form>
     `;
 
-    document.body.appendChild(dialog);
-    dialog.querySelector('#ctClose').addEventListener('click', () => dialog.close());
+    document.body.appendChild(overlay);
 
-    return dialog;
+    const closeIt = () => { overlay.classList.add('hidden'); overlay.classList.remove('flex'); };
+    overlay.querySelector('#ctCloseIcon').addEventListener('click', closeIt);
+    overlay.querySelector('#ctCloseBtn').addEventListener('click', closeIt);
+
+    // Überschreibe native Methoden
+    overlay.showModal = () => { overlay.classList.remove('hidden'); overlay.classList.add('flex'); };
+    overlay.close = closeIt;
+
+    return overlay;
 }
 
 function statusSymbol(status) {
@@ -78,26 +85,17 @@ function statusSymbol(status) {
         failed: '×',
         covered: '◐',
         outdated: '!',
-        blocked: '■',
+        blocked: '⊘',
         open: '◇'
     })[status] || '◇';
 }
 
 async function loadContext() {
     const documentId = getCurrentDocumentId();
+    if (!documentId) return;
+    if (loadingPromise) return loadingPromise;
 
-    if (!documentId) {
-        return;
-    }
-
-    if (loadingPromise) {
-        return loadingPromise;
-    }
-
-    loadingPromise = api(
-        `${API_URL}?action=context&document_id=${encodeURIComponent(documentId)}`
-    );
-
+    loadingPromise = api(`${API_URL}?action=context&document_id=${encodeURIComponent(documentId)}`);
     try {
         context = await loadingPromise;
         decorateCriteria();
@@ -107,64 +105,41 @@ async function loadContext() {
 }
 
 function decorateCriteria() {
-    if (!context) {
-        return;
-    }
+    if (!context) return;
 
-    document
-        .querySelectorAll('#requirementsEditor .ds-acceptance-row')
-        .forEach(row => {
-            const criterionId = row.dataset.id;
-            const criterion = context.criteria?.find(item => item.id === criterionId);
+    document.querySelectorAll('#requirementsEditor .ds-acceptance-row').forEach(row => {
+        const criterionId = row.dataset.id;
+        const criterion = context.criteria?.find(item => item.id === criterionId);
+        
+        if (!criterion) return;
 
-            if (!criterion) {
-                return;
-            }
+        const state = row.querySelector('.ds-acceptance-state');
+        if (state) {
+            state.className = `ds-acceptance-state is-${criterion.status}`;
+            state.textContent = statusSymbol(criterion.status);
+            state.title = criterion.reason || criterion.status;
+        }
 
-            const state = row.querySelector('.ds-acceptance-state');
-            if (state) {
-                state.className = `ds-acceptance-state is-${criterion.status}`;
-                state.textContent = statusSymbol(criterion.status);
-                state.title = criterion.reason || criterion.status;
-            }
+        let tools = row.querySelector('.ct-tools');
+        if (!tools) {
+            tools = document.createElement('span');
+            tools.className = 'ct-tools';
+            tools.contentEditable = 'false';
+            row.appendChild(tools);
+        }
 
-            let tools = row.querySelector('.ct-tools');
-            if (!tools) {
-                tools = document.createElement('span');
-                tools.className = 'ct-tools';
-                tools.contentEditable = 'false';
-                row.appendChild(tools);
-            }
+        const mapping = context.mappings?.find(item => item.child_criterion_id === criterionId);
 
-            const mapping = context.mappings?.find(
-                item => item.child_criterion_id === criterionId
-            );
-
-            tools.innerHTML = `
-                <button
-                    type="button"
-                    class="ct-map"
-                    data-criterion="${escapeHtml(criterionId)}"
-                    title="Parent-Kriterium zuordnen"
-                    contenteditable="false"
-                >↥</button>
-                <button
-                    type="button"
-                    class="ct-evidence"
-                    data-criterion="${escapeHtml(criterionId)}"
-                    title="Testnachweis zuordnen"
-                    contenteditable="false"
-                >✓</button>
-                ${mapping ? '<span class="ct-linked" title="Parent-Kriterium verknüpft">●</span>' : ''}
-            `;
-        });
+        tools.innerHTML = `
+            <button type="button" class="ct-map" data-criterion="${escapeHtml(criterionId)}" title="Parent-Kriterium zuordnen" contenteditable="false">↥</button>
+            <button type="button" class="ct-evidence" data-criterion="${escapeHtml(criterionId)}" title="Testnachweis zuordnen" contenteditable="false">✓</button>
+            ${mapping ? '<span class="ct-linked" title="Parent-Kriterium verknüpft">🔗</span>' : ''}
+        `;
+    });
 }
 
 function openMappingDialog(criterionId) {
-    if (!context) {
-        return;
-    }
-
+    if (!context) return;
     const dialog = getDialog();
     const options = [];
 
@@ -172,7 +147,7 @@ function openMappingDialog(criterionId) {
         for (const criterion of parent.criteria || []) {
             options.push(`
                 <option value="${escapeHtml(parent.id)}|${escapeHtml(criterion.id)}">
-                    ${escapeHtml(parent.requirement_key)} · ${escapeHtml(criterion.text)}
+                    ${escapeHtml(parent.requirement_key)} • ${escapeHtml(criterion.text)}
                 </option>
             `);
         }
@@ -181,28 +156,34 @@ function openMappingDialog(criterionId) {
     document.getElementById('ctTitle').textContent = 'Parent-Kriterium zuordnen';
     document.getElementById('ctBody').innerHTML = options.length
         ? `
-            <label class="field">
-                <span>Erfüllt</span>
-                <select id="ctParent">${options.join('')}</select>
-            </label>
-            <label class="field">
-                <span>Regel</span>
-                <select id="ctRule">
-                    <option value="ALL">Alle zugeordneten Children</option>
-                    <option value="ANY">Mindestens ein Child</option>
-                </select>
-            </label>
-            <button type="button" id="ctSaveMap">Zuordnung speichern</button>
+            <fieldset class="cl-fieldset">
+                <legend class="cl-legend">Regeln und Parent</legend>
+                <div class="cl-fieldset-body space-y-5">
+                    <label class="cl-label block text-sm font-bold text-slate-700">Erfüllt
+                        <select id="ctParent" class="cl-select mt-1 w-full border border-slate-300 bg-white p-2.5 outline-none focus:border-blue-950">${options.join('')}</select>
+                    </label>
+                    <label class="cl-label block text-sm font-bold text-slate-700">Regel
+                        <select id="ctRule" class="cl-select mt-1 w-full border border-slate-300 bg-white p-2.5 outline-none focus:border-blue-950">
+                            <option value="ALL">Alle zugeordneten Children</option>
+                            <option value="ANY">Mindestens ein Child</option>
+                        </select>
+                    </label>
+                </div>
+            </fieldset>
         `
-        : '<p>Das Dokument besitzt keinen direkten Parent mit Akzeptanzkriterien.</p>';
+        : '<p class="text-sm text-slate-500 italic">Das Dokument besitzt keinen direkten Parent mit Akzeptanzkriterien.</p>';
+
+    document.getElementById('ctFooterActions').innerHTML = `
+        <button type="button" id="ctCloseBtn" class="cl-button cl-button-secondary bg-white px-5 py-2 text-xs font-bold uppercase">Abbrechen</button>
+        ${options.length ? '<button type="button" id="ctSaveMap" class="cl-button cl-button-primary bg-blue-950 px-6 py-2 text-xs font-bold uppercase text-white hover:bg-blue-900">Zuordnung speichern</button>' : ''}
+    `;
+    document.getElementById('ctCloseBtn').addEventListener('click', () => dialog.close());
 
     dialog.showModal();
 
     document.getElementById('ctSaveMap')?.addEventListener('click', async () => {
         try {
-            const [parentDocumentId, parentCriterionId] =
-                document.getElementById('ctParent').value.split('|');
-
+            const [parentDocumentId, parentCriterionId] = document.getElementById('ctParent').value.split('|');
             await api(`${API_URL}?action=map`, {
                 method: 'POST',
                 body: JSON.stringify({
@@ -213,7 +194,6 @@ function openMappingDialog(criterionId) {
                     aggregation_rule: document.getElementById('ctRule').value
                 })
             });
-
             dialog.close();
             await loadContext();
         } catch (error) {
@@ -224,29 +204,31 @@ function openMappingDialog(criterionId) {
 }
 
 function openEvidenceDialog(criterionId) {
-    if (!context) {
-        return;
-    }
-
+    if (!context) return;
     const dialog = getDialog();
     const tests = (context.test_links || []).filter(test => test.result !== 'not_run');
 
     document.getElementById('ctTitle').textContent = 'Testnachweis zuordnen';
     document.getElementById('ctBody').innerHTML = tests.length
         ? `
-            <label class="field">
-                <span>Nachweis</span>
-                <select id="ctTest">
-                    ${tests.map(test => `
-                        <option value="${escapeHtml(test.id)}">
-                            ${escapeHtml(test.label)} · ${escapeHtml(test.result)}
-                        </option>
-                    `).join('')}
-                </select>
-            </label>
-            <button type="button" id="ctSaveEvidence">Nachweis übernehmen</button>
+            <fieldset class="cl-fieldset">
+                <legend class="cl-legend">Testauswahl</legend>
+                <div class="cl-fieldset-body">
+                    <label class="cl-label block text-sm font-bold text-slate-700">Nachweis
+                        <select id="ctTest" class="cl-select mt-1 w-full border border-slate-300 bg-white p-2.5 outline-none focus:border-blue-950">
+                            ${tests.map(test => `<option value="${escapeHtml(test.id)}">${escapeHtml(test.label)} • ${escapeHtml(test.result)}</option>`).join('')}
+                        </select>
+                    </label>
+                </div>
+            </fieldset>
         `
-        : '<p>Zuerst unter Verifikation einen ausgeführten Test Run mit Ergebnis verknüpfen.</p>';
+        : '<p class="text-sm text-slate-500 italic">Zuerst unter Verifikation einen ausgeführten Test Run mit Ergebnis verknüpfen.</p>';
+
+    document.getElementById('ctFooterActions').innerHTML = `
+        <button type="button" id="ctCloseBtn" class="cl-button cl-button-secondary bg-white px-5 py-2 text-xs font-bold uppercase">Abbrechen</button>
+        ${tests.length ? '<button type="button" id="ctSaveEvidence" class="cl-button cl-button-primary bg-blue-950 px-6 py-2 text-xs font-bold uppercase text-white hover:bg-blue-900">Nachweis übernehmen</button>' : ''}
+    `;
+    document.getElementById('ctCloseBtn').addEventListener('click', () => dialog.close());
 
     dialog.showModal();
 
@@ -260,7 +242,6 @@ function openEvidenceDialog(criterionId) {
                     document_test_link_id: document.getElementById('ctTest').value
                 })
             });
-
             dialog.close();
             await loadContext();
         } catch (error) {
@@ -273,13 +254,8 @@ function openEvidenceDialog(criterionId) {
 function handleToolPointerDown(event) {
     const mapButton = event.target.closest('.ct-map');
     const evidenceButton = event.target.closest('.ct-evidence');
+    if (!mapButton && !evidenceButton) return;
 
-    if (!mapButton && !evidenceButton) {
-        return;
-    }
-
-    // Editor.js captures mouse events inside editable blocks.
-    // Handle the action during capture and stop Editor.js from swallowing it.
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
@@ -300,13 +276,9 @@ function handleDocumentSelection(event) {
 }
 
 export function initCriterionTraceability() {
-    if (initialized) {
-        return;
-    }
-
+    if (initialized) return;
     initialized = true;
-
-    // Capture phase is essential for controls injected into Editor.js blocks.
+    
     document.addEventListener('pointerdown', handleToolPointerDown, true);
     document.addEventListener('mousedown', handleToolPointerDown, true);
     document.addEventListener('click', handleDocumentSelection);
@@ -321,11 +293,7 @@ export function initCriterionTraceability() {
                 }, 150);
             }
         });
-
-        observer.observe(editorRoot, {
-            childList: true,
-            subtree: true
-        });
+        observer.observe(editorRoot, { childList: true, subtree: true });
     }
 
     window.setTimeout(() => {

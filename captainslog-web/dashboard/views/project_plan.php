@@ -159,7 +159,7 @@
 ========================================================== -->
 <div id="modalTask" class="cl-modal-overlay hidden">
 
-    <form id="formTask" class="cl-modal max-w-5xl">
+    <form id="formTask" class="mx-auto flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded bg-white shadow-2xl">
 
         <!-- Modal-Kopf -->
         <div class="cl-modal-header">

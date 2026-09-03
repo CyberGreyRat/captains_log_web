@@ -69,9 +69,7 @@
     id="goalModal"
     class="fixed inset-0 z-[220] hidden items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
 
-    <form
-        id="goalForm"
-        class="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden border border-slate-400 bg-white shadow-2xl">
+   <form id="goalForm" class="mx-auto flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded bg-white shadow-2xl">
 
         <div class="flex items-start justify-between border-b border-slate-300 bg-[#eef2f6] px-6 py-4">
 

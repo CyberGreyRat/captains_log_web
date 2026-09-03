@@ -2,9 +2,9 @@
 CODE-EXPORT
 ============================================================
 Projekt:       C:\xampp\htdocs\captainslog-web
-Erstellt:      2026-09-02 14:24:31
+Erstellt:      2026-09-03 08:37:05
 Dateitypen:    JavaScript (*.js), PHP (*.php)
-Dateien:       156
+Dateien:       157
 
 ============================================================
 DATEIUEBERSICHT
@@ -18,7 +18,7 @@ api\coverage_lib.php | 5 Zeilen | 3703 Bytes
 api\create_requirement_document.php | 5 Zeilen | 2801 Bytes
 api\criterion_traceability.php | 179 Zeilen | 10977 Bytes
 api\delete_attachment.php | 3 Zeilen | 758 Bytes
-api\delete_document.php | 2 Zeilen | 1905 Bytes
+api\delete_document.php | 2 Zeilen | 2106 Bytes
 api\delete_issue.php | 8 Zeilen | 797 Bytes
 api\delete_requirement.php | 28 Zeilen | 1050 Bytes
 api\delete_requirement_import_profile.php | 3 Zeilen | 464 Bytes
@@ -26,11 +26,12 @@ api\delete_task.php | 20 Zeilen | 838 Bytes
 api\document_coverage.php | 2 Zeilen | 293 Bytes
 api\document_entity_catalog.php | 9 Zeilen | 2089 Bytes
 api\document_file.php | 2 Zeilen | 861 Bytes
+api\document_history_lib.php | 4 Zeilen | 2441 Bytes
 api\document_links.php | 5 Zeilen | 2877 Bytes
 api\document_risk.php | 4 Zeilen | 1025 Bytes
 api\document_studio.php | 6 Zeilen | 5533 Bytes
 api\document_studio_common.php | 70 Zeilen | 2153 Bytes
-api\document_studio_v4.php | 146 Zeilen | 9494 Bytes
+api\document_studio_v4.php | 152 Zeilen | 9922 Bytes
 api\document_templates_v4.php | 1 Zeilen | 493 Bytes
 api\document_test_links.php | 5 Zeilen | 1950 Bytes
 api\document_types.php | 1 Zeilen | 446 Bytes
@@ -94,7 +95,7 @@ api\set_issue.php | 71 Zeilen | 5018 Bytes
 api\set_project_member.php | 94 Zeilen | 3057 Bytes
 api\set_project_role.php | 46 Zeilen | 1447 Bytes
 api\set_requirements.php | 187 Zeilen | 7232 Bytes
-api\set_risk.php | 120 Zeilen | 9723 Bytes
+api\set_risk.php | 120 Zeilen | 9922 Bytes
 api\set_stakeholder.php | 60 Zeilen | 2257 Bytes
 api\set_task.php | 127 Zeilen | 5813 Bytes
 api\set_tc_links.php | 8 Zeilen | 469 Bytes
@@ -114,8 +115,8 @@ config\audit_context.php | 33 Zeilen | 944 Bytes
 config\db.php | 49 Zeilen | 1657 Bytes
 dashboard\admin_users.php | 259 Zeilen | 13606 Bytes
 dashboard\cu.php | 15 Zeilen | 625 Bytes
-dashboard\header.php | 50 Zeilen | 2512 Bytes
-dashboard\index.php | 29 Zeilen | 4589 Bytes
+dashboard\header.php | 122 Zeilen | 4998 Bytes
+dashboard\index.php | 393 Zeilen | 13279 Bytes
 dashboard\js\acceptance_criteria_suggestions.js | 101 Zeilen | 6774 Bytes
 dashboard\js\api.js | 51 Zeilen | 1680 Bytes
 dashboard\js\app.js | 693 Zeilen | 14885 Bytes
@@ -573,7 +574,7 @@ ENDE DATEI: api\delete_attachment.php
 DATEI: api\delete_document.php
 ============================================================
 <?php
-declare(strict_types=1);ini_set('display_errors','0');error_reporting(E_ALL);session_start();require_once __DIR__.'/../config/db.php';header('Content-Type: application/json; charset=utf-8');function respond(array$d,int$s=200):never{http_response_code($s);echo json_encode($d,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_INVALID_UTF8_SUBSTITUTE);exit;}try{if(empty($_SESSION['user_id']))respond(['success'=>false,'error'=>'Nicht angemeldet.'],401);if($_SERVER['REQUEST_METHOD']!=='POST')respond(['success'=>false,'error'=>'Methode nicht erlaubt.'],405);$x=json_decode(file_get_contents('php://input'),true);if(!is_array($x))respond(['success'=>false,'error'=>'Ungültiges JSON.'],400);$id=trim((string)($x['id']??''));$key=trim((string)($x['confirmation_key']??''));$pdo->beginTransaction();$q=$pdo->prepare('SELECT id,project_id,requirement_key FROM requirement_documents WHERE id=? FOR UPDATE');$q->execute([$id]);$d=$q->fetch(PDO::FETCH_ASSOC);if(!$d){$pdo->rollBack();respond(['success'=>false,'error'=>'Dokument nicht gefunden.'],404);}if(!hash_equals((string)$d['requirement_key'],$key)){$pdo->rollBack();respond(['success'=>false,'error'=>'Bestätigungskennung stimmt nicht überein.'],409);}$f=$pdo->prepare('SELECT relative_path FROM requirement_document_files WHERE document_id=?');$f->execute([$id]);$paths=$f->fetchAll(PDO::FETCH_COLUMN);$pdo->prepare('DELETE FROM requirement_documents WHERE id=?')->execute([$id]);$pdo->commit();$base=realpath(__DIR__.'/../uploads/documents');$count=0;if($base)foreach($paths as$rel){$path=realpath(__DIR__.'/../'.ltrim((string)$rel,'/\\'));if($path&&str_starts_with($path,$base.DIRECTORY_SEPARATOR)&&is_file($path)&&@unlink($path))$count++;}respond(['success'=>true,'deleted_id'=>$id,'deleted_files'=>$count]);}catch(Throwable$e){if(isset($pdo)&&$pdo->inTransaction())$pdo->rollBack();respond(['success'=>false,'error'=>$e->getMessage()],500);}
+declare(strict_types=1);ini_set('display_errors','0');error_reporting(E_ALL);if(session_status()===PHP_SESSION_NONE)session_start();require_once __DIR__.'/../config/db.php';require_once __DIR__.'/document_history_lib.php';header('Content-Type: application/json; charset=utf-8');function respond(array$d,int$s=200):never{http_response_code($s);echo json_encode($d,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_INVALID_UTF8_SUBSTITUTE);exit;}try{$userId=(int)($_SESSION['user_id']??0);if($userId<=0)respond(['success'=>false,'error'=>'Nicht angemeldet.'],401);if($_SERVER['REQUEST_METHOD']!=='POST')respond(['success'=>false,'error'=>'Methode nicht erlaubt.'],405);$x=json_decode(file_get_contents('php://input'),true);if(!is_array($x))respond(['success'=>false,'error'=>'Ungültiges JSON.'],400);$id=trim((string)($x['id']??''));$key=trim((string)($x['confirmation_key']??''));$pdo->beginTransaction();$q=$pdo->prepare('SELECT id,project_id,requirement_key FROM requirement_documents WHERE id=? FOR UPDATE');$q->execute([$id]);$d=$q->fetch(PDO::FETCH_ASSOC);if(!$d){$pdo->rollBack();respond(['success'=>false,'error'=>'Dokument nicht gefunden.'],404);}if(!hash_equals((string)$d['requirement_key'],$key)){$pdo->rollBack();respond(['success'=>false,'error'=>'Bestätigungskennung stimmt nicht überein.'],409);}$snapshot=documentSnapshot($pdo,$id);documentWriteHistory($pdo,$snapshot,'DELETE',$userId);$f=$pdo->prepare('SELECT relative_path FROM requirement_document_files WHERE document_id=?');$f->execute([$id]);$paths=$f->fetchAll(PDO::FETCH_COLUMN);$pdo->prepare('DELETE FROM requirement_documents WHERE id=?')->execute([$id]);$pdo->commit();$base=realpath(__DIR__.'/../uploads/documents');$count=0;if($base)foreach($paths as$rel){$path=realpath(__DIR__.'/../'.ltrim((string)$rel,'/\\'));if($path&&str_starts_with($path,$base.DIRECTORY_SEPARATOR)&&is_file($path)&&@unlink($path))$count++;}respond(['success'=>true,'deleted_id'=>$id,'deleted_files'=>$count]);}catch(Throwable$e){if(isset($pdo)&&$pdo->inTransaction())$pdo->rollBack();respond(['success'=>false,'error'=>$e->getMessage()],500);}
 
 
 ENDE DATEI: api\delete_document.php
@@ -699,6 +700,17 @@ require_once __DIR__.'/verification_common.php';vuser();try{$id=trim((string)($_
 ENDE DATEI: api\document_file.php
 
 ============================================================
+DATEI: api\document_history_lib.php
+============================================================
+<?php
+declare(strict_types=1);
+function documentSnapshot(PDO $pdo,string $documentId):array{$q=$pdo->prepare('SELECT * FROM requirement_documents WHERE id=?');$q->execute([$documentId]);$document=$q->fetch(PDO::FETCH_ASSOC)?:[];$q=$pdo->prepare('SELECT id,editor_block_id,block_type,content,sort_order FROM requirement_document_blocks WHERE document_id=? ORDER BY sort_order,id');$q->execute([$documentId]);$blocks=$q->fetchAll(PDO::FETCH_ASSOC);foreach($blocks as &$block){$decoded=json_decode((string)($block['content']??''),true);$block['content']=json_last_error()===JSON_ERROR_NONE?$decoded:$block['content'];}unset($block);return ['document'=>$document,'blocks'=>$blocks];}
+function documentWriteHistory(PDO $pdo,array $snapshot,string $action,int $userId,?array $oldSnapshot=null):void{$document=$snapshot['document']??[];$documentId=(string)($document['id']??'');$projectId=(string)($document['project_id']??'');$key=(string)($document['requirement_key']??$documentId);$title=(string)($document['title']??'');$revision=max(1,(int)($document['revision']??1));$q=$pdo->prepare('INSERT INTO requirement_document_revisions(document_id,project_id,requirement_key,title,revision,action,snapshot,created_by)VALUES(?,?,?,?,?,?,?,?)');$q->execute([$documentId,$projectId,$key,$title,$revision,$action,json_encode($snapshot,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),$userId]);$changed=[];if($oldSnapshot){$old=$oldSnapshot['document']??[];foreach(['title','status','priority','relevance','review_status','revision','metadata']as$field)if(($old[$field]??null)!==($document[$field]??null))$changed[]=$field;if(($oldSnapshot['blocks']??[])!==($snapshot['blocks']??[]))$changed[]='blocks';}$q=$pdo->prepare('INSERT INTO audit_log(project_id,entity_type,entity_id,entity_key,entity_title,action,old_data,new_data,changed_fields,actor_user_id,actor_name,source_type,source_name,hostname,request_id,created_at)VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)');$q->execute([$projectId,'requirement_document',$documentId,$key,$title,strtoupper($action),$oldSnapshot?json_encode($oldSnapshot,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES):null,json_encode($snapshot,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),json_encode($changed,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),$userId,$_SESSION['username']??null,'web',basename($_SERVER['SCRIPT_NAME']??'document_studio_v4.php'),gethostname()?:'unbekannt',bin2hex(random_bytes(16))]);}
+
+
+ENDE DATEI: api\document_history_lib.php
+
+============================================================
 DATEI: api\document_links.php
 ============================================================
 <?php
@@ -815,6 +827,7 @@ DATEI: api\document_studio_v4.php
 ============================================================
 <?php
 require_once __DIR__ . '/document_studio_common.php';
+require_once __DIR__ . '/document_history_lib.php';
 $u = uid();
 try {
     $action = $_GET['action'] ?? '';
@@ -896,6 +909,8 @@ try {
                 $typeName = 'text';
             $ins->execute([uuid4(), $id, null, $typeName, json_encode($b['data'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $i]);
         }
+        $createdSnapshot = documentSnapshot($pdo, $id);
+        documentWriteHistory($pdo, $createdSnapshot, 'CREATE', $u);
         $pdo->commit();
         out(['success' => true, 'id' => $id, 'key' => $display], 201);
     }
@@ -907,6 +922,7 @@ try {
             out(['success' => false, 'error' => 'Blöcke fehlen.'], 422);
         $pdo->beginTransaction();
         $before = doc($pdo, $id);
+        $oldSnapshot = documentSnapshot($pdo, $id);
         $normalized = [];
         foreach (array_values($blocks) as $b) {
             $data = is_array($b['data'] ?? null) ? $b['data'] : [];
@@ -950,8 +966,10 @@ try {
             $pdo->prepare("DELETE FROM requirement_document_blocks WHERE document_id=? AND id NOT IN($marks)")->execute(array_merge([$id], $keep));
         } else
             $pdo->prepare('DELETE FROM requirement_document_blocks WHERE document_id=?')->execute([$id]);
+        $savedSnapshot = documentSnapshot($pdo, $id);
+        documentWriteHistory($pdo, $savedSnapshot, 'UPDATE', $u, $oldSnapshot);
         $pdo->commit();
-        out(['success' => true, 'revision' => $revision]);
+        out(['success' => true, 'revision' => $revision, 'updated_at' => $savedSnapshot['document']['updated_at'] ?? null]);
     }
     out(['success' => false, 'error' => 'Unbekannte Aktion.'], 400);
 } catch (Throwable $e) {
@@ -6128,13 +6146,13 @@ try {
         'cause' => trim((string)($data['cause'] ?? '')),
         'malfunction' => trim((string)($data['malfunction'] ?? '')),
         'effect' => trim((string)($data['effect'] ?? '')),
-        'w' => $w, 'e' => $e, 'risk_score' => $w*$e,
+        'w' => $w, 'e' => $e, 'risk_score' => max(1,(int)($data['risk_score']??1)), 'risk_formula' => trim((string)($data['risk_formula']??'')), 'risk_formula_version' => max(1,(int)($data['risk_formula_version']??1)),
         'review_date' => trim((string)($data['review_date'] ?? '')),
         'workflow_status' => $workflowStatus,
         'decision' => trim((string)($data['decision'] ?? '')),
         'mitigation_plan' => trim((string)($data['mitigation_plan'] ?? '')),
         'implementation_status' => trim((string)($data['implementation_status'] ?? 'open')),
-        'residual_w' => $rw, 'residual_e' => $re, 'residual_score' => $rw*$re,
+        'residual_w' => $rw, 'residual_e' => $re, 'residual_score' => max(1,(int)($data['residual_score']??1)),
         'residual_accepted' => !empty($data['residual_accepted']),
         'residual_reason' => trim((string)($data['residual_reason'] ?? ''))
     ];
@@ -7365,10 +7383,16 @@ ENDE DATEI: dashboard\cu.php
 DATEI: dashboard\header.php
 ============================================================
 <?php
-if (session_status() === PHP_SESSION_NONE)
+// Sicherstellen, dass die Session läuft, falls noch nicht geschehen
+if (session_status() === PHP_SESSION_NONE) {
     session_start();
-if (!isset($projects))
-    $projects = $pdo->query("SELECT id,name FROM projects ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+}
+
+if (!isset($projects)) {
+    $projects = $pdo->query("SELECT id, name FROM projects ORDER BY name ASC")->fetchAll();
+}
+
+// Hostname und Rolle aus der Session laden (mit Fallback)
 $hostname = $_SESSION['hostname'] ?? 'Unknown';
 $role = $_SESSION['role'] ?? 'viewer';
 $username = $_SESSION['username'] ?? 'Gast';
@@ -7379,40 +7403,106 @@ $username = $_SESSION['username'] ?? 'Gast';
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Captain's Log</title>
-    <link rel="shortcut icon" href="css/favicon.ico">
+    <title>Captain's Log - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/captains-theme.css">
+    <link rel="stylesheet" href="css/document-studio.css">
     <link rel="stylesheet" href="css/app-shell.css">
     <link rel="stylesheet" href="css/navigation.css">
-    <link rel="stylesheet" href="css/document-studio.css">
     <link rel="stylesheet" href="css/acceptance-criteria-tool.css">
     <link rel="stylesheet" href="css/criterion-traceability.css">
+    <link rel="shortcut icon" href="css/favicon.ico" />
+    <style>
+        .panel {
+            display: none;
+        }
+
+        .panel.show {
+            display: block;
+        }
+
+        .tab.active {
+            color: #1e3a8a;
+            border-color: #1e3a8a;
+            background: #eff6ff;
+        }
+    </style>
 </head>
 
-<body class="cl-body">
-    <header class="cl-header">
-        <div class="cl-header-inner"><a href="index.php" class="cl-brand"><img src="css/logo.png"
-                    alt="Captain's Log"><span><small>REQUIREMENTS · RISK · VERIFICATION</small><strong>Captain's
-                        Log</strong></span></a>
-            <div class="cl-project"><label for="projectSelect">Projekt</label><select id="projectSelect">
-                    <option value="">-- Projekt wählen --</option><?php foreach ($projects as $proj): ?>
-                        <option value="<?= htmlspecialchars($proj['id']) ?>"><?= htmlspecialchars($proj['name']) ?></option>
-                    <?php endforeach; ?>
-                </select></div>
-            <div class="cl-user"><span class="cl-login">Angemeldet:
-                    <strong><?= htmlspecialchars($username) ?></strong><small><?= htmlspecialchars($hostname) ?></small></span>
-                <details class="cl-user-menu">
-                    <summary>Konto</summary>
-                    <div><a href="profile.php">Profil</a><?php if ($role === 'admin'): ?><a
-                                href="admin_users.php">Nutzerverwaltung</a><?php endif; ?><button type="button"
-                            data-open-project>Neues Projekt</button><a class="danger-link" href="logout.php">Logout</a>
+<body class="bg-slate-50 text-slate-800 flex flex-col h-screen overflow-hidden">
+
+    <!-- HEADER -->
+    <header class="border-t-4 border-amber-400 bg-[#0d3158] text-white shrink-0">
+        <div class="mx-auto flex h-24 max-w-screen-2xl items-center justify-between px-6">
+            <div class="flex items-center gap-4">
+                <a href="index.php" class="flex items-center gap-4 hover:opacity-80 transition cursor-pointer">
+                    <img src="css/logo.png" class="h-16 w-auto" alt="Captain's Log Logo">
+                    <div>
+                        <p class="text-xs uppercase tracking-[.2em] text-blue-200">Requirements · Risk · Verification
+                        </p>
+                        <h1 class="text-2xl font-bold">Captain's Log</h1>
                     </div>
-                </details>
+                </a>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <!-- Navigation Links (Profil & Admin) -->
+                <nav class="flex items-center gap-3 mr-2 text-sm border-r border-blue-400/40 pr-4">
+                    <a href="profile.php" class="hover:text-amber-300 transition">Profil</a>
+                    <?php if ($role === 'admin' || $role === 'editor'): ?>
+                        <a href="admin_users.php" class="text-amber-300 font-semibold hover:underline">Nutzerverwaltung</a>
+                    <?php endif; ?>
+                    <a href="index.php" class="hover:text-amber-300 transition">Home</a>
+                </nav>
+
+                <div class="user-info text-sm text-blue-100">
+                    Eingeloggt als: <strong class="text-white"><?php echo htmlspecialchars($username); ?></strong>
+                    @ <?php echo htmlspecialchars($hostname); ?>
+                </div>
+
+                <select id="projectSelect" class="text-slate-800 px-2 py-1 font-bold outline-none ">
+                    <option value="">-- Projekt wählen --</option>
+                    <?php foreach ($projects as $proj): ?>
+                        <option value="<?= $proj['id'] ?>"><?= htmlspecialchars($proj['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+
+                <button type="button" onclick="window.openNewProjectModal()"
+                    class="rounded-md border border-white px-3 py-2 text-sm font-bold transition hover:bg-white hover:text-[#0d3158]">
+                    Neues Projekt
+                </button>
+
+                <a href="logout.php" class="text-sm text-red-300 hover:text-red-100 transition ml-2">Logout</a>
             </div>
         </div>
     </header>
-    <div id="loadingOverlay" class="cl-overlay hidden">
-        <div class="cl-loading"><strong>Lade Projekt...</strong><i></i></div>
+
+    <!-- Eckiger Ladebalken -->
+    <style>
+        @keyframes loading-slide {
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(300%);
+            }
+        }
+
+        .animate-loading-bar {
+            animation: loading-slide 1.5s infinite linear;
+        }
+    </style>
+
+    <div id="loadingOverlay"
+        class="fixed inset-0 bg-slate-900/60 z-[9999] hidden flex items-center justify-center backdrop-blur-sm">
+        <div class="w-96 bg-white border-4 border-[#0d3158] p-8 shadow-2xl flex flex-col">
+            <h2 class="text-[#0d3158] font-bold text-lg uppercase tracking-[.2em] mb-4 text-center">Lade Projekt...</h2>
+            <!-- Der eigentliche Ladebalken -->
+            <div class="w-full h-6 bg-slate-200 overflow-hidden relative border border-slate-300">
+                <div class="absolute top-0 left-0 h-full bg-amber-400 w-1/3 animate-loading-bar"></div>
+            </div>
+        </div>
     </div>
 
 ENDE DATEI: dashboard\header.php
@@ -7421,34 +7511,398 @@ ENDE DATEI: dashboard\header.php
 DATEI: dashboard\index.php
 ============================================================
 <?php
-if(session_status()===PHP_SESSION_NONE)session_start();require_once __DIR__.'/../config/db.php';if(!isset($_SESSION['user_id'])){header('Location: login.php');exit;}require_once __DIR__.'/header.php';?>
-<div id="globalLoader" class="cl-overlay hidden"><div class="cl-loading"><strong>Synchronisiere Daten...</strong><i></i></div></div><div id="notificationArea" class="cl-notifications"></div>
-<nav class="cl-nav" aria-label="Hauptnavigation"><div class="cl-nav-inner">
-<button class="tab active" data-panel="dashboard">Dashboard</button><button class="tab" data-panel="requirements">Anforderungen</button><button class="tab" data-panel="risks">Risiken</button><button class="tab" data-panel="testmanagement">Tests</button><button class="tab" data-panel="projectplan">Projektplan</button>
-<details class="cl-nav-menu"><summary>Engineering</summary><div><button class="tab" data-panel="assets">Assets</button><button class="tab" data-panel="goals">Ziele</button><button class="tab" data-panel="stakeholders">Stakeholder</button><button class="tab" data-panel="usecases">Use Cases</button><button class="tab" data-panel="userstories">User Stories</button><button class="tab" data-panel="sbom">SBOM</button></div></details>
-<details class="cl-nav-menu"><summary>Nachweise</summary><div><button class="tab" data-panel="history">Historie</button><button class="tab" data-panel="iso14001">ISO 14001</button><button class="tab" data-panel="attachments">Anhänge</button><button class="tab" data-panel="reports">Reports</button></div></details>
-<details class="cl-nav-menu"><summary>Verwaltung</summary><div><button class="tab" data-panel="projectteam">Projektteam</button><button type="button" data-open-project>Neues Projekt</button><?php if(($_SESSION['role']??'viewer')==='admin'):?><a href="admin_users.php">Nutzerverwaltung</a><?php endif;?></div></details>
-</div></nav>
-<main class="cl-main"><section id="projectteam" class="panel"><?php include __DIR__.'/views/project_team.php'; ?></section>
-<section id="dashboard" class="panel show"><?php include __DIR__.'/views/dashboard.php'; ?></section>
-<section id="requirements" class="panel"><?php include __DIR__.'/views/requirements.php'; ?></section>
-<section id="testmanagement" class="panel"><?php include __DIR__.'/views/testmanagement.php'; ?></section>
-<section id="assets" class="panel"><?php include __DIR__.'/views/assets.php'; ?></section>
-<section id="goals" class="panel"><?php include __DIR__.'/views/goals.php'; ?></section>
-<section id="projectplan" class="panel"><?php include __DIR__.'/views/project_plan.php'; ?></section>
-<section id="issues" class="panel"><?php include __DIR__.'/views/issues.php'; ?></section>
-<section id="risks" class="panel"><?php include __DIR__.'/views/risks.php'; ?></section>
-<section id="stakeholders" class="panel"><?php include __DIR__.'/views/stakeholders.php'; ?></section>
-<section id="usecases" class="panel"><?php include __DIR__.'/views/usecases.php'; ?></section>
-<section id="userstories" class="panel"><?php include __DIR__.'/views/userstories.php'; ?></section>
-<section id="history" class="panel"><?php include __DIR__.'/views/history.php'; ?></section>
-<section id="sbom" class="panel"><?php include __DIR__.'/views/sbom.php'; ?></section>
-<section id="iso14001" class="panel"><?php include __DIR__.'/views/iso14001.php'; ?></section>
-<section id="attachments" class="panel"><?php include __DIR__.'/views/attachments.php'; ?></section>
-<section id="reports" class="panel"><?php include __DIR__.'/views/reports.php'; ?></section></main>
-<dialog id="newProjectModal" class="cl-dialog"><form id="newProjectForm"><header><h3>Neues Projekt</h3><button type="button" data-close-dialog="newProjectModal">×</button></header><label>Projektname<input id="newProjectName" name="name" required></label><label>Beschreibung<textarea id="newProjectDescription" name="description"></textarea></label><footer><button type="button" data-close-dialog="newProjectModal">Abbrechen</button><button type="submit" class="primary">Projekt anlegen</button></footer></form></dialog>
-<div id="projectSwitchModal" class="cl-modal hidden"><div><h3>Projekt öffnen?</h3><p>Möchtest du das Projekt <strong id="modalProjectName"></strong> öffnen?</p><p>Nicht gespeicherte Änderungen können beim Wechsel verloren gehen.</p><footer><button id="modalCancelBtn">Abbrechen</button><button id="modalConfirmBtn" class="primary">Projekt öffnen</button></footer></div></div>
-<script type="module" src="js/app.js?v=20260902-12"></script><script type="module" src="js/layout.js?v=20260902-1"></script></body></html>
+
+// dashboard/index.php
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+require_once __DIR__ . '/../config/db.php';
+
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
+}
+
+require_once __DIR__ . '/header.php';
+
+?>
+
+<!-- Globaler Loader -->
+<div id="globalLoader"
+    class="fixed inset-0 z-[9998] hidden items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+
+    <div class="flex w-full max-w-sm flex-col items-center rounded-lg border border-slate-300 bg-white p-8 shadow-2xl">
+
+        <div class="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-blue-950"></div>
+
+        <p class="mt-5 text-sm font-extrabold uppercase tracking-[0.16em] text-blue-950">
+            Synchronisiere Daten...
+        </p>
+    </div>
+</div>
+
+
+<!-- Benachrichtigungen -->
+<div id="notificationArea" class="fixed right-4 top-4 z-[9999] w-[min(92vw,520px)] space-y-3" aria-live="assertive"
+    aria-atomic="true">
+</div>
+
+
+<!-- Navigation -->
+<nav class="shrink-0 border-b border-slate-300 bg-white shadow-sm">
+
+    <div class="mx-auto flex max-w-screen-2xl overflow-x-auto px-6">
+
+        <button type="button"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
+            data-panel="projectteam">
+            Projektteam
+        </button>
+
+        <button type="button"
+            class="tab active border-b-2 border-blue-900 bg-blue-50 px-4 py-3 font-bold text-blue-900 transition-colors"
+            data-panel="dashboard">
+            Dashboard
+        </button>
+
+        <button type="button"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
+            data-panel="requirements">
+            Anforderungen
+        </button>
+
+        <button type="button"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
+            data-panel="testmanagement">
+            Test Management
+        </button>
+
+        <button type="button"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
+            data-panel="assets">
+            Assets
+        </button>
+
+        <button type="button"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
+            data-panel="goals">
+            Ziele
+        </button>
+
+        <button type="button"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
+            data-panel="projectplan">
+            Projektplan
+        </button>
+
+        <button type="button"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
+            data-panel="issues">
+            Issues
+        </button>
+
+        <button type="button"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
+            data-panel="risks">
+            Risiken
+        </button>
+
+        <button type="button"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
+            data-panel="stakeholders">
+            Stakeholder
+        </button>
+
+        <button type="button"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
+            data-panel="usecases">
+            Use Cases
+        </button>
+
+        <button type="button"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
+            data-panel="userstories">
+            User Stories
+        </button>
+
+        <button type="button"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
+            data-panel="history">
+            Historie
+        </button>
+
+        <button type="button"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
+            data-panel="sbom">
+            SBOM
+        </button>
+
+        <button type="button"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
+            data-panel="iso14001">
+            ISO 14001
+        </button>
+
+        <button type="button"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
+            data-panel="attachments">
+            📎 Anhänge
+        </button>
+
+        <button type="button"
+            class="tab border-b-2 border-transparent px-4 py-3 font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-950"
+            data-panel="reports">
+            Reports
+        </button>
+
+    </div>
+</nav>
+
+
+<!-- Hauptinhalt -->
+<main class="mx-auto flex min-h-0 w-full max-w-screen-2xl flex-1 overflow-hidden p-6">
+
+    <section id="projectteam" class="panel h-full min-h-0 w-full">
+        <?php include __DIR__ . '/views/project_team.php'; ?>
+    </section>
+
+    <section id="dashboard" class="panel show h-full min-h-0 w-full">
+        <?php include __DIR__ . '/views/dashboard.php'; ?>
+    </section>
+
+    <section id="requirements" class="panel h-full min-h-0 w-full">
+        <?php include __DIR__ . '/views/requirements.php'; ?>
+    </section>
+
+    <section id="testmanagement" class="panel h-full min-h-0 w-full">
+        <?php include __DIR__ . '/views/testmanagement.php'; ?>
+    </section>
+
+    <section id="assets" class="panel h-full min-h-0 w-full">
+        <?php include __DIR__ . '/views/assets.php'; ?>
+    </section>
+
+    <section id="goals" class="panel h-full min-h-0 w-full">
+        <?php include __DIR__ . '/views/goals.php'; ?>
+    </section>
+
+    <section id="projectplan" class="panel h-full min-h-0 w-full">
+        <?php include __DIR__ . '/views/project_plan.php'; ?>
+    </section>
+
+    <section id="issues" class="panel h-full min-h-0 w-full">
+        <?php include __DIR__ . '/views/issues.php'; ?>
+    </section>
+
+    <section id="risks" class="panel h-full min-h-0 w-full">
+        <?php include __DIR__ . '/views/risks.php'; ?>
+    </section>
+
+    <section id="stakeholders" class="panel h-full min-h-0 w-full">
+        <?php include __DIR__ . '/views/stakeholders.php'; ?>
+    </section>
+
+    <section id="usecases" class="panel h-full min-h-0 w-full">
+        <?php include __DIR__ . '/views/usecases.php'; ?>
+    </section>
+
+    <section id="userstories" class="panel h-full min-h-0 w-full">
+        <?php include __DIR__ . '/views/userstories.php'; ?>
+    </section>
+
+    <section id="history" class="panel h-full min-h-0 w-full">
+        <?php include __DIR__ . '/views/history.php'; ?>
+    </section>
+
+    <section id="sbom" class="panel h-full min-h-0 w-full">
+        <?php include __DIR__ . '/views/sbom.php'; ?>
+    </section>
+
+    <section id="iso14001" class="panel h-full min-h-0 w-full">
+        <?php include __DIR__ . '/views/iso14001.php'; ?>
+    </section>
+
+    <section id="attachments" class="panel">
+        <?php require __DIR__ . '/views/attachments.php'; ?>
+    </section>
+
+    <section id="reports" class="panel h-full min-h-0 w-full">
+        <?php include __DIR__ . '/views/reports.php'; ?>
+    </section>
+
+</main>
+
+
+<!-- Neues Projekt -->
+<div id="newProjectModal"
+    class="fixed inset-0 z-[300] hidden items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+
+    <!-- HIER IST DER REPARIERTE FORM-TAG INKLUSIVE STYLING -->
+    <form action="../api/web_create_project.php" method="POST" class="cl-modal max-w-md">
+
+        <div class="cl-modal-header">
+            <div>
+                <p class="cl-panel-eyebrow">
+                    Projektverwaltung
+                </p>
+                <h2 class="cl-modal-title">
+                    Neues Projekt erstellen
+                </h2>
+            </div>
+            <button type="button" data-close-modal="newProjectModal"
+                class="cl-button cl-button-secondary min-h-0 px-2.5 py-2" aria-label="Fenster schließen">
+                ✕
+            </button>
+        </div>
+
+        <div class="cl-modal-body space-y-5">
+            <label class="cl-label">
+                Projektname
+                <input name="name" type="text" required maxlength="255" autocomplete="off"
+                    placeholder="Name des neuen Projekts" class="cl-input text-base font-semibold">
+            </label>
+
+            <label class="cl-label">
+                Beschreibung
+                <textarea name="description" rows="4" placeholder="Kurze Beschreibung von Ziel und Inhalt"
+                    class="cl-textarea"></textarea>
+            </label>
+        </div>
+
+        <div class="cl-modal-footer">
+            <button type="button" data-close-modal="newProjectModal" class="cl-button cl-button-secondary">
+                Abbrechen
+            </button>
+            <button type="submit" class="cl-button cl-button-primary">
+                Projekt anlegen
+            </button>
+        </div>
+    </form>
+</div>
+
+
+<!-- Projektwechsel bestätigen -->
+<div id="projectSwitchModal"
+    class="fixed inset-0 z-[310] hidden items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+
+    <div class="cl-modal max-w-md">
+
+        <div class="cl-modal-header">
+
+            <div class="flex items-center gap-3">
+
+                <div
+                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-blue-700">
+
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z">
+                        </path>
+                    </svg>
+                </div>
+
+                <div>
+                    <p class="cl-panel-eyebrow">
+                        Arbeitsbereich wechseln
+                    </p>
+
+                    <h3 class="cl-modal-title">
+                        Projekt öffnen?
+                    </h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="cl-modal-body">
+
+            <p class="text-sm leading-6 text-slate-700">
+                Möchtest du das Projekt
+
+                <span id="modalProjectName" class="font-bold text-blue-950">
+                </span>
+
+                öffnen?
+            </p>
+
+            <div class="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                Nicht gespeicherte Änderungen können beim Wechsel verloren gehen.
+            </div>
+        </div>
+
+        <div class="cl-modal-footer">
+
+            <button id="modalCancelBtn" type="button" class="cl-button cl-button-secondary">
+                Abbrechen
+            </button>
+
+            <button id="modalConfirmBtn" type="button" class="cl-button cl-button-primary">
+                Projekt öffnen
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    window.showLoader = function () {
+        const loader = document.getElementById('globalLoader');
+
+        if (loader) {
+            loader.classList.remove('hidden');
+            loader.classList.add('flex');
+        }
+    };
+
+    window.hideLoader = function () {
+        const loader = document.getElementById('globalLoader');
+
+        if (loader) {
+            loader.classList.add('hidden');
+            loader.classList.remove('flex');
+        }
+    };
+
+    window.openNewProjectModal = function () {
+        const modal = document.getElementById('newProjectModal');
+
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    };
+
+    document
+        .querySelectorAll('[data-close-modal]')
+        .forEach(button => {
+            button.addEventListener('click', () => {
+                const modalId = button.dataset.closeModal;
+                const modal = document.getElementById(modalId);
+
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            });
+        });
+
+    document
+        .getElementById('newProjectModal')
+        ?.addEventListener('click', function (event) {
+            if (event.target === this) {
+                this.classList.add('hidden');
+                this.classList.remove('flex');
+            }
+        });
+
+</script>
+<script type="module" src="js/app.js"></script>
+
+</body>
+
+</html>
 
 ENDE DATEI: dashboard\index.php
 

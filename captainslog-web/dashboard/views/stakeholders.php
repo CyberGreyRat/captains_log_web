@@ -312,7 +312,7 @@
 ========================================================== -->
 <div id="modalStakeholder" class="cl-modal-overlay hidden">
 
-    <form id="formStakeholder" class="cl-modal max-w-3xl">
+    <form id="formStakeholder" class="mx-auto flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded bg-white shadow-2xl">
 
         <!-- Modal-Kopf -->
         <div class="cl-modal-header">

@@ -140,8 +140,7 @@
 ========================================================== -->
 <div id="modalUseCase" class="cl-modal-overlay hidden">
 
-    <form id="formUseCase" class="cl-modal max-w-3xl">
-
+<form id="formUseCase" class="mx-auto flex max-h-[94vh] w-full max-w-3xl flex-col overflow-hidden rounded bg-white shadow-2xl">
         <!-- =================================================
              MODAL-KOPF
         ================================================== -->
