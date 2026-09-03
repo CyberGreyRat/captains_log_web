@@ -31,6 +31,43 @@
 
 
     <!-- =====================================================
+         HINWEISLEISTE
+    ====================================================== -->
+    <div class="grid shrink-0 grid-cols-1 gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 md:grid-cols-3">
+
+        <div class="cl-kpi border-l-emerald-500">
+            <div class="cl-kpi-label">
+                Niedriges Risiko
+            </div>
+
+            <div class="mt-1 text-sm font-semibold text-slate-700">
+                Beobachten und regelmäßig bewerten
+            </div>
+        </div>
+
+        <div class="cl-kpi border-l-amber-500">
+            <div class="cl-kpi-label">
+                Mittleres Risiko
+            </div>
+
+            <div class="mt-1 text-sm font-semibold text-slate-700">
+                Maßnahmen und Frühwarnsystem festlegen
+            </div>
+        </div>
+
+        <div class="cl-kpi border-l-red-500">
+            <div class="cl-kpi-label">
+                Hohes Risiko
+            </div>
+
+            <div class="mt-1 text-sm font-semibold text-slate-700">
+                Sofort bewerten und aktiv reduzieren
+            </div>
+        </div>
+    </div>
+
+
+    <!-- =====================================================
          RISIKOTABELLE
     ====================================================== -->
     <div class="cl-table-container min-h-[280px] shrink-0 flex-none">
@@ -103,6 +140,159 @@
 
 
     <!-- =====================================================
+         RISIKOMATRIX
+    ====================================================== -->
+    <section class="shrink-0 border-t border-slate-200 bg-slate-50 px-5 py-5">
+
+        <div class="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+
+            <div>
+                <p class="cl-panel-eyebrow">
+                    Visuelle Auswertung
+                </p>
+
+                <h3 class="text-lg font-extrabold text-blue-950">
+                    Risikomatrix
+                </h3>
+
+                <p class="mt-1 text-xs text-slate-500">
+                    Positionierung anhand von Wahrscheinlichkeit und Auswirkung.
+                </p>
+            </div>
+
+            <div class="flex flex-wrap gap-2 text-[10px] font-bold uppercase">
+
+                <span class="cl-badge cl-badge-success">
+                    Niedrig
+                </span>
+
+                <span class="cl-badge cl-badge-warning">
+                    Mittel
+                </span>
+
+                <span class="cl-badge border-orange-300 bg-orange-50 text-orange-800">
+                    Hoch
+                </span>
+
+                <span class="cl-badge cl-badge-danger">
+                    Kritisch
+                </span>
+            </div>
+        </div>
+
+
+        <div class="cl-card mx-auto max-w-3xl">
+
+            <div class="cl-card-body">
+
+                <div class="flex justify-center overflow-x-auto px-8 pb-10 pt-4">
+
+                    <div class="relative h-[460px] w-[460px] shrink-0">
+
+                        <!-- Y-Achsen-Beschriftung -->
+                        <div
+                            class="absolute -left-20 top-1/2 -translate-y-1/2 -rotate-90 text-xs font-extrabold uppercase tracking-wide text-slate-600">
+                            Auswirkung
+                        </div>
+
+                        <!-- X-Achsen-Beschriftung -->
+                        <div
+                            class="absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-extrabold uppercase tracking-wide text-slate-600">
+                            Wahrscheinlichkeit
+                        </div>
+
+
+                        <!-- Y-Achsen-Werte -->
+                        <div class="absolute -left-7 inset-y-0 grid grid-rows-5 text-xs font-bold text-slate-500">
+
+                            <div class="flex items-center justify-center">
+                                5
+                            </div>
+
+                            <div class="flex items-center justify-center">
+                                4
+                            </div>
+
+                            <div class="flex items-center justify-center">
+                                3
+                            </div>
+
+                            <div class="flex items-center justify-center">
+                                2
+                            </div>
+
+                            <div class="flex items-center justify-center">
+                                1
+                            </div>
+                        </div>
+
+
+                        <!-- X-Achsen-Werte -->
+                        <div class="absolute -bottom-6 inset-x-0 grid grid-cols-5 text-xs font-bold text-slate-500">
+
+                            <div class="text-center">1</div>
+                            <div class="text-center">2</div>
+                            <div class="text-center">3</div>
+                            <div class="text-center">4</div>
+                            <div class="text-center">5</div>
+                        </div>
+
+
+                        <!-- Matrix -->
+                        <div
+                            class="absolute inset-0 overflow-hidden rounded-md border-2 border-slate-500 bg-white shadow-sm">
+
+                            <!-- Farbfelder -->
+                            <div class="absolute inset-0 grid grid-cols-5 grid-rows-5">
+
+                                <!-- Auswirkung 5 -->
+                                <div class="border border-white/50 bg-amber-300"></div>
+                                <div class="border border-white/50 bg-orange-400"></div>
+                                <div class="border border-white/50 bg-red-400"></div>
+                                <div class="border border-white/50 bg-red-500"></div>
+                                <div class="border border-white/50 bg-red-600"></div>
+
+                                <!-- Auswirkung 4 -->
+                                <div class="border border-white/50 bg-emerald-300"></div>
+                                <div class="border border-white/50 bg-amber-300"></div>
+                                <div class="border border-white/50 bg-orange-400"></div>
+                                <div class="border border-white/50 bg-red-400"></div>
+                                <div class="border border-white/50 bg-red-500"></div>
+
+                                <!-- Auswirkung 3 -->
+                                <div class="border border-white/50 bg-emerald-400"></div>
+                                <div class="border border-white/50 bg-emerald-300"></div>
+                                <div class="border border-white/50 bg-amber-300"></div>
+                                <div class="border border-white/50 bg-orange-400"></div>
+                                <div class="border border-white/50 bg-red-400"></div>
+
+                                <!-- Auswirkung 2 -->
+                                <div class="border border-white/50 bg-emerald-500"></div>
+                                <div class="border border-white/50 bg-emerald-400"></div>
+                                <div class="border border-white/50 bg-emerald-300"></div>
+                                <div class="border border-white/50 bg-amber-300"></div>
+                                <div class="border border-white/50 bg-orange-400"></div>
+
+                                <!-- Auswirkung 1 -->
+                                <div class="border border-white/50 bg-emerald-500"></div>
+                                <div class="border border-white/50 bg-emerald-500"></div>
+                                <div class="border border-white/50 bg-emerald-400"></div>
+                                <div class="border border-white/50 bg-emerald-300"></div>
+                                <div class="border border-white/50 bg-amber-300"></div>
+                            </div>
+
+                            <!-- Risikopunkte -->
+                            <div id="riskMapPoints" class="absolute inset-0 z-10">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- =====================================================
          FUSSLEISTE
     ====================================================== -->
     <div class="cl-panel-footer">
@@ -122,14 +312,12 @@
      MODAL: RISIKO ERSTELLEN ODER BEARBEITEN
 ========================================================== -->
 <div id="modalRisk" class="cl-modal-overlay hidden">
-  <form id="formRisk" class="cl-modal flex max-h-[94vh] max-w-6xl flex-col overflow-hidden"
-    style="display:flex !important; flex-direction:column !important; width:calc(100vw - 64px) !important; min-width:1100px !important; max-width:1500px !important; height:calc(100vh - 48px) !important; max-height:940px !important; margin:0 auto !important; transform:none !important; overflow:hidden !important;">
+  <form id="formRisk" class="cl-modal flex max-h-[94vh] max-w-6xl flex-col overflow-hidden">
     <div class="cl-modal-header shrink-0">
       <div><p class="cl-panel-eyebrow">Risikoerfassung</p><h2 id="riskModalTitle" class="cl-modal-title">Neues Risiko erfassen</h2></div>
       <button id="riskModalClose" type="button" class="cl-button cl-button-secondary">✕</button>
     </div>
-    <div class="min-h-0 flex-1 space-y-5 overflow-y-auto p-6"
-      style="box-sizing:border-box !important; width:100% !important; min-width:0 !important; overflow-x:hidden !important; overflow-y:auto !important;">
+    <div class="min-h-0 flex-1 space-y-5 overflow-y-auto p-6">
       <input id="risk_id" type="hidden"><input id="risk_key" type="hidden">
 
       <fieldset class="border border-slate-300 p-4"><legend class="px-2 text-xs font-extrabold uppercase text-blue-950">Risiko</legend>

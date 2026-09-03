@@ -14,6 +14,7 @@ $username = $_SESSION['username'] ?? 'Gast';
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Captain's Log</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="shortcut icon" href="css/favicon.ico">
     <link rel="stylesheet" href="css/captains-theme.css">
     <link rel="stylesheet" href="css/app-shell.css">
